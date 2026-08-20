@@ -1,4 +1,4 @@
-package br.com.integrationhub.backend.integration;
+package br.com.integrationhub.integration;
 
 import java.util.List;
 import java.util.Map;
