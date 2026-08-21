@@ -1,15 +1,17 @@
 package br.com.integrationhub.integration.repository;
 
-import br.com.integrationhub.integration.model.IntegrationEndpoint;
+import br.com.integrationhub.integration.model.Integration;
 
 import java.util.List;
 import java.util.Optional;
 
 public interface IntegrationRepository {
 
-    List<IntegrationEndpoint> findAll();
+    List<Integration> findAll();
 
-    Optional<IntegrationEndpoint> findByPath(String path);
+    Optional<Integration> findById(Long id);
 
-    IntegrationEndpoint save(IntegrationEndpoint integrationEndpoint);
+    Optional<Integration> findByBasePath(String basePath);
+
+    Integration save(Integration integration);
 }

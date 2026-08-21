@@ -1,6 +1,6 @@
 package br.com.integrationhub.integration.service;
 
-import br.com.integrationhub.integration.model.IntegrationEndpoint;
+import br.com.integrationhub.integration.model.Integration;
 import br.com.integrationhub.integration.repository.IntegrationRepository;
 import org.springframework.stereotype.Service;
 
@@ -16,15 +16,19 @@ public class IntegrationService {
         this.integrationRepository = integrationRepository;
     }
 
-    public List<IntegrationEndpoint> findAll() {
+    public List<Integration> findAll() {
         return integrationRepository.findAll();
     }
 
-    public Optional<IntegrationEndpoint> findByPath(String path) {
-        return integrationRepository.findByPath(path);
+    public Optional<Integration> findById(Long id) {
+        return integrationRepository.findById(id);
     }
 
-    public IntegrationEndpoint save(IntegrationEndpoint integrationEndpoint) {
-        return integrationRepository.save(integrationEndpoint);
+    public Optional<Integration> findByBasePath(String basePath) {
+        return integrationRepository.findByBasePath(basePath);
+    }
+
+    public Integration save(Integration integration) {
+        return integrationRepository.save(integration);
     }
 }

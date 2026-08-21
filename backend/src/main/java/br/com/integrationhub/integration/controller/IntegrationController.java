@@ -1,6 +1,6 @@
 package br.com.integrationhub.integration.controller;
 
-import br.com.integrationhub.integration.model.IntegrationEndpoint;
+import br.com.integrationhub.integration.model.Integration;
 import br.com.integrationhub.integration.service.IntegrationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,25 +18,25 @@ public class IntegrationController {
     }
 
     @GetMapping
-    public List<IntegrationEndpoint> findAll() {
+    public List<Integration> findAll() {
         return integrationService.findAll();
     }
 
-    @GetMapping("/{integrationPath}")
-    public ResponseEntity<IntegrationEndpoint> findByPath(
-            @PathVariable(name = "integrationPath") String integrationPath) {
+    @GetMapping("/{id}")
+    public ResponseEntity<Integration> findById(
+            @PathVariable("id") Long id) {
 
-        return integrationService.findByPath("/" + integrationPath)
+        return integrationService.findById(id)
                 .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<IntegrationEndpoint> save(
-            @RequestBody IntegrationEndpoint integrationEndpoint) {
+    public ResponseEntity<Integration> save(
+            @RequestBody Integration integration) {
 
-        return ResponseEntity.ok(
-                integrationService.save(integrationEndpoint)
-        );
+        Integration saved = integrationService.save(integration);
+
+        return ResponseEntity.ok(saved);
     }
 }
