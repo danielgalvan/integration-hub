@@ -2,344 +2,489 @@
 
 O **Integration Hub** é uma plataforma para criação, gerenciamento e disponibilização de APIs de integração sobre bases de dados Oracle.
 
-O objetivo do projeto é simplificar e padronizar a criação de integrações, permitindo que consultas SQL sejam configuradas e disponibilizadas como endpoints HTTP de forma segura, documentada e controlada.
+O objetivo do projeto é simplificar e padronizar a criação de integrações, permitindo que consultas SQL sejam configuradas e posteriormente disponibilizadas como endpoints HTTP de forma segura, documentada e controlada.
 
-A proposta é reduzir a necessidade de desenvolver uma nova aplicação ou serviço para cada integração, centralizando esse processo em uma única plataforma.
+O projeto está sendo desenvolvido de forma incremental, começando por integrações do tipo **GET** e evoluindo posteriormente para outros métodos HTTP.
 
-## Objetivo
-
-Em ambientes com múltiplas integrações, é comum existirem consultas específicas que precisam ser disponibilizadas para outros sistemas através de APIs.
-
-O Integration Hub fornece uma camada intermediária entre os sistemas consumidores e o banco de dados:
-
-```text
-Sistema consumidor
-        │
-        ▼
-┌───────────────────┐
-│  Integration Hub  │
-│     REST APIs     │
-└─────────┬─────────┘
-          │
-          ▼
-     ┌──────────┐
-     │  Oracle  │
-     └──────────┘
-```
-
-A plataforma permitirá cadastrar e gerenciar endpoints sem a necessidade de implementar individualmente toda a estrutura de uma nova API.
-
-## Funcionalidades previstas
-
-Cada integração poderá possuir configurações como:
-
-- Nome e descrição
-- Rota do endpoint
-- Método HTTP
-- Consulta SQL
-- Parâmetros de entrada
-- Controle de acesso
-- Status do endpoint
-- Documentação
-- Histórico de execução
-
-A partir dessas configurações, o Integration Hub será responsável por receber a requisição, validar os parâmetros, executar a consulta e retornar o resultado através de uma API REST.
+---
 
 ## Arquitetura
 
-A arquitetura inicial será composta por:
-
-- **Frontend:** React
-- **Backend:** Java + Spring Boot
-- **Banco de dados:** Oracle
-- **Acesso ao banco:** Spring JDBC
-- **Pool de conexões:** HikariCP
-- **Documentação:** OpenAPI / Swagger
-- **Segurança:** Spring Security
-- **Build:** Maven
-
-```text
-                 ┌─────────────────────┐
-                 │        React        │
-                 │    Administração    │
-                 └──────────┬──────────┘
-                            │
-                            │ REST
-                            ▼
-                 ┌─────────────────────┐
-                 │     Spring Boot     │
-                 │   Integration Hub   │
-                 └──────────┬──────────┘
-                            │
-              ┌─────────────┴─────────────┐
-              │                           │
-              ▼                           ▼
-     Gerenciamento de              Execução dos
-       integrações                   endpoints
-              │                           │
-              └─────────────┬─────────────┘
-                            │
-                            ▼
-                       ┌──────────┐
-                       │  Oracle  │
-                       └──────────┘
-```
-
-## Perfis de acesso
-
-Inicialmente, a plataforma contará com dois perfis principais de acesso.
-
-### Criador
-
-Responsável pela criação e manutenção das integrações.
-
-Entre suas permissões estarão:
-
-- Criar endpoints
-- Alterar endpoints
-- Definir consultas SQL
-- Configurar parâmetros
-- Definir permissões
-- Publicar e desativar endpoints
-- Testar endpoints
-- Consultar documentação
-- Acompanhar execuções
-
-### Consumidor
-
-Responsável pela utilização das APIs disponibilizadas.
-
-Entre suas permissões estarão:
-
-- Visualizar endpoints disponíveis
-- Consultar documentação
-- Visualizar parâmetros
-- Testar endpoints autorizados
-- Consumir APIs
-
-## Segurança
-
-O Integration Hub não será um executor genérico de SQL exposto aos consumidores.
-
-As consultas serão previamente cadastradas e controladas pela plataforma. Os consumidores terão acesso somente aos endpoints para os quais possuírem autorização.
-
-Entre os mecanismos previstos estão:
-
-- Autenticação
-- Autorização por endpoint
-- Consultas parametrizadas
-- Validação de parâmetros
-- Proteção contra SQL Injection
-- Controle das operações SQL permitidas
-- Auditoria das chamadas
-- Registro de erros
-- Timeout de execução
-- Limitação de resultados
-- Controle de endpoints ativos e inativos
-
-As credenciais de acesso ao banco de dados não devem ser armazenadas diretamente no código-fonte ou versionadas no repositório.
-
-## Documentação das APIs
-
-Os endpoints disponibilizados pela plataforma deverão possuir documentação através de **OpenAPI / Swagger**.
-
-A documentação permitirá consultar:
-
-- Rotas disponíveis
-- Métodos HTTP
-- Parâmetros de entrada
-- Tipos de dados
-- Exemplos de requisição
-- Exemplos de resposta
-- Códigos HTTP
-- Descrição do endpoint
-
-Além da documentação, usuários autorizados poderão testar os endpoints diretamente pela interface.
-
-## Escalabilidade
-
-O projeto será iniciado com um número reduzido de integrações, mas sua arquitetura deverá permitir crescimento progressivo.
-
-A criação de novos endpoints deverá ocorrer principalmente através de configuração, evitando a necessidade de implementar, compilar e publicar código específico para cada nova integração.
-
-A arquitetura também deverá permitir evolução futura para execução distribuída e múltiplas instâncias do backend.
-
-O acesso ao Oracle utiliza um `DataSource` gerenciado pelo Spring Boot e pool de conexões HikariCP, permitindo o reaproveitamento eficiente das conexões entre as requisições.
-
-## Tecnologias
+O projeto utiliza:
 
 ### Backend
 
-- Java 21
-- Spring Boot 4.0.7
-- Spring Web MVC
-- Spring JDBC
-- HikariCP
-- Oracle JDBC
-- Oracle Database
-- Spring Boot Actuator
-- Maven
-- Spring Security *(previsto)*
-- OpenAPI / Swagger *(previsto)*
+* Java 21
+* Spring Boot 4.0.7
+* Spring Web
+* Spring JDBC
+* HikariCP
+* Oracle Database
+* Maven
 
 ### Frontend
 
-- React
-- JavaScript
-- HTML
-- CSS
+* React
 
-## Estrutura inicial
+O frontend será desenvolvido em uma etapa posterior.
 
-O repositório é organizado em projetos independentes para backend e frontend:
+---
+
+## Estrutura do projeto
 
 ```text
 integration-hub/
+├── .github/
+│   └── workflows/
+│
 ├── backend/
 │   ├── src/
-│   ├── pom.xml
+│   │   ├── main/
+│   │   │   ├── java/
+│   │   │   │   └── br/com/integrationhub/
+│   │   │   │       ├── IntegrationHubApplication.java
+│   │   │   │       │
+│   │   │   │       ├── controller/
+│   │   │   │       │   └── HealthController.java
+│   │   │   │       │
+│   │   │   │       ├── service/
+│   │   │   │       │   └── DatabaseHealthService.java
+│   │   │   │       │
+│   │   │   │       └── integration/
+│   │   │   │           ├── UsuarioController.java
+│   │   │   │           ├── UsuarioService.java
+│   │   │   │           │
+│   │   │   │           ├── controller/
+│   │   │   │           │   ├── IntegrationController.java
+│   │   │   │           │   └── EndpointController.java
+│   │   │   │           │
+│   │   │   │           ├── model/
+│   │   │   │           │   ├── Integration.java
+│   │   │   │           │   └── Endpoint.java
+│   │   │   │           │
+│   │   │   │           ├── repository/
+│   │   │   │           │   ├── IntegrationRepository.java
+│   │   │   │           │   ├── InMemoryIntegrationRepository.java
+│   │   │   │           │   ├── EndpointRepository.java
+│   │   │   │           │   └── InMemoryEndpointRepository.java
+│   │   │   │           │
+│   │   │   │           └── service/
+│   │   │   │               ├── IntegrationService.java
+│   │   │   │               └── EndpointService.java
+│   │   │   │
+│   │   │   └── resources/
+│   │   │       └── application.properties
+│   │   │
+│   │   └── test/
+│   │
 │   ├── mvnw
-│   └── mvnw.cmd
-├── frontend/
+│   ├── mvnw.cmd
+│   └── pom.xml
+│
 └── README.md
 ```
 
-## Configuração do banco de dados
+---
 
-O backend utiliza uma conexão Oracle gerenciada pelo Spring Boot.
+## Modelo de integração
 
-A configuração do `DataSource` é realizada através do arquivo:
-
-```text
-backend/src/main/resources/application.properties
-```
-
-As informações específicas do ambiente são fornecidas através de variáveis de ambiente, evitando que endereços, usuários e senhas sejam armazenados no repositório.
-
-São necessárias as seguintes variáveis:
+O Integration Hub separa uma integração em dois níveis:
 
 ```text
-DB_URL
-DB_USERNAME
-DB_PASSWORD
+Integration
+    │
+    │ 1:N
+    ▼
+Endpoint
 ```
 
-A configuração utilizada pelo Spring Boot é:
+### Integration
 
-```properties
-spring.datasource.url=${DB_URL}
-spring.datasource.username=${DB_USERNAME}
-spring.datasource.password=${DB_PASSWORD}
-spring.datasource.driver-class-name=oracle.jdbc.OracleDriver
-```
+Representa um agrupamento de endpoints relacionados.
 
-A URL deve seguir o padrão JDBC do Oracle:
+Principais propriedades:
 
 ```text
-jdbc:oracle:thin:@//host:porta/service
+id
+name
+description
+basePath
+active
 ```
 
-### Pool de conexões
+Exemplo:
 
-O projeto utiliza **HikariCP** para gerenciamento do pool de conexões.
-
-Configuração inicial:
-
-```properties
-spring.datasource.hikari.pool-name=IntegrationHubPool
-spring.datasource.hikari.minimum-idle=1
-spring.datasource.hikari.maximum-pool-size=5
-spring.datasource.hikari.connection-timeout=30000
-spring.datasource.hikari.idle-timeout=600000
-spring.datasource.hikari.max-lifetime=1800000
+```text
+id:          1
+name:        Ordem de Compra
+basePath:    /api/ordemCompra
+active:      true
 ```
 
-Essa configuração poderá ser ajustada conforme o volume de integrações e requisições aumentar.
+### Endpoint
+
+Representa uma operação pertencente a uma integração.
+
+Principais propriedades:
+
+```text
+id
+integrationId
+name
+description
+path
+method
+sql
+parameters
+active
+```
+
+Exemplo:
+
+```text
+id:             1
+integrationId:  1
+name:           Buscar Ordem
+path:           /getOrdem
+method:         GET
+active:         true
+```
+
+---
+
+## Composição dos endpoints
+
+O endereço final de uma integração será formado pela combinação do `basePath` da integração com o `path` do endpoint.
+
+Exemplo:
+
+```text
+Integration.basePath
+/api/ordemCompra
+
+Endpoint.path
+/getOrdem
+```
+
+Resultado:
+
+```text
+/api/ordemCompra/getOrdem
+```
+
+Uma mesma integração poderá possuir diversos endpoints:
+
+```text
+/api/ordemCompra
+        │
+        ├── /getOrdem
+        │
+        └── /atualizaOrdem
+```
+
+Resultando em:
+
+```text
+/api/ordemCompra/getOrdem
+/api/ordemCompra/atualizaOrdem
+```
+
+---
+
+## Persistência atual
+
+Nesta fase do desenvolvimento, os cadastros de integrações e endpoints são mantidos **em memória** pela aplicação.
+
+São utilizados:
+
+```text
+InMemoryIntegrationRepository
+InMemoryEndpointRepository
+```
+
+Os identificadores são gerados em memória e os dados são perdidos sempre que a aplicação é reiniciada.
+
+Essa implementação é temporária e permite desenvolver e validar o domínio da aplicação antes da criação das tabelas definitivas.
+
+---
+
+## Persistência Oracle
+
+A persistência definitiva será realizada em Oracle Database.
+
+Todas as tabelas pertencentes ao Integration Hub utilizarão o prefixo:
+
+```text
+IH_
+```
+
+As primeiras tabelas previstas são:
+
+```text
+IH_INTEGRATION
+IH_ENDPOINT
+```
+
+O relacionamento será:
+
+```text
+IH_INTEGRATION
+      │
+      │ 1:N
+      ▼
+IH_ENDPOINT
+```
+
+O ambiente de desenvolvimento utilizará inicialmente uma instância Oracle local isolada do ambiente externo.
+
+---
+
+## Pool de conexões
+
+O backend utiliza o pool de conexões padrão do Spring Boot:
+
+```text
+HikariCP
+```
+
+A aplicação mantém um pool reutilizável para acesso ao Oracle, evitando a criação de uma nova conexão para cada requisição.
+
+---
+
+## Configuração do banco
+
+As informações sensíveis de conexão não são armazenadas diretamente no repositório.
+
+A configuração utiliza variáveis de ambiente.
+
+Exemplo:
+
+```bash
+export DB_URL='jdbc:oracle:thin:@//HOST:1521/SERVICE'
+export DB_USERNAME='USUARIO'
+export DB_PASSWORD='SENHA'
+```
+
+O `application.properties` referencia essas variáveis.
+
+---
 
 ## Executando o backend
 
-A partir da pasta `backend`, configure as variáveis de ambiente antes de iniciar a aplicação.
-
-Exemplo utilizando Git Bash:
+Entre na pasta:
 
 ```bash
-export DB_URL='jdbc:oracle:thin:@//host:1521/service'
-export DB_USERNAME='usuario'
-export DB_PASSWORD='senha'
+cd backend
 ```
 
-Em seguida:
+Configure as variáveis de ambiente necessárias para conexão com o banco e execute:
 
 ```bash
 ./mvnw spring-boot:run
 ```
 
-O backend será iniciado por padrão na porta `8081`:
+O backend estará disponível em:
 
 ```text
 http://localhost:8081
 ```
 
-As variáveis definidas através de `export` permanecem disponíveis somente durante a sessão atual do terminal.
+---
 
 ## Health Check
 
-O Integration Hub possui um endpoint simplificado para verificar a disponibilidade da aplicação e da conexão com o banco de dados:
+A aplicação disponibiliza um endpoint próprio para verificar o funcionamento da API e a conectividade com o banco.
 
-```text
+```http
 GET /api/health
 ```
 
 Exemplo:
 
-```json
-{
-  "status": "OK",
-  "database": "Online"
-}
-```
-
-O campo `database` é validado utilizando o `DataSource` configurado na aplicação.
-
-Também está disponível o health check técnico fornecido pelo Spring Boot Actuator:
-
 ```text
-GET /actuator/health
+http://localhost:8081/api/health
 ```
-
-O Actuator fornece informações adicionais sobre a aplicação e permite verificar individualmente o estado da conexão Oracle.
-
-## Status
-
-🚧 **Projeto em desenvolvimento**
-
-A estrutura base do backend já está em funcionamento.
-
-Atualmente estão disponíveis:
-
-- Backend com Java 21 e Spring Boot 4.0.7
-- Servidor HTTP na porta 8081
-- Conexão com Oracle
-- Configuração do banco através de variáveis de ambiente
-- Pool de conexões com HikariCP
-- Spring JDBC
-- Health check da aplicação
-- Health check da conexão com o banco
-- Spring Boot Actuator
-- Maven Wrapper
-
-### Próximas etapas
-
-- Modelagem das tabelas de configuração
-- Cadastro e gerenciamento de endpoints
-- Definição dos parâmetros dos endpoints
-- Execução parametrizada de consultas
-- OpenAPI / Swagger
-- Autenticação e autorização
-- Controle dos perfis Criador e Consumidor
-- Histórico e auditoria das execuções
-- Interface administrativa em React
 
 ---
 
-**Integration Hub** — Plataforma para centralização, padronização e gerenciamento de APIs de integração.
+## API de Integrações
+
+### Listar integrações
+
+```http
+GET /api/integrations
+```
+
+### Buscar integração
+
+```http
+GET /api/integrations/{id}
+```
+
+Exemplo:
+
+```text
+GET /api/integrations/1
+```
+
+### Cadastrar integração
+
+```http
+POST /api/integrations
+```
+
+Exemplo de body:
+
+```json
+{
+  "name": "Ordem de Compra",
+  "description": "Integração de ordens de compra",
+  "basePath": "/api/ordemCompra",
+  "active": true
+}
+```
+
+O identificador é gerado automaticamente pelo repositório em memória.
+
+---
+
+## API de Endpoints
+
+### Listar endpoints
+
+```http
+GET /api/endpoints
+```
+
+### Buscar endpoint
+
+```http
+GET /api/endpoints/{id}
+```
+
+Exemplo:
+
+```text
+GET /api/endpoints/1
+```
+
+### Listar endpoints de uma integração
+
+```http
+GET /api/endpoints/integration/{integrationId}
+```
+
+Exemplo:
+
+```text
+GET /api/endpoints/integration/1
+```
+
+### Cadastrar endpoint
+
+```http
+POST /api/endpoints
+```
+
+Exemplo de body:
+
+```json
+{
+  "integrationId": 1,
+  "name": "Buscar Ordem",
+  "description": "Busca uma ordem de compra",
+  "path": "/getOrdem",
+  "method": "GET",
+  "sql": "select * from ordem_compra where nr_ordem = :nr_ordem",
+  "parameters": [
+    "nr_ordem"
+  ],
+  "active": true
+}
+```
+
+---
+
+## Validação do projeto
+
+Para executar a compilação e os testes:
+
+```bash
+cd backend
+./mvnw clean verify
+```
+
+O mesmo processo é utilizado pelo workflow de validação do projeto no GitHub Actions.
+
+---
+
+## Segurança das consultas
+
+Os endpoints configuráveis deverão utilizar parâmetros SQL através de **bind parameters**.
+
+Exemplo:
+
+```sql
+select *
+from ordem_compra
+where nr_ordem = :nr_ordem
+```
+
+Valores recebidos pela API não deverão ser concatenados diretamente ao SQL.
+
+---
+
+## Escopo inicial
+
+A primeira versão do Integration Hub terá foco em:
+
+* cadastro de integrações;
+* cadastro de endpoints;
+* relacionamento entre integrações e endpoints;
+* endpoints do tipo GET;
+* consultas parametrizadas;
+* conexão Oracle através de pool;
+* documentação da API;
+* execução das integrações através de endpoints HTTP.
+
+Outros métodos HTTP serão incorporados posteriormente.
+
+---
+
+## Próximas etapas
+
+As próximas etapas previstas são:
+
+1. configurar o Oracle Database local para desenvolvimento;
+2. criar o schema de desenvolvimento;
+3. criar `IH_INTEGRATION`;
+4. criar `IH_ENDPOINT`;
+5. substituir os repositórios em memória por persistência Oracle;
+6. implementar a execução dinâmica dos endpoints cadastrados;
+7. validar parâmetros antes da execução;
+8. retornar os resultados das consultas em JSON;
+9. adicionar documentação via Swagger/OpenAPI;
+10. implementar autenticação e controle de acesso;
+11. iniciar o frontend em React.
+
+---
+
+## Status atual
+
+Atualmente estão funcionando:
+
+* aplicação Spring Boot na porta `8081`;
+* conexão com Oracle;
+* health check da aplicação e banco;
+* pool de conexões;
+* cadastro de integrações em memória;
+* geração automática de IDs em memória;
+* consulta de integrações;
+* cadastro de endpoints em memória;
+* consulta de endpoints;
+* consulta de endpoints por integração;
+* relacionamento `Integration 1:N Endpoint`;
+* build e validação via Maven;
+* workflow de validação no GitHub Actions.
+
+A execução dinâmica do SQL configurado nos endpoints ainda será implementada.
