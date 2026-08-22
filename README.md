@@ -73,7 +73,8 @@ integration-hub/
 │   │   │   │               └── EndpointService.java
 │   │   │   │
 │   │   │   └── resources/
-│   │   │       └── application.properties
+│   │   │       ├── application.properties
+│   │   │       └── application-local.yml
 │   │   │
 │   │   └── test/
 │   │
@@ -83,6 +84,8 @@ integration-hub/
 │
 └── README.md
 ```
+
+O arquivo `application-local.yml` contém configurações específicas do ambiente local e não deve possuir credenciais versionadas em repositórios públicos.
 
 ---
 
@@ -184,10 +187,10 @@ Uma mesma integração poderá possuir diversos endpoints:
 
 ```text
 /api/clientes
-        │
-        ├── /buscar
-        ├── /listar
-        └── /detalhes
+    │
+    ├── /buscar
+    ├── /listar
+    └── /detalhes
 ```
 
 Resultando em:
@@ -262,18 +265,63 @@ O ambiente utiliza:
 * Oracle Linux
 * Oracle Database Free 23ai
 * Oracle Net Listener
-* rede local para comunicação entre o host e a VM
+* rede em modo Bridge para comunicação entre host e VM
+* endereço IPv4 estático para a VM
 
-O banco e o listener estão configurados para iniciar como serviços no sistema operacional da VM.
+O banco e o Oracle Net Listener são iniciados automaticamente durante o boot do Oracle Linux.
 
-A validação do ambiente deve apresentar:
+O Listener utiliza a porta padrão:
 
 ```text
-LISTENER status: RUNNING
-FREE Database status: RUNNING
+1521
 ```
 
-Informações específicas do ambiente, como endereço IP, usuário e senha, não são armazenadas no repositório.
+A PDB utilizada pelo ambiente de desenvolvimento é:
+
+```text
+freepdb1
+```
+
+Informações específicas do ambiente, como endereço IP e credenciais, não devem ser documentadas no repositório.
+
+---
+
+# Inicialização do ambiente Oracle
+
+Para facilitar o desenvolvimento local, pode ser utilizado o script:
+
+```text
+start-integration-hub-db.bat
+```
+
+O script é responsável apenas pela infraestrutura Oracle e não inicia o backend Spring Boot.
+
+Fluxo:
+
+```text
+Executar BAT
+    │
+    ▼
+Verificar estado da VM
+    │
+    ▼
+Iniciar VM em modo headless
+    │
+    ▼
+Aguardar rede da VM
+    │
+    ▼
+Aguardar Oracle Listener :1521
+    │
+    ▼
+AMBIENTE PRONTO
+```
+
+O Oracle Database pode levar alguns segundos adicionais para ficar disponível após a rede da VM começar a responder.
+
+Por esse motivo, o script aguarda a porta `1521` estar acessível antes de considerar o ambiente pronto.
+
+Essa separação permite reiniciar o backend Spring Boot durante o desenvolvimento sem precisar reiniciar ou revalidar toda a infraestrutura Oracle.
 
 ---
 
@@ -291,9 +339,11 @@ O pool poderá ser ajustado posteriormente conforme o volume de requisições e 
 
 # Configuração do banco
 
-As informações de conexão com o Oracle não são armazenadas diretamente no código-fonte.
+A aplicação suporta configurações diferentes conforme o ambiente de execução.
 
-A configuração utiliza variáveis de ambiente:
+## Configuração padrão
+
+As informações de conexão podem ser fornecidas através das seguintes variáveis de ambiente:
 
 ```text
 DB_URL
@@ -317,29 +367,87 @@ $env:DB_USERNAME="USUARIO"
 $env:DB_PASSWORD="SENHA"
 ```
 
-O `application.properties` utiliza essas variáveis para configurar o datasource.
-
 Nenhuma credencial real deve ser adicionada ao repositório.
+
+---
+
+## Profile local
+
+Para desenvolvimento local pode ser utilizado:
+
+```text
+application-local.yml
+```
+
+Estrutura:
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:oracle:thin:@//HOST:1521/SERVICE
+    username: USUARIO
+    password: SENHA
+```
+
+O profile deve ser ativado através de:
+
+```text
+local
+```
+
+O arquivo local permite executar o projeto sem precisar definir manualmente as variáveis de ambiente a cada nova sessão do terminal.
+
+Credenciais reais e informações específicas da máquina de desenvolvimento não devem ser versionadas.
+
+Uma futura alternativa é manter no repositório apenas um arquivo de exemplo:
+
+```text
+application-local.example.yml
+```
 
 ---
 
 # Executando o backend
 
-Entre no diretório:
+Primeiro, certifique-se de que o ambiente Oracle esteja disponível.
+
+Caso utilize a VM local, execute:
+
+```text
+start-integration-hub-db.bat
+```
+
+Aguarde:
+
+```text
+AMBIENTE PRONTO
+```
+
+Depois entre no diretório do backend:
 
 ```bash
 cd backend
 ```
 
-Configure as variáveis de ambiente necessárias para conexão com o Oracle.
+## Desenvolvimento local
 
-No Linux ou Git Bash:
+No Windows:
+
+```powershell
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
+```
+
+O log deverá indicar que o profile `local` está ativo.
+
+## Utilizando variáveis de ambiente
+
+Linux ou Git Bash:
 
 ```bash
 ./mvnw spring-boot:run
 ```
 
-No Windows:
+Windows:
 
 ```powershell
 .\mvnw.cmd spring-boot:run
@@ -377,8 +485,8 @@ Resposta esperada quando a aplicação e o banco estiverem disponíveis:
 
 ```json
 {
-  "status": "OK",
-  "database": "Online"
+  "database": "Online",
+  "status": "OK"
 }
 ```
 
@@ -572,12 +680,14 @@ O Integration Hub localizará a configuração correspondente, validará os par�
 
 Para executar compilação e testes:
 
+Linux:
+
 ```bash
 cd backend
 ./mvnw clean verify
 ```
 
-No Windows:
+Windows:
 
 ```powershell
 cd backend
@@ -736,6 +846,8 @@ Atualmente estão implementados e validados:
 * backend executando na porta `8081`;
 * conexão JDBC com Oracle;
 * configuração de datasource por variáveis de ambiente;
+* profile `local` para desenvolvimento;
+* configuração local através de `application-local.yml`;
 * HikariCP;
 * health check da aplicação;
 * health check do Oracle;
@@ -756,7 +868,11 @@ Atualmente estão implementados e validados:
 * Oracle Database Free 23ai instalado;
 * Oracle Net Listener configurado;
 * inicialização automática dos serviços Oracle;
-* comunicação entre a máquina de desenvolvimento e a VM.
+* endereço IPv4 estático para a VM;
+* comunicação entre a máquina de desenvolvimento e a VM;
+* script para inicialização e validação automática do ambiente Oracle;
+* validação da disponibilidade do Listener antes da inicialização do backend;
+* conexão ponta a ponta entre Spring Boot e Oracle validada.
 
 A persistência das configurações do Integration Hub ainda permanece em memória.
 
