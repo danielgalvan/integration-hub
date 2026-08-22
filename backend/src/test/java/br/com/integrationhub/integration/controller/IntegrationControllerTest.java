@@ -30,24 +30,41 @@ class IntegrationControllerTest {
 
     @Test
     void deveListarBuscarECriarIntegracoes() throws Exception {
-        var integration = new Integration(1L, "Usuarios", "Consulta", "/usuarios", true);
+        Integration integration = new Integration();
+        integration.setId(1L);
+        integration.setName("Usuarios");
+        integration.setDescription("Consulta");
+        integration.setBasePath("/usuarios");
+        integration.setActive("S");
+        integration.setCreatedBy("SYSTEM");
+
         when(integrationService.findAll()).thenReturn(List.of(integration));
         when(integrationService.findById(1L)).thenReturn(Optional.of(integration));
         when(integrationService.save(any(Integration.class))).thenReturn(integration);
 
         mockMvc.perform(get("/api/integrations"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].basePath").value("/usuarios"));
+                .andExpect(jsonPath("$[0].basePath").value("/usuarios"))
+                .andExpect(jsonPath("$[0].active").value("S"));
 
         mockMvc.perform(get("/api/integrations/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Usuarios"));
+                .andExpect(jsonPath("$.name").value("Usuarios"))
+                .andExpect(jsonPath("$.active").value("S"));
 
         mockMvc.perform(post("/api/integrations")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"Usuarios\",\"basePath\":\"/usuarios\",\"active\":true}"))
+                        .content("""
+                                {
+                                  "name": "Usuarios",
+                                  "description": "Consulta",
+                                  "basePath": "/usuarios",
+                                  "active": "S"
+                                }
+                                """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1));
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.active").value("S"));
     }
 
     @Test

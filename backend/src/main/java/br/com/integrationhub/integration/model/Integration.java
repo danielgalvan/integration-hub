@@ -1,28 +1,18 @@
 package br.com.integrationhub.integration.model;
 
+import java.time.LocalDateTime;
+
 public class Integration {
 
     private Long id;
     private String name;
     private String description;
     private String basePath;
-    private boolean active;
-
-    public Integration() {
-    }
-
-    public Integration(
-            Long id,
-            String name,
-            String description,
-            String basePath,
-            boolean active) {
-        this.id = id;
-        this.name = name;
-        this.description = description;
-        this.basePath = basePath;
-        this.active = active;
-    }
+    private String active;
+    private String createdBy;
+    private LocalDateTime createdAt;
+    private String updatedBy;
+    private LocalDateTime updatedAt;
 
     public Long getId() {
         return id;
@@ -56,11 +46,43 @@ public class Integration {
         this.basePath = basePath;
     }
 
-    public boolean isActive() {
+    public String getActive() {
         return active;
     }
 
-    public void setActive(boolean active) {
+    public void setActive(String active) {
         this.active = active;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public String getUpdatedBy() {
+        return updatedBy;
+    }
+
+    public void setUpdatedBy(String updatedBy) {
+        this.updatedBy = updatedBy;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

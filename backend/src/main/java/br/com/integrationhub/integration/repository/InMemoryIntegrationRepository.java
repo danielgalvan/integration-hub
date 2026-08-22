@@ -1,7 +1,6 @@
 package br.com.integrationhub.integration.repository;
 
 import br.com.integrationhub.integration.model.Integration;
-import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,7 +9,6 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-@Repository
 public class InMemoryIntegrationRepository implements IntegrationRepository {
 
     private final Map<Long, Integration> integrations = new ConcurrentHashMap<>();

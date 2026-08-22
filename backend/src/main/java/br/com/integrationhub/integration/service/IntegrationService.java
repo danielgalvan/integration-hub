@@ -29,6 +29,14 @@ public class IntegrationService {
     }
 
     public Integration save(Integration integration) {
+        if (integration.getActive() == null) {
+            integration.setActive("S");
+        }
+
+        if (integration.getCreatedBy() == null) {
+            integration.setCreatedBy("SYSTEM");
+        }
+
         return integrationRepository.save(integration);
     }
 }
