@@ -20,6 +20,7 @@ O projeto utiliza uma arquitetura inicialmente dividida entre backend e frontend
 - Spring JDBC
 - HikariCP
 - Oracle Database
+- Jackson 3
 - Maven
 
 ### Frontend
@@ -40,7 +41,8 @@ integration-hub/
 ├── backend/
 │   ├── database/
 │   │   └── install/
-│   │       └── 001_create_ih_integration.sql
+│   │       ├── 001_create_ih_integration.sql
+│   │       └── 002_create_ih_endpoint.sql
 │   │
 │   ├── src/
 │   │   ├── main/
@@ -64,13 +66,14 @@ integration-hub/
 │   │   │   │           │
 │   │   │   │           ├── model/
 │   │   │   │           │   ├── Integration.java
-│   │   │   │           │   └── Endpoint.java
+│   │   │   │           │   ├── Endpoint.java
+│   │   │   │           │   └── EndpointParameter.java
 │   │   │   │           │
 │   │   │   │           ├── repository/
 │   │   │   │           │   ├── IntegrationRepository.java
 │   │   │   │           │   ├── OracleIntegrationRepository.java
 │   │   │   │           │   ├── EndpointRepository.java
-│   │   │   │           │   └── InMemoryEndpointRepository.java
+│   │   │   │           │   └── OracleEndpointRepository.java
 │   │   │   │           │
 │   │   │   │           └── service/
 │   │   │   │               ├── IntegrationService.java
@@ -155,15 +158,13 @@ Enquanto a aplicação não possuir autenticação, o usuário de criação é d
 SYSTEM
 ```
 
-Quando autenticação e controle de acesso forem implementados, esses campos poderão receber o usuário autenticado.
-
 ---
 
 ## Endpoint
 
 Representa uma operação pertencente a uma integração.
 
-Principais propriedades previstas:
+Principais propriedades:
 
 ```text
 id
@@ -172,9 +173,13 @@ name
 description
 path
 method
-sql
+sqlText
 parameters
 active
+createdBy
+createdAt
+updatedBy
+updatedAt
 ```
 
 Exemplo:
@@ -183,18 +188,83 @@ Exemplo:
 id:             1
 integrationId:  1
 name:           Buscar cliente
+description:    Consulta um cliente pelo identificador
 path:           /buscar
 method:         GET
 active:         S
+createdBy:      SYSTEM
 ```
 
-A persistência dos endpoints ainda está em memória nesta etapa do projeto.
+O campo `integrationId` identifica a `Integration` à qual o endpoint pertence.
+
+Na V1, apenas endpoints com método:
+
+```text
+GET
+```
+
+serão permitidos.
+
+---
+
+# Parâmetros dos endpoints
+
+Os parâmetros necessários para executar um endpoint são representados no backend pelo model:
+
+```text
+EndpointParameter
+```
+
+Cada parâmetro possui:
+
+```text
+name
+type
+required
+```
+
+Exemplo:
+
+```json
+{
+  "name": "id",
+  "type": "NUMBER",
+  "required": true
+}
+```
+
+Um endpoint pode possuir vários parâmetros:
+
+```json
+[
+  {
+    "name": "id",
+    "type": "NUMBER",
+    "required": true
+  },
+  {
+    "name": "situacao",
+    "type": "VARCHAR2",
+    "required": false
+  }
+]
+```
+
+No Java, essa estrutura é representada por:
+
+```text
+List<EndpointParameter>
+```
+
+No Oracle, os parâmetros são armazenados em formato JSON na coluna `PARAMETERS`, do tipo `CLOB`.
+
+A serialização e desserialização entre os objetos Java e o JSON persistido são realizadas pelo backend utilizando Jackson.
 
 ---
 
 # Composição dos endpoints
 
-O endereço final de uma integração é formado pela combinação do `basePath` da integração com o `path` do endpoint.
+O endereço final de uma integração será formado pela combinação do `basePath` da integração com o `path` do endpoint.
 
 Exemplo:
 
@@ -212,7 +282,7 @@ Resultado:
 /api/clientes/buscar
 ```
 
-Uma mesma integração poderá possuir diversos endpoints:
+Uma mesma integração pode possuir diversos endpoints:
 
 ```text
 /api/clientes
@@ -230,40 +300,53 @@ Resultando em:
 /api/clientes/detalhes
 ```
 
-Na V1, apenas operações do tipo `GET` serão disponibilizadas para execução.
+A resolução dinâmica dessas rotas será implementada na próxima etapa do projeto.
 
 ---
 
 # Persistência
 
-A persistência está sendo migrada de forma incremental para Oracle.
+As configurações de `Integration` e `Endpoint` já são persistidas no Oracle.
 
-Atualmente:
+O fluxo atual é:
 
 ```text
-Integration
-    │
-    ▼
+IntegrationController
+        │
+        ▼
+IntegrationService
+        │
+        ▼
+IntegrationRepository
+        │
+        ▼
 OracleIntegrationRepository
-    │
-    ▼
+        │
+        ▼
 IH_INTEGRATION
-    │
-    ▼
-Oracle Database
 ```
 
-As integrações já são persistidas definitivamente no Oracle.
-
-Os endpoints ainda utilizam:
+Para endpoints:
 
 ```text
-InMemoryEndpointRepository
+EndpointController
+        │
+        ▼
+EndpointService
+        │
+        ▼
+EndpointRepository
+        │
+        ▼
+OracleEndpointRepository
+        │
+        ▼
+IH_ENDPOINT
 ```
 
-Portanto, os endpoints cadastrados ainda são perdidos quando a aplicação é reiniciada.
+Não existem mais repositories em memória para `Integration` ou `Endpoint`.
 
-Essa implementação temporária será substituída pela persistência Oracle na próxima etapa do desenvolvimento.
+Os registros permanecem disponíveis após reinicializações da aplicação.
 
 ---
 
@@ -275,19 +358,14 @@ Todas as tabelas pertencentes ao Integration Hub utilizam o prefixo:
 IH_
 ```
 
-A primeira tabela implementada é:
+Atualmente existem:
 
 ```text
 IH_INTEGRATION
-```
-
-A próxima tabela prevista é:
-
-```text
 IH_ENDPOINT
 ```
 
-O relacionamento será:
+O relacionamento é:
 
 ```text
 IH_INTEGRATION
@@ -297,13 +375,21 @@ IH_INTEGRATION
 IH_ENDPOINT
 ```
 
+A relação é garantida no banco através de uma foreign key entre:
+
+```text
+IH_ENDPOINT.INTEGRATION_ID
+            ↓
+IH_INTEGRATION.ID
+```
+
 ---
 
 # IH_INTEGRATION
 
 A tabela `IH_INTEGRATION` armazena as integrações configuradas na plataforma.
 
-Estrutura atual:
+Estrutura:
 
 ```text
 ID
@@ -329,62 +415,118 @@ Características principais:
 
 ---
 
+# IH_ENDPOINT
+
+A tabela `IH_ENDPOINT` armazena os endpoints pertencentes às integrações.
+
+Estrutura:
+
+```text
+ID
+INTEGRATION_ID
+NAME
+DESCRIPTION
+PATH
+METHOD
+SQL_TEXT
+PARAMETERS
+ACTIVE
+CREATED_BY
+CREATED_AT
+UPDATED_BY
+UPDATED_AT
+```
+
+Características principais:
+
+- `ID` é a chave primária;
+- `INTEGRATION_ID` referencia `IH_INTEGRATION.ID`;
+- `SQL_TEXT` utiliza `CLOB`;
+- `PARAMETERS` utiliza `CLOB`;
+- `PARAMETERS` armazena JSON;
+- `ACTIVE` aceita apenas `S` ou `N`;
+- `METHOD` está limitado a `GET` na V1;
+- `CREATED_BY` possui valor padrão `SYSTEM`;
+- `CREATED_AT` é preenchido automaticamente.
+
+A combinação abaixo possui restrição de unicidade:
+
+```text
+INTEGRATION_ID + PATH + METHOD
+```
+
+Isso impede que uma mesma integração possua duas operações iguais para a mesma rota.
+
+Exemplo:
+
+```text
+Integration 1
+GET /buscar
+```
+
+não pode ser cadastrado duas vezes.
+
+---
+
 # Geração de identificadores
 
-Os identificadores da `IH_INTEGRATION` são gerados através da sequence:
+Os identificadores são gerados através de sequences Oracle.
+
+Para integrações:
 
 ```text
 IH_INTEGRATION_SEQ
 ```
 
-Configuração:
+Para endpoints:
 
-```sql
-create sequence ih_integration_seq
-    start with 1
-    increment by 1
-    nocache
-    nocycle;
+```text
+IH_ENDPOINT_SEQ
 ```
 
-O objetivo é manter identificadores crescentes e previsíveis.
+As sequences utilizam:
 
-Sequences Oracle garantem geração crescente e única, mas não garantem ausência absoluta de intervalos entre os números.
+```sql
+increment by 1
+nocache
+nocycle
+```
 
-Um número pode ser consumido sem resultar em registro persistido, por exemplo, caso uma transação seja revertida.
+O objetivo é manter identificadores únicos, crescentes e previsíveis.
+
+Sequences Oracle não garantem ausência absoluta de intervalos entre identificadores. Um número pode ser consumido sem resultar em registro persistido, por exemplo, quando uma operação é revertida.
 
 ---
 
 # Scripts de banco
 
-Os objetos próprios do Integration Hub devem possuir scripts de instalação versionados junto ao projeto.
+Os objetos próprios do Integration Hub possuem scripts de instalação versionados junto ao projeto.
 
-Estrutura:
+Estrutura atual:
 
 ```text
 backend/
 └── database/
     └── install/
-        └── 001_create_ih_integration.sql
+        ├── 001_create_ih_integration.sql
+        └── 002_create_ih_endpoint.sql
 ```
 
-O primeiro script é responsável pela criação de:
+O primeiro script cria:
 
 ```text
 IH_INTEGRATION
 IH_INTEGRATION_SEQ
 ```
 
-Novos objetos serão adicionados em scripts numerados para manter uma ordem explícita de instalação.
-
-Exemplo previsto:
+O segundo cria:
 
 ```text
-001_create_ih_integration.sql
-002_create_ih_endpoint.sql
+IH_ENDPOINT
+IH_ENDPOINT_SEQ
 ```
 
-Essa abordagem permite reproduzir a estrutura necessária em um novo ambiente Oracle.
+Os scripts são numerados para manter uma ordem explícita de instalação e permitir a reprodução da estrutura em novos ambientes Oracle.
 
 ---
 
@@ -392,9 +534,7 @@ Essa abordagem permite reproduzir a estrutura necessária em um novo ambiente Or
 
 O projeto possui um ambiente Oracle local dedicado ao desenvolvimento.
 
-A infraestrutura é executada em uma máquina virtual isolada, permitindo desenvolver e testar o Integration Hub sem depender de ambientes Oracle externos.
-
-O ambiente utiliza:
+A infraestrutura é executada em uma máquina virtual isolada utilizando:
 
 - VirtualBox;
 - Oracle Linux;
@@ -455,8 +595,6 @@ AMBIENTE PRONTO
 ```
 
 O Oracle Database pode levar alguns segundos adicionais para ficar disponível após a rede da VM começar a responder.
-
-Por esse motivo, o script aguarda a porta `1521` estar acessível antes de considerar o ambiente pronto.
 
 Essa separação permite reiniciar o backend Spring Boot durante o desenvolvimento sem precisar reiniciar toda a infraestrutura Oracle.
 
@@ -607,13 +745,11 @@ Resposta esperada:
 }
 ```
 
-O endpoint permite identificar separadamente problemas na aplicação e indisponibilidade do banco.
-
 ---
 
 # API de Integrações
 
-As operações de Integration já utilizam persistência Oracle.
+As operações de Integration utilizam persistência Oracle.
 
 ## Listar integrações
 
@@ -627,8 +763,6 @@ Os registros são recuperados diretamente da tabela:
 IH_INTEGRATION
 ```
 
----
-
 ## Buscar integração
 
 ```http
@@ -640,8 +774,6 @@ Exemplo:
 ```http
 GET /api/integrations/1
 ```
-
----
 
 ## Cadastrar integração
 
@@ -678,29 +810,11 @@ Enquanto não houver autenticação, `createdBy` utiliza:
 SYSTEM
 ```
 
-A data de criação é preenchida automaticamente.
-
-Exemplo de resposta:
-
-```json
-{
-  "id": 1,
-  "name": "Clientes",
-  "description": "Integração para consulta de clientes",
-  "basePath": "/api/clientes",
-  "active": "S",
-  "createdBy": "SYSTEM",
-  "createdAt": "2026-08-22T16:21:45",
-  "updatedBy": null,
-  "updatedAt": null
-}
-```
-
 ---
 
 # API de Endpoints
 
-A persistência dos endpoints ainda é realizada em memória.
+As operações de Endpoint também utilizam persistência Oracle.
 
 ## Listar endpoints
 
@@ -708,7 +822,11 @@ A persistência dos endpoints ainda é realizada em memória.
 GET /api/endpoints
 ```
 
----
+Os registros são recuperados diretamente da tabela:
+
+```text
+IH_ENDPOINT
+```
 
 ## Buscar endpoint
 
@@ -716,7 +834,11 @@ GET /api/endpoints
 GET /api/endpoints/{id}
 ```
 
----
+Exemplo:
+
+```http
+GET /api/endpoints/2
+```
 
 ## Listar endpoints de uma integração
 
@@ -724,7 +846,11 @@ GET /api/endpoints/{id}
 GET /api/endpoints/integration/{integrationId}
 ```
 
----
+Exemplo:
+
+```http
+GET /api/endpoints/integration/1
+```
 
 ## Cadastrar endpoint
 
@@ -741,15 +867,33 @@ Exemplo:
   "description": "Consulta um cliente pelo identificador",
   "path": "/buscar",
   "method": "GET",
-  "sql": "select id, nome from cliente where id = :id",
+  "sqlText": "select id, nome from cliente where id = :id",
   "parameters": [
-    "id"
+    {
+      "name": "id",
+      "type": "NUMBER",
+      "required": true
+    }
   ],
-  "active": true
+  "active": "S"
 }
 ```
 
-Essa estrutura ainda será revisada durante a implementação da tabela `IH_ENDPOINT`.
+Não é necessário informar:
+
+```text
+id
+createdBy
+createdAt
+updatedBy
+updatedAt
+```
+
+O identificador é obtido através da `IH_ENDPOINT_SEQ`.
+
+Os parâmetros são serializados em JSON antes de serem armazenados no Oracle.
+
+Ao consultar um endpoint, o JSON armazenado é desserializado novamente para objetos `EndpointParameter`.
 
 ---
 
@@ -774,27 +918,38 @@ Esse modelo reduz riscos de SQL Injection e permite que o Oracle reutilize plano
 
 ---
 
-# Fluxo previsto de execução
+# Fluxo previsto de execução dinâmica
 
-O fluxo principal da plataforma será:
+Com a persistência das configurações concluída, a próxima etapa é utilizar essas configurações para executar endpoints dinamicamente.
+
+O fluxo previsto é:
 
 ```text
 Cliente HTTP
     │
     ▼
-Endpoint dinâmico
+GET /api/clientes/buscar?id=123
     │
     ▼
-Identificação da Integration
+Resolver Integration pelo basePath
     │
     ▼
-Identificação do Endpoint
+Resolver Endpoint pelo path
     │
     ▼
-Validação dos parâmetros
+Validar Integration ativa
     │
     ▼
-Execução SQL
+Validar Endpoint ativo
+    │
+    ▼
+Validar método HTTP
+    │
+    ▼
+Validar parâmetros
+    │
+    ▼
+Executar SQL_TEXT
     │
     ▼
 Oracle Database
@@ -806,20 +961,21 @@ Resultado
 JSON
 ```
 
-Um endpoint cadastrado como:
+Exemplo de configuração:
 
 ```text
 Integration.basePath = /api/clientes
 Endpoint.path        = /buscar
+Endpoint.method      = GET
 ```
 
-poderá futuramente ser consumido como:
+A rota dinâmica será:
 
 ```http
 GET /api/clientes/buscar?id=123
 ```
 
-O Integration Hub localizará a configuração correspondente, validará os parâmetros, executará o SQL e retornará o resultado em JSON.
+O Integration Hub deverá localizar a configuração correspondente, validar os parâmetros, executar o SQL configurado e retornar o resultado em JSON.
 
 ---
 
@@ -889,8 +1045,6 @@ A primeira versão do Integration Hub terá foco em:
 - retorno dos resultados em JSON;
 - documentação da API;
 - ambiente Oracle local para desenvolvimento.
-
-Funcionalidades adicionais serão incorporadas de maneira incremental após a estabilização desse fluxo.
 
 ---
 
@@ -995,28 +1149,37 @@ Atualmente estão implementados e validados:
 - conexão JDBC com Oracle;
 - configuração de datasource por variáveis de ambiente;
 - profile `local` para desenvolvimento;
-- configuração local através de `application-local.yml`;
 - HikariCP;
 - health check da aplicação;
 - health check do Oracle;
 - tabela `IH_INTEGRATION`;
 - sequence `IH_INTEGRATION_SEQ`;
-- script de instalação da `IH_INTEGRATION`;
+- tabela `IH_ENDPOINT`;
+- sequence `IH_ENDPOINT_SEQ`;
+- relacionamento `IH_INTEGRATION 1:N IH_ENDPOINT`;
+- foreign key entre Endpoint e Integration;
+- constraints de integridade;
+- scripts de instalação `001` e `002`;
 - persistência Oracle das integrações;
-- geração de IDs através de sequence;
+- persistência Oracle dos endpoints;
+- `OracleIntegrationRepository`;
+- `OracleEndpointRepository`;
 - cadastro de integrações via API;
-- listagem de integrações via API;
+- listagem de integrações;
 - busca de integração por ID;
 - busca de integração por `basePath`;
-- campos de auditoria da Integration;
-- `OracleIntegrationRepository`;
-- cadastro de endpoints em memória;
-- consulta de endpoints em memória;
-- consulta de endpoints por integração;
-- relacionamento lógico `Integration 1:N Endpoint`;
-- estrutura de controller, service e repository;
-- testes automatizados do backend;
+- cadastro de endpoints via API;
+- listagem de endpoints;
+- busca de endpoint por ID;
+- listagem de endpoints por Integration;
+- campos de auditoria;
+- model `EndpointParameter`;
+- parâmetros estruturados por nome, tipo e obrigatoriedade;
+- armazenamento dos parâmetros como JSON em `CLOB`;
+- serialização e desserialização dos parâmetros;
+- SQL dos endpoints armazenado em `CLOB`;
 - Maven Wrapper;
+- testes automatizados;
 - build com `clean verify`;
 - workflow de validação no GitHub Actions;
 - VM dedicada para Oracle;
@@ -1025,38 +1188,34 @@ Atualmente estão implementados e validados:
 - Oracle Net Listener configurado;
 - inicialização automática dos serviços Oracle;
 - endereço IPv4 estático para a VM;
-- comunicação entre a máquina de desenvolvimento e a VM;
+- comunicação entre máquina de desenvolvimento e VM;
 - conexão ponta a ponta entre Spring Boot e Oracle validada.
 
-A persistência de `Integration` já está concluída no Oracle.
+A camada de configuração e persistência das integrações e endpoints está concluída para esta etapa.
 
-A persistência de `Endpoint` ainda permanece em memória.
-
-A execução dinâmica dos SQLs cadastrados ainda será implementada.
+A execução dinâmica dos endpoints cadastrados ainda será implementada.
 
 ---
 
 # Próximas etapas
 
-A sequência prevista de desenvolvimento é:
+A sequência prevista de desenvolvimento passa a ser:
 
-1. definir o modelo definitivo de `IH_ENDPOINT`;
-2. criar `002_create_ih_endpoint.sql`;
-3. criar a tabela `IH_ENDPOINT`;
-4. definir a FK entre `IH_ENDPOINT` e `IH_INTEGRATION`;
-5. definir constraints e índices da `IH_ENDPOINT`;
-6. criar geração de identificadores para Endpoint;
-7. implementar `OracleEndpointRepository`;
-8. remover `InMemoryEndpointRepository`;
-9. validar cadastro e consulta de endpoints no Oracle;
-10. implementar resolução dinâmica de `basePath + path`;
-11. implementar validação dos parâmetros;
-12. implementar execução dinâmica das consultas SQL;
-13. retornar os resultados em JSON;
-14. adicionar tratamento padronizado de erros;
-15. adicionar Swagger/OpenAPI;
-16. implementar autenticação e controle de acesso;
-17. iniciar o frontend em React.
+1. implementar resolução dinâmica de `basePath + path`;
+2. localizar a Integration correspondente à requisição;
+3. localizar o Endpoint correspondente à rota;
+4. validar se Integration e Endpoint estão ativos;
+5. validar o método HTTP configurado;
+6. validar parâmetros obrigatórios;
+7. converter os parâmetros conforme o tipo configurado;
+8. executar `SQL_TEXT` utilizando bind parameters;
+9. retornar o resultado da consulta em JSON;
+10. adicionar tratamento padronizado de erros;
+11. adicionar validações de segurança para o SQL configurado;
+12. adicionar Swagger/OpenAPI;
+13. ampliar os testes automatizados;
+14. implementar autenticação e controle de acesso;
+15. iniciar o frontend em React.
 
 ---
 
@@ -1068,22 +1227,40 @@ A prioridade é manter uma arquitetura simples enquanto os requisitos fundamenta
 
 Novas tecnologias e componentes serão adicionados apenas quando houver uma necessidade concreta de arquitetura, desempenho, segurança ou escalabilidade.
 
-O objetivo da V1 é estabelecer um fluxo funcional e confiável:
+A infraestrutura de configuração já permite:
 
 ```text
-Cadastrar integração
+Cadastrar Integration
         │
         ▼
-Cadastrar endpoint
+Persistir em IH_INTEGRATION
         │
         ▼
-Definir SQL e parâmetros
+Cadastrar Endpoint
         │
         ▼
-Publicar endpoint GET
+Persistir em IH_ENDPOINT
         │
         ▼
-Executar consulta Oracle
+Armazenar SQL e parâmetros
+```
+
+O próximo marco da V1 será completar:
+
+```text
+Requisição HTTP dinâmica
+        │
+        ▼
+Resolver Integration + Endpoint
+        │
+        ▼
+Validar parâmetros
+        │
+        ▼
+Executar SQL_TEXT
+        │
+        ▼
+Oracle Database
         │
         ▼
 Retornar JSON

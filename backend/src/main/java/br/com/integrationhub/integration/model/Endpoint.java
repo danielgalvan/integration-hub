@@ -1,5 +1,6 @@
 package br.com.integrationhub.integration.model;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class Endpoint {
@@ -10,32 +11,15 @@ public class Endpoint {
     private String description;
     private String path;
     private String method;
-    private String sql;
-    private List<String> parameters;
-    private boolean active;
+    private String sqlText;
+    private List<EndpointParameter> parameters;
+    private String active;
+    private String createdBy;
+    private LocalDateTime createdAt;
+    private String updatedBy;
+    private LocalDateTime updatedAt;
 
     public Endpoint() {
-    }
-
-    public Endpoint(
-            Long id,
-            Long integrationId,
-            String name,
-            String description,
-            String path,
-            String method,
-            String sql,
-            List<String> parameters,
-            boolean active) {
-        this.id = id;
-        this.integrationId = integrationId;
-        this.name = name;
-        this.description = description;
-        this.path = path;
-        this.method = method;
-        this.sql = sql;
-        this.parameters = parameters;
-        this.active = active;
     }
 
     public Long getId() {
@@ -86,27 +70,59 @@ public class Endpoint {
         this.method = method;
     }
 
-    public String getSql() {
-        return sql;
+    public String getSqlText() {
+        return sqlText;
     }
 
-    public void setSql(String sql) {
-        this.sql = sql;
+    public void setSqlText(String sqlText) {
+        this.sqlText = sqlText;
     }
 
-    public List<String> getParameters() {
+    public List<EndpointParameter> getParameters() {
         return parameters;
     }
 
-    public void setParameters(List<String> parameters) {
+    public void setParameters(List<EndpointParameter> parameters) {
         this.parameters = parameters;
     }
 
-    public boolean isActive() {
+    public String getActive() {
         return active;
     }
 
-    public void setActive(boolean active) {
+    public void setActive(String active) {
         this.active = active;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public String getUpdatedBy() {
+        return updatedBy;
+    }
+
+    public void setUpdatedBy(String updatedBy) {
+        this.updatedBy = updatedBy;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

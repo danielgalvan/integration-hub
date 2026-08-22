@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Optional;
 
 import br.com.integrationhub.integration.model.Endpoint;
+import br.com.integrationhub.integration.model.EndpointParameter;
 import br.com.integrationhub.integration.service.EndpointService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,24 +31,62 @@ class EndpointControllerTest {
 
     @Test
     void deveListarBuscarECriarEndpoints() throws Exception {
-        var endpoint = new Endpoint(1L, 2L, "Buscar usuario", null, "/usuario", "GET", "select 1", List.of("id"), true);
+        EndpointParameter parameter = new EndpointParameter(
+                "id",
+                "NUMBER",
+                true
+        );
+
+        Endpoint endpoint = new Endpoint();
+        endpoint.setId(1L);
+        endpoint.setIntegrationId(2L);
+        endpoint.setName("Buscar usuario");
+        endpoint.setDescription("Consulta usuario pelo identificador");
+        endpoint.setPath("/usuario");
+        endpoint.setMethod("GET");
+        endpoint.setSqlText("select 1");
+        endpoint.setParameters(List.of(parameter));
+        endpoint.setActive("S");
+        endpoint.setCreatedBy("SYSTEM");
+
         when(endpointService.findAll()).thenReturn(List.of(endpoint));
         when(endpointService.findById(1L)).thenReturn(Optional.of(endpoint));
         when(endpointService.save(any(Endpoint.class))).thenReturn(endpoint);
 
         mockMvc.perform(get("/api/endpoints"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].name").value("Buscar usuario"));
+                .andExpect(jsonPath("$[0].name").value("Buscar usuario"))
+                .andExpect(jsonPath("$[0].active").value("S"))
+                .andExpect(jsonPath("$[0].parameters[0].name").value("id"));
 
         mockMvc.perform(get("/api/endpoints/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.integrationId").value(2));
+                .andExpect(jsonPath("$.integrationId").value(2))
+                .andExpect(jsonPath("$.sqlText").value("select 1"));
 
         mockMvc.perform(post("/api/endpoints")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"integrationId\":2,\"name\":\"Buscar usuario\",\"path\":\"/usuario\",\"method\":\"GET\",\"sql\":\"select 1\",\"active\":true}"))
+                        .content("""
+                                {
+                                  "integrationId": 2,
+                                  "name": "Buscar usuario",
+                                  "description": "Consulta usuario pelo identificador",
+                                  "path": "/usuario",
+                                  "method": "GET",
+                                  "sqlText": "select 1",
+                                  "parameters": [
+                                    {
+                                      "name": "id",
+                                      "type": "NUMBER",
+                                      "required": true
+                                    }
+                                  ],
+                                  "active": "S"
+                                }
+                                """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1));
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.active").value("S"));
     }
 
     @Test

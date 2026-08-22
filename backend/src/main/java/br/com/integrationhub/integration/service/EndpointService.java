@@ -29,6 +29,14 @@ public class EndpointService {
     }
 
     public Endpoint save(Endpoint endpoint) {
+        if (endpoint.getActive() == null) {
+            endpoint.setActive("S");
+        }
+
+        if (endpoint.getCreatedBy() == null) {
+            endpoint.setCreatedBy("SYSTEM");
+        }
+
         return endpointRepository.save(endpoint);
     }
 }
