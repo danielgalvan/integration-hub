@@ -14,17 +14,17 @@ O projeto utiliza uma arquitetura inicialmente dividida entre backend e frontend
 
 ### Backend
 
-* Java 21
-* Spring Boot 4.0.7
-* Spring Web
-* Spring JDBC
-* HikariCP
-* Oracle Database
-* Maven
+- Java 21
+- Spring Boot 4.0.7
+- Spring Web
+- Spring JDBC
+- HikariCP
+- Oracle Database
+- Maven
 
 ### Frontend
 
-* React
+- React
 
 O frontend será desenvolvido em uma etapa posterior, após a consolidação da API e da execução dinâmica das integrações.
 
@@ -38,6 +38,10 @@ integration-hub/
 │   └── workflows/
 │
 ├── backend/
+│   ├── database/
+│   │   └── install/
+│   │       └── 001_create_ih_integration.sql
+│   │
 │   ├── src/
 │   │   ├── main/
 │   │   │   ├── java/
@@ -64,7 +68,7 @@ integration-hub/
 │   │   │   │           │
 │   │   │   │           ├── repository/
 │   │   │   │           │   ├── IntegrationRepository.java
-│   │   │   │           │   ├── InMemoryIntegrationRepository.java
+│   │   │   │           │   ├── OracleIntegrationRepository.java
 │   │   │   │           │   ├── EndpointRepository.java
 │   │   │   │           │   └── InMemoryEndpointRepository.java
 │   │   │   │           │
@@ -119,16 +123,39 @@ name
 description
 basePath
 active
+createdBy
+createdAt
+updatedBy
+updatedAt
 ```
 
 Exemplo:
 
 ```text
-id:          1
-name:        Clientes
-basePath:    /api/clientes
-active:      true
+id:           1
+name:         Clientes
+description:  Integração para consulta de clientes
+basePath:     /api/clientes
+active:       S
+createdBy:    SYSTEM
 ```
+
+O campo `active` utiliza:
+
+```text
+S = ativo
+N = inativo
+```
+
+Os campos de auditoria permitem identificar o usuário responsável pela criação e futura alteração dos registros.
+
+Enquanto a aplicação não possuir autenticação, o usuário de criação é definido como:
+
+```text
+SYSTEM
+```
+
+Quando autenticação e controle de acesso forem implementados, esses campos poderão receber o usuário autenticado.
 
 ---
 
@@ -136,7 +163,7 @@ active:      true
 
 Representa uma operação pertencente a uma integração.
 
-Principais propriedades:
+Principais propriedades previstas:
 
 ```text
 id
@@ -158,8 +185,10 @@ integrationId:  1
 name:           Buscar cliente
 path:           /buscar
 method:         GET
-active:         true
+active:         S
 ```
+
+A persistência dos endpoints ainda está em memória nesta etapa do projeto.
 
 ---
 
@@ -205,41 +234,60 @@ Na V1, apenas operações do tipo `GET` serão disponibilizadas para execução.
 
 ---
 
-# Persistência atual
+# Persistência
 
-Nesta fase do desenvolvimento, os cadastros de integrações e endpoints continuam sendo mantidos em memória pela aplicação.
+A persistência está sendo migrada de forma incremental para Oracle.
 
-São utilizados:
+Atualmente:
 
 ```text
-InMemoryIntegrationRepository
+Integration
+    │
+    ▼
+OracleIntegrationRepository
+    │
+    ▼
+IH_INTEGRATION
+    │
+    ▼
+Oracle Database
+```
+
+As integrações já são persistidas definitivamente no Oracle.
+
+Os endpoints ainda utilizam:
+
+```text
 InMemoryEndpointRepository
 ```
 
-Os identificadores são gerados em memória e os dados são perdidos sempre que a aplicação é reiniciada.
+Portanto, os endpoints cadastrados ainda são perdidos quando a aplicação é reiniciada.
 
-Essa implementação é propositalmente temporária e permite validar o domínio, os serviços e os contratos da API antes da introdução da persistência definitiva.
+Essa implementação temporária será substituída pela persistência Oracle na próxima etapa do desenvolvimento.
 
 ---
 
 # Persistência Oracle
 
-A persistência definitiva do Integration Hub será realizada em Oracle Database.
-
-Todas as tabelas pertencentes à aplicação utilizarão o prefixo:
+Todas as tabelas pertencentes ao Integration Hub utilizam o prefixo:
 
 ```text
 IH_
 ```
 
-As primeiras tabelas previstas são:
+A primeira tabela implementada é:
 
 ```text
 IH_INTEGRATION
+```
+
+A próxima tabela prevista é:
+
+```text
 IH_ENDPOINT
 ```
 
-Relacionamento:
+O relacionamento será:
 
 ```text
 IH_INTEGRATION
@@ -249,7 +297,94 @@ IH_INTEGRATION
 IH_ENDPOINT
 ```
 
-A criação dessas tabelas será realizada após a validação do modelo atualmente implementado em memória.
+---
+
+# IH_INTEGRATION
+
+A tabela `IH_INTEGRATION` armazena as integrações configuradas na plataforma.
+
+Estrutura atual:
+
+```text
+ID
+NAME
+DESCRIPTION
+BASE_PATH
+ACTIVE
+CREATED_BY
+CREATED_AT
+UPDATED_BY
+UPDATED_AT
+```
+
+Características principais:
+
+- `ID` é a chave primária;
+- `BASE_PATH` possui restrição de unicidade;
+- `ACTIVE` aceita apenas `S` ou `N`;
+- `CREATED_BY` possui valor padrão `SYSTEM`;
+- `CREATED_AT` é preenchido automaticamente;
+- `UPDATED_BY` será utilizado em futuras alterações;
+- `UPDATED_AT` será utilizado em futuras alterações.
+
+---
+
+# Geração de identificadores
+
+Os identificadores da `IH_INTEGRATION` são gerados através da sequence:
+
+```text
+IH_INTEGRATION_SEQ
+```
+
+Configuração:
+
+```sql
+create sequence ih_integration_seq
+    start with 1
+    increment by 1
+    nocache
+    nocycle;
+```
+
+O objetivo é manter identificadores crescentes e previsíveis.
+
+Sequences Oracle garantem geração crescente e única, mas não garantem ausência absoluta de intervalos entre os números.
+
+Um número pode ser consumido sem resultar em registro persistido, por exemplo, caso uma transação seja revertida.
+
+---
+
+# Scripts de banco
+
+Os objetos próprios do Integration Hub devem possuir scripts de instalação versionados junto ao projeto.
+
+Estrutura:
+
+```text
+backend/
+└── database/
+    └── install/
+        └── 001_create_ih_integration.sql
+```
+
+O primeiro script é responsável pela criação de:
+
+```text
+IH_INTEGRATION
+IH_INTEGRATION_SEQ
+```
+
+Novos objetos serão adicionados em scripts numerados para manter uma ordem explícita de instalação.
+
+Exemplo previsto:
+
+```text
+001_create_ih_integration.sql
+002_create_ih_endpoint.sql
+```
+
+Essa abordagem permite reproduzir a estrutura necessária em um novo ambiente Oracle.
 
 ---
 
@@ -261,12 +396,12 @@ A infraestrutura é executada em uma máquina virtual isolada, permitindo desenv
 
 O ambiente utiliza:
 
-* VirtualBox
-* Oracle Linux
-* Oracle Database Free 23ai
-* Oracle Net Listener
-* rede em modo Bridge para comunicação entre host e VM
-* endereço IPv4 estático para a VM
+- VirtualBox;
+- Oracle Linux;
+- Oracle Database Free 23ai;
+- Oracle Net Listener;
+- rede em modo Bridge;
+- endereço IPv4 estático para a VM.
 
 O banco e o Oracle Net Listener são iniciados automaticamente durante o boot do Oracle Linux.
 
@@ -288,13 +423,15 @@ Informações específicas do ambiente, como endereço IP e credenciais, não de
 
 # Inicialização do ambiente Oracle
 
-Para facilitar o desenvolvimento local, pode ser utilizado o script:
+Para facilitar o desenvolvimento local, pode ser utilizado um script local:
 
 ```text
 start-integration-hub-db.bat
 ```
 
-O script é responsável apenas pela infraestrutura Oracle e não inicia o backend Spring Boot.
+Esse script não faz parte do repositório e é responsável apenas pela infraestrutura Oracle.
+
+O backend Spring Boot não é iniciado por ele.
 
 Fluxo:
 
@@ -305,7 +442,7 @@ Executar BAT
 Verificar estado da VM
     │
     ▼
-Iniciar VM em modo headless
+Iniciar VM quando necessário
     │
     ▼
 Aguardar rede da VM
@@ -321,7 +458,7 @@ O Oracle Database pode levar alguns segundos adicionais para ficar disponível a
 
 Por esse motivo, o script aguarda a porta `1521` estar acessível antes de considerar o ambiente pronto.
 
-Essa separação permite reiniciar o backend Spring Boot durante o desenvolvimento sem precisar reiniciar ou revalidar toda a infraestrutura Oracle.
+Essa separação permite reiniciar o backend Spring Boot durante o desenvolvimento sem precisar reiniciar toda a infraestrutura Oracle.
 
 ---
 
@@ -389,7 +526,7 @@ spring:
     password: SENHA
 ```
 
-O profile deve ser ativado através de:
+O profile utilizado é:
 
 ```text
 local
@@ -399,29 +536,11 @@ O arquivo local permite executar o projeto sem precisar definir manualmente as v
 
 Credenciais reais e informações específicas da máquina de desenvolvimento não devem ser versionadas.
 
-Uma futura alternativa é manter no repositório apenas um arquivo de exemplo:
-
-```text
-application-local.example.yml
-```
-
 ---
 
 # Executando o backend
 
 Primeiro, certifique-se de que o ambiente Oracle esteja disponível.
-
-Caso utilize a VM local, execute:
-
-```text
-start-integration-hub-db.bat
-```
-
-Aguarde:
-
-```text
-AMBIENTE PRONTO
-```
 
 Depois entre no diretório do backend:
 
@@ -437,7 +556,11 @@ No Windows:
 .\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
 ```
 
-O log deverá indicar que o profile `local` está ativo.
+O log deverá indicar:
+
+```text
+The following 1 profile is active: "local"
+```
 
 ## Utilizando variáveis de ambiente
 
@@ -459,7 +582,7 @@ O backend utiliza a porta:
 8081
 ```
 
-Portanto, a aplicação estará disponível em:
+A aplicação estará disponível em:
 
 ```text
 http://localhost:8081
@@ -475,13 +598,7 @@ A aplicação disponibiliza um endpoint próprio para verificar tanto o funciona
 GET /api/health
 ```
 
-Exemplo:
-
-```text
-http://localhost:8081/api/health
-```
-
-Resposta esperada quando a aplicação e o banco estiverem disponíveis:
+Resposta esperada:
 
 ```json
 {
@@ -496,10 +613,18 @@ O endpoint permite identificar separadamente problemas na aplicação e indispon
 
 # API de Integrações
 
+As operações de Integration já utilizam persistência Oracle.
+
 ## Listar integrações
 
 ```http
 GET /api/integrations
+```
+
+Os registros são recuperados diretamente da tabela:
+
+```text
+IH_INTEGRATION
 ```
 
 ---
@@ -531,15 +656,51 @@ Exemplo:
   "name": "Clientes",
   "description": "Integração para consulta de clientes",
   "basePath": "/api/clientes",
-  "active": true
+  "active": "S"
 }
 ```
 
-O identificador é atualmente gerado pelo repositório em memória.
+Não é necessário informar:
+
+```text
+id
+createdBy
+createdAt
+updatedBy
+updatedAt
+```
+
+O identificador é obtido através da `IH_INTEGRATION_SEQ`.
+
+Enquanto não houver autenticação, `createdBy` utiliza:
+
+```text
+SYSTEM
+```
+
+A data de criação é preenchida automaticamente.
+
+Exemplo de resposta:
+
+```json
+{
+  "id": 1,
+  "name": "Clientes",
+  "description": "Integração para consulta de clientes",
+  "basePath": "/api/clientes",
+  "active": "S",
+  "createdBy": "SYSTEM",
+  "createdAt": "2026-08-22T16:21:45",
+  "updatedBy": null,
+  "updatedAt": null
+}
+```
 
 ---
 
 # API de Endpoints
+
+A persistência dos endpoints ainda é realizada em memória.
 
 ## Listar endpoints
 
@@ -555,24 +716,12 @@ GET /api/endpoints
 GET /api/endpoints/{id}
 ```
 
-Exemplo:
-
-```http
-GET /api/endpoints/1
-```
-
 ---
 
 ## Listar endpoints de uma integração
 
 ```http
 GET /api/endpoints/integration/{integrationId}
-```
-
-Exemplo:
-
-```http
-GET /api/endpoints/integration/1
 ```
 
 ---
@@ -600,9 +749,7 @@ Exemplo:
 }
 ```
 
-O `POST` é utilizado para configuração administrativa do Integration Hub.
-
-Os endpoints dinamicamente disponibilizados para consumidores terão inicialmente apenas operações `GET`.
+Essa estrutura ainda será revisada durante a implementação da tabela `IH_ENDPOINT`.
 
 ---
 
@@ -704,7 +851,7 @@ O mesmo processo de build e testes é executado pelo pipeline do GitHub Actions.
 
 O repositório possui um workflow do **GitHub Actions** responsável pela validação automática do backend.
 
-A cada execução configurada no workflow é realizado:
+O fluxo executa:
 
 ```text
 checkout
@@ -730,17 +877,18 @@ Isso permite detectar problemas de compilação e regressões antes que novas al
 
 A primeira versão do Integration Hub terá foco em:
 
-* cadastro de integrações;
-* cadastro de endpoints;
-* relacionamento `Integration 1:N Endpoint`;
-* endpoints de consumo do tipo `GET`;
-* consultas SQL parametrizadas;
-* validação dos parâmetros recebidos;
-* conexão com Oracle através de pool;
-* execução dinâmica das consultas;
-* retorno dos resultados em JSON;
-* documentação da API;
-* ambiente Oracle local para desenvolvimento.
+- cadastro de integrações;
+- cadastro de endpoints;
+- relacionamento `Integration 1:N Endpoint`;
+- persistência Oracle das configurações;
+- endpoints de consumo do tipo `GET`;
+- consultas SQL parametrizadas;
+- validação dos parâmetros recebidos;
+- conexão com Oracle através de pool;
+- execução dinâmica das consultas;
+- retorno dos resultados em JSON;
+- documentação da API;
+- ambiente Oracle local para desenvolvimento.
 
 Funcionalidades adicionais serão incorporadas de maneira incremental após a estabilização desse fluxo.
 
@@ -750,15 +898,15 @@ Funcionalidades adicionais serão incorporadas de maneira incremental após a es
 
 Não fazem parte da primeira implementação:
 
-* operações dinâmicas `POST`;
-* operações dinâmicas `PUT`;
-* operações dinâmicas `PATCH`;
-* operações dinâmicas `DELETE`;
-* mensageria;
-* processamento assíncrono;
-* orquestração em Kubernetes;
-* persistência de configurações fora do Oracle;
-* recursos avançados de escalabilidade distribuída.
+- operações dinâmicas `POST`;
+- operações dinâmicas `PUT`;
+- operações dinâmicas `PATCH`;
+- operações dinâmicas `DELETE`;
+- mensageria;
+- processamento assíncrono;
+- orquestração em Kubernetes;
+- persistência das configurações fora do Oracle;
+- recursos avançados de escalabilidade distribuída.
 
 Essas funcionalidades poderão ser avaliadas conforme o crescimento e as necessidades reais da plataforma.
 
@@ -770,14 +918,14 @@ A execução de SQL configurável exige controles específicos.
 
 Entre os princípios previstos para o projeto estão:
 
-* utilização obrigatória de bind parameters;
-* proibição de concatenação direta de parâmetros no SQL;
-* validação dos parâmetros antes da execução;
-* separação entre configuração e consumo das integrações;
-* controle de acesso;
-* armazenamento seguro das credenciais;
-* restrição dos tipos de SQL permitidos;
-* auditoria das execuções em etapas futuras.
+- utilização obrigatória de bind parameters;
+- proibição de concatenação direta de parâmetros no SQL;
+- validação dos parâmetros antes da execução;
+- separação entre configuração e consumo das integrações;
+- controle de acesso;
+- armazenamento seguro das credenciais;
+- restrição dos tipos de SQL permitidos;
+- auditoria das execuções em etapas futuras.
 
 Na V1, o foco será em consultas de leitura.
 
@@ -793,13 +941,13 @@ Responsável pela configuração das integrações.
 
 Poderá:
 
-* cadastrar integrações;
-* cadastrar endpoints;
-* definir consultas SQL;
-* definir parâmetros;
-* testar consultas;
-* visualizar documentação;
-* ativar ou desativar integrações.
+- cadastrar integrações;
+- cadastrar endpoints;
+- definir consultas SQL;
+- definir parâmetros;
+- testar consultas;
+- visualizar documentação;
+- ativar ou desativar integrações.
 
 ## Consumidor
 
@@ -807,11 +955,11 @@ Responsável pelo consumo e validação das integrações disponibilizadas.
 
 Poderá:
 
-* consultar integrações disponíveis;
-* visualizar documentação;
-* visualizar os parâmetros necessários;
-* testar endpoints autorizados;
-* consumir as APIs publicadas.
+- consultar integrações disponíveis;
+- visualizar documentação;
+- visualizar os parâmetros necessários;
+- testar endpoints autorizados;
+- consumir as APIs publicadas.
 
 O mecanismo de autenticação e autorização será implementado em uma etapa posterior.
 
@@ -828,13 +976,13 @@ Swagger UI
 
 A documentação deverá permitir visualizar:
 
-* integrações disponíveis;
-* endpoints;
-* métodos HTTP;
-* parâmetros;
-* exemplos de requisição;
-* exemplos de resposta;
-* testes diretamente pela interface.
+- integrações disponíveis;
+- endpoints;
+- métodos HTTP;
+- parâmetros;
+- exemplos de requisição;
+- exemplos de resposta;
+- testes diretamente pela interface.
 
 ---
 
@@ -842,41 +990,49 @@ A documentação deverá permitir visualizar:
 
 Atualmente estão implementados e validados:
 
-* aplicação Spring Boot com Java 21;
-* backend executando na porta `8081`;
-* conexão JDBC com Oracle;
-* configuração de datasource por variáveis de ambiente;
-* profile `local` para desenvolvimento;
-* configuração local através de `application-local.yml`;
-* HikariCP;
-* health check da aplicação;
-* health check do Oracle;
-* cadastro de integrações em memória;
-* geração automática de IDs em memória;
-* consulta de integrações;
-* cadastro de endpoints em memória;
-* consulta de endpoints;
-* consulta de endpoints por integração;
-* relacionamento `Integration 1:N Endpoint`;
-* estrutura de controller, service e repository;
-* testes automatizados do backend;
-* Maven Wrapper;
-* build com `clean verify`;
-* workflow de validação no GitHub Actions;
-* VM dedicada para Oracle;
-* Oracle Linux configurado;
-* Oracle Database Free 23ai instalado;
-* Oracle Net Listener configurado;
-* inicialização automática dos serviços Oracle;
-* endereço IPv4 estático para a VM;
-* comunicação entre a máquina de desenvolvimento e a VM;
-* script para inicialização e validação automática do ambiente Oracle;
-* validação da disponibilidade do Listener antes da inicialização do backend;
-* conexão ponta a ponta entre Spring Boot e Oracle validada.
+- aplicação Spring Boot com Java 21;
+- backend executando na porta `8081`;
+- conexão JDBC com Oracle;
+- configuração de datasource por variáveis de ambiente;
+- profile `local` para desenvolvimento;
+- configuração local através de `application-local.yml`;
+- HikariCP;
+- health check da aplicação;
+- health check do Oracle;
+- tabela `IH_INTEGRATION`;
+- sequence `IH_INTEGRATION_SEQ`;
+- script de instalação da `IH_INTEGRATION`;
+- persistência Oracle das integrações;
+- geração de IDs através de sequence;
+- cadastro de integrações via API;
+- listagem de integrações via API;
+- busca de integração por ID;
+- busca de integração por `basePath`;
+- campos de auditoria da Integration;
+- `OracleIntegrationRepository`;
+- cadastro de endpoints em memória;
+- consulta de endpoints em memória;
+- consulta de endpoints por integração;
+- relacionamento lógico `Integration 1:N Endpoint`;
+- estrutura de controller, service e repository;
+- testes automatizados do backend;
+- Maven Wrapper;
+- build com `clean verify`;
+- workflow de validação no GitHub Actions;
+- VM dedicada para Oracle;
+- Oracle Linux configurado;
+- Oracle Database Free 23ai instalado;
+- Oracle Net Listener configurado;
+- inicialização automática dos serviços Oracle;
+- endereço IPv4 estático para a VM;
+- comunicação entre a máquina de desenvolvimento e a VM;
+- conexão ponta a ponta entre Spring Boot e Oracle validada.
 
-A persistência das configurações do Integration Hub ainda permanece em memória.
+A persistência de `Integration` já está concluída no Oracle.
 
-A execução dinâmica dos SQLs cadastrados também ainda será implementada.
+A persistência de `Endpoint` ainda permanece em memória.
+
+A execução dinâmica dos SQLs cadastrados ainda será implementada.
 
 ---
 
@@ -884,19 +1040,23 @@ A execução dinâmica dos SQLs cadastrados também ainda será implementada.
 
 A sequência prevista de desenvolvimento é:
 
-1. preparar o schema Oracle para o Integration Hub;
-2. criar a tabela `IH_INTEGRATION`;
+1. definir o modelo definitivo de `IH_ENDPOINT`;
+2. criar `002_create_ih_endpoint.sql`;
 3. criar a tabela `IH_ENDPOINT`;
-4. definir índices, constraints e relacionamentos;
-5. substituir gradualmente os repositories em memória pela persistência Oracle;
-6. implementar resolução dinâmica de `basePath + path`;
-7. implementar validação dos parâmetros dos endpoints;
-8. implementar execução dinâmica das consultas SQL;
-9. retornar os resultados das consultas em JSON;
-10. adicionar tratamento padronizado de erros;
-11. adicionar Swagger/OpenAPI;
-12. implementar autenticação e controle de acesso;
-13. iniciar o frontend em React.
+4. definir a FK entre `IH_ENDPOINT` e `IH_INTEGRATION`;
+5. definir constraints e índices da `IH_ENDPOINT`;
+6. criar geração de identificadores para Endpoint;
+7. implementar `OracleEndpointRepository`;
+8. remover `InMemoryEndpointRepository`;
+9. validar cadastro e consulta de endpoints no Oracle;
+10. implementar resolução dinâmica de `basePath + path`;
+11. implementar validação dos parâmetros;
+12. implementar execução dinâmica das consultas SQL;
+13. retornar os resultados em JSON;
+14. adicionar tratamento padronizado de erros;
+15. adicionar Swagger/OpenAPI;
+16. implementar autenticação e controle de acesso;
+17. iniciar o frontend em React.
 
 ---
 
