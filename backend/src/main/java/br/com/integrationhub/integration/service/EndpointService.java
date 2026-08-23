@@ -28,6 +28,18 @@ public class EndpointService {
         return endpointRepository.findByIntegrationId(integrationId);
     }
 
+    public Optional<Endpoint> findByIntegrationIdAndPathAndMethod(
+            Long integrationId,
+            String path,
+            String method) {
+
+        return endpointRepository.findByIntegrationIdAndPathAndMethod(
+                integrationId,
+                path,
+                method
+        );
+    }
+
     public Endpoint save(Endpoint endpoint) {
         if (endpoint.getActive() == null) {
             endpoint.setActive("S");

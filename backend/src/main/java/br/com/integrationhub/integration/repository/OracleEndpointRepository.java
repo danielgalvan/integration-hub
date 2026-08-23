@@ -26,12 +26,14 @@ public class OracleEndpointRepository implements EndpointRepository {
     public OracleEndpointRepository(
             NamedParameterJdbcTemplate jdbcTemplate,
             JsonMapper jsonMapper) {
+
         this.jdbcTemplate = jdbcTemplate;
         this.jsonMapper = jsonMapper;
     }
 
     @Override
     public List<Endpoint> findAll() {
+
         String sql = """
                 select
                     id,
@@ -60,6 +62,7 @@ public class OracleEndpointRepository implements EndpointRepository {
 
     @Override
     public Optional<Endpoint> findById(Long id) {
+
         String sql = """
                 select
                     id,
@@ -90,6 +93,7 @@ public class OracleEndpointRepository implements EndpointRepository {
 
     @Override
     public List<Endpoint> findByIntegrationId(Long integrationId) {
+
         String sql = """
                 select
                     id,
@@ -118,7 +122,51 @@ public class OracleEndpointRepository implements EndpointRepository {
     }
 
     @Override
+    public Optional<Endpoint> findByIntegrationIdAndPathAndMethod(
+            Long integrationId,
+            String path,
+            String method) {
+
+        String sql = """
+                select
+                    id,
+                    integration_id,
+                    name,
+                    description,
+                    path,
+                    method,
+                    sql_text,
+                    parameters,
+                    active,
+                    created_by,
+                    created_at,
+                    updated_by,
+                    updated_at
+                from ih_endpoint
+                where integration_id = :integrationId
+                  and path = :path
+                  and upper(method) = upper(:method)
+                  and active = 'S'
+                """;
+
+        Map<String, Object> params = Map.of(
+                "integrationId", integrationId,
+                "path", path,
+                "method", method
+        );
+
+        List<Endpoint> results = jdbcTemplate.query(
+                sql,
+                params,
+                (rs, rowNum) -> mapRow(rs)
+        );
+
+        return results.stream().findFirst();
+    }
+
+    @Override
     public Endpoint save(Endpoint endpoint) {
+
         Long id = jdbcTemplate.queryForObject(
                 "select ih_endpoint_seq.nextval from dual",
                 Map.of(),
@@ -185,6 +233,7 @@ public class OracleEndpointRepository implements EndpointRepository {
     }
 
     private Endpoint mapRow(ResultSet rs) throws SQLException {
+
         Endpoint endpoint = new Endpoint();
 
         endpoint.setId(rs.getLong("id"));
@@ -218,6 +267,7 @@ public class OracleEndpointRepository implements EndpointRepository {
     }
 
     private String serializeParameters(List<EndpointParameter> parameters) {
+
         if (parameters == null || parameters.isEmpty()) {
             return null;
         }
@@ -232,7 +282,9 @@ public class OracleEndpointRepository implements EndpointRepository {
         }
     }
 
-    private List<EndpointParameter> deserializeParameters(String parametersJson) {
+    private List<EndpointParameter> deserializeParameters(
+            String parametersJson) {
+
         if (parametersJson == null || parametersJson.isBlank()) {
             return Collections.emptyList();
         }

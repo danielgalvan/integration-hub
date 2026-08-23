@@ -13,5 +13,11 @@ public interface EndpointRepository {
 
     List<Endpoint> findByIntegrationId(Long integrationId);
 
+    Optional<Endpoint> findByIntegrationIdAndPathAndMethod(
+            Long integrationId,
+            String path,
+            String method
+    );
+
     Endpoint save(Endpoint endpoint);
 }
