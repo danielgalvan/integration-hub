@@ -12,7 +12,9 @@ public class IntegrationService {
 
     private final IntegrationRepository integrationRepository;
 
-    public IntegrationService(IntegrationRepository integrationRepository) {
+    public IntegrationService(
+            IntegrationRepository integrationRepository) {
+
         this.integrationRepository = integrationRepository;
     }
 
@@ -24,11 +26,25 @@ public class IntegrationService {
         return integrationRepository.findById(id);
     }
 
-    public Optional<Integration> findByBasePath(String basePath) {
-        return integrationRepository.findByBasePath(basePath);
+    public Optional<Integration> findByBasePath(
+            String basePath) {
+
+        return integrationRepository.findByBasePath(
+                basePath
+        );
+    }
+
+    public Optional<Integration> findBestMatchByRequestPath(
+            String requestPath) {
+
+        return integrationRepository
+                .findBestMatchByRequestPath(
+                        requestPath
+                );
     }
 
     public Integration save(Integration integration) {
+
         if (integration.getActive() == null) {
             integration.setActive("S");
         }
@@ -37,6 +53,8 @@ public class IntegrationService {
             integration.setCreatedBy("SYSTEM");
         }
 
-        return integrationRepository.save(integration);
+        return integrationRepository.save(
+                integration
+        );
     }
 }

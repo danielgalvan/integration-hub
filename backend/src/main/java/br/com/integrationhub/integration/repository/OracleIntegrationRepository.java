@@ -17,12 +17,15 @@ public class OracleIntegrationRepository implements IntegrationRepository {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
-    public OracleIntegrationRepository(NamedParameterJdbcTemplate jdbcTemplate) {
+    public OracleIntegrationRepository(
+            NamedParameterJdbcTemplate jdbcTemplate) {
+
         this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
     public List<Integration> findAll() {
+
         String sql = """
                 select
                     id,
@@ -47,6 +50,7 @@ public class OracleIntegrationRepository implements IntegrationRepository {
 
     @Override
     public Optional<Integration> findById(Long id) {
+
         String sql = """
                 select
                     id,
@@ -73,6 +77,7 @@ public class OracleIntegrationRepository implements IntegrationRepository {
 
     @Override
     public Optional<Integration> findByBasePath(String basePath) {
+
         String sql = """
                 select
                     id,
@@ -91,6 +96,44 @@ public class OracleIntegrationRepository implements IntegrationRepository {
         List<Integration> results = jdbcTemplate.query(
                 sql,
                 Map.of("basePath", basePath),
+                (rs, rowNum) -> mapRow(rs)
+        );
+
+        return results.stream().findFirst();
+    }
+
+    @Override
+    public Optional<Integration> findBestMatchByRequestPath(
+            String requestPath) {
+
+        String sql = """
+                select
+                    id,
+                    name,
+                    description,
+                    base_path,
+                    active,
+                    created_by,
+                    created_at,
+                    updated_by,
+                    updated_at
+                from ih_integration
+                where active = 'S'
+                  and (
+                        :requestPath = base_path
+                        or substr(
+                            :requestPath,
+                            1,
+                            length(base_path) + 1
+                        ) = base_path || '/'
+                  )
+                order by length(base_path) desc
+                fetch first 1 row only
+                """;
+
+        List<Integration> results = jdbcTemplate.query(
+                sql,
+                Map.of("requestPath", requestPath),
                 (rs, rowNum) -> mapRow(rs)
         );
 
@@ -127,8 +170,14 @@ public class OracleIntegrationRepository implements IntegrationRepository {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("id", id)
                 .addValue("name", integration.getName())
-                .addValue("description", integration.getDescription())
-                .addValue("basePath", integration.getBasePath())
+                .addValue(
+                        "description",
+                        integration.getDescription()
+                )
+                .addValue(
+                        "basePath",
+                        integration.getBasePath()
+                )
                 .addValue(
                         "active",
                         integration.getActive() == null
@@ -150,28 +199,44 @@ public class OracleIntegrationRepository implements IntegrationRepository {
                 .orElse(integration);
     }
 
-    private Integration mapRow(ResultSet rs) throws SQLException {
+    private Integration mapRow(ResultSet rs)
+            throws SQLException {
+
         Integration integration = new Integration();
 
         integration.setId(rs.getLong("id"));
         integration.setName(rs.getString("name"));
-        integration.setDescription(rs.getString("description"));
-        integration.setBasePath(rs.getString("base_path"));
+        integration.setDescription(
+                rs.getString("description")
+        );
+        integration.setBasePath(
+                rs.getString("base_path")
+        );
         integration.setActive(rs.getString("active"));
-        integration.setCreatedBy(rs.getString("created_by"));
+        integration.setCreatedBy(
+                rs.getString("created_by")
+        );
 
-        Timestamp createdAt = rs.getTimestamp("created_at");
+        Timestamp createdAt =
+                rs.getTimestamp("created_at");
 
         if (createdAt != null) {
-            integration.setCreatedAt(createdAt.toLocalDateTime());
+            integration.setCreatedAt(
+                    createdAt.toLocalDateTime()
+            );
         }
 
-        integration.setUpdatedBy(rs.getString("updated_by"));
+        integration.setUpdatedBy(
+                rs.getString("updated_by")
+        );
 
-        Timestamp updatedAt = rs.getTimestamp("updated_at");
+        Timestamp updatedAt =
+                rs.getTimestamp("updated_at");
 
         if (updatedAt != null) {
-            integration.setUpdatedAt(updatedAt.toLocalDateTime());
+            integration.setUpdatedAt(
+                    updatedAt.toLocalDateTime()
+            );
         }
 
         return integration;

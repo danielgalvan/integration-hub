@@ -1,22 +1,34 @@
 package br.com.integrationhub.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final Logger logger =
+            LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiError> handleIllegalArgumentException(
             IllegalArgumentException exception,
             HttpServletRequest request) {
+
+        logger.warn(
+                "Requisição inválida em {}: {}",
+                request.getRequestURI(),
+                exception.getMessage()
+        );
 
         ApiError error = new ApiError(
                 LocalDateTime.now(),
@@ -36,12 +48,21 @@ public class GlobalExceptionHandler {
             MissingServletRequestParameterException exception,
             HttpServletRequest request) {
 
+        String message =
+                "Parâmetro obrigatório não informado: "
+                        + exception.getParameterName();
+
+        logger.warn(
+                "Requisição inválida em {}: {}",
+                request.getRequestURI(),
+                message
+        );
+
         ApiError error = new ApiError(
                 LocalDateTime.now(),
                 HttpStatus.BAD_REQUEST.value(),
                 HttpStatus.BAD_REQUEST.getReasonPhrase(),
-                "Parâmetro obrigatório não informado: "
-                        + exception.getParameterName(),
+                message,
                 request.getRequestURI()
         );
 
@@ -50,10 +71,43 @@ public class GlobalExceptionHandler {
                 .body(error);
     }
 
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ApiError> handleResponseStatusException(
+            ResponseStatusException exception,
+            HttpServletRequest request) {
+
+        HttpStatus status =
+                HttpStatus.valueOf(exception.getStatusCode().value());
+
+        String message = exception.getReason();
+
+        if (message == null || message.isBlank()) {
+            message = status.getReasonPhrase();
+        }
+
+        ApiError error = new ApiError(
+                LocalDateTime.now(),
+                status.value(),
+                status.getReasonPhrase(),
+                message,
+                request.getRequestURI()
+        );
+
+        return ResponseEntity
+                .status(status)
+                .body(error);
+    }
+
     @ExceptionHandler(DataAccessException.class)
     public ResponseEntity<ApiError> handleDataAccessException(
             DataAccessException exception,
             HttpServletRequest request) {
+
+        logger.error(
+                "Erro de banco ao processar {}",
+                request.getRequestURI(),
+                exception
+        );
 
         ApiError error = new ApiError(
                 LocalDateTime.now(),
@@ -72,6 +126,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleException(
             Exception exception,
             HttpServletRequest request) {
+
+        logger.error(
+                "Erro inesperado ao processar {}",
+                request.getRequestURI(),
+                exception
+        );
 
         ApiError error = new ApiError(
                 LocalDateTime.now(),

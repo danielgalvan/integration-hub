@@ -2,30 +2,47 @@ package br.com.integrationhub.integration.service;
 
 import br.com.integrationhub.integration.model.Endpoint;
 import br.com.integrationhub.integration.model.EndpointParameter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 
 @Service
 public class DynamicEndpointService {
 
+    private static final String MAX_RESULTS_PARAMETER =
+            "__ih_max_results";
+
     private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final int maxResults;
 
     public DynamicEndpointService(
-            NamedParameterJdbcTemplate jdbcTemplate) {
+            NamedParameterJdbcTemplate jdbcTemplate,
+            @Value("${integration-hub.dynamic.max-results:1000}")
+            int maxResults) {
 
         this.jdbcTemplate = jdbcTemplate;
+        this.maxResults = maxResults;
     }
 
     public List<Map<String, Object>> executeGet(
             Endpoint endpoint,
             Map<String, String> requestParameters) {
 
-        validateSql(endpoint.getSqlText());
+        String sql = normalizeSql(
+                endpoint.getSqlText()
+        );
+
+        validateSql(sql);
 
         MapSqlParameterSource sqlParameters =
                 buildSqlParameters(
@@ -33,10 +50,51 @@ public class DynamicEndpointService {
                         requestParameters
                 );
 
+        sqlParameters.addValue(
+                MAX_RESULTS_PARAMETER,
+                maxResults
+        );
+
+        String limitedSql = applyResultLimit(sql);
+
         return jdbcTemplate.queryForList(
-                endpoint.getSqlText(),
+                limitedSql,
                 sqlParameters
         );
+    }
+
+    private String applyResultLimit(String sql) {
+
+        return """
+                select *
+                from (
+                    %s
+                )
+                where rownum <= :%s
+                """.formatted(
+                sql,
+                MAX_RESULTS_PARAMETER
+        );
+    }
+
+    private String normalizeSql(String sql) {
+
+        if (sql == null) {
+            return null;
+        }
+
+        String normalizedSql = sql.trim();
+
+        while (normalizedSql.endsWith(";")) {
+            normalizedSql = normalizedSql
+                    .substring(
+                            0,
+                            normalizedSql.length() - 1
+                    )
+                    .trim();
+        }
+
+        return normalizedSql;
     }
 
     private MapSqlParameterSource buildSqlParameters(
@@ -69,6 +127,7 @@ public class DynamicEndpointService {
             }
 
             if (value == null || value.isBlank()) {
+
                 sqlParameters.addValue(
                         parameter.getName(),
                         null
@@ -110,6 +169,18 @@ public class DynamicEndpointService {
             case "VARCHAR2", "VARCHAR", "CHAR" ->
                     value;
 
+            case "DATE" ->
+                    convertDate(
+                            parameter.getName(),
+                            value
+                    );
+
+            case "TIMESTAMP" ->
+                    convertTimestamp(
+                            parameter.getName(),
+                            value
+                    );
+
             default ->
                     throw new IllegalArgumentException(
                             "Tipo de parâmetro não suportado: "
@@ -124,7 +195,9 @@ public class DynamicEndpointService {
 
         try {
             return new BigDecimal(value);
+
         } catch (NumberFormatException e) {
+
             throw new IllegalArgumentException(
                     "Parâmetro "
                             + parameterName
@@ -133,9 +206,49 @@ public class DynamicEndpointService {
         }
     }
 
+    private Date convertDate(
+            String parameterName,
+            String value) {
+
+        try {
+            LocalDate date = LocalDate.parse(value);
+
+            return Date.valueOf(date);
+
+        } catch (DateTimeParseException e) {
+
+            throw new IllegalArgumentException(
+                    "Parâmetro "
+                            + parameterName
+                            + " deve estar no formato yyyy-MM-dd"
+            );
+        }
+    }
+
+    private Timestamp convertTimestamp(
+            String parameterName,
+            String value) {
+
+        try {
+            LocalDateTime dateTime =
+                    LocalDateTime.parse(value);
+
+            return Timestamp.valueOf(dateTime);
+
+        } catch (DateTimeParseException e) {
+
+            throw new IllegalArgumentException(
+                    "Parâmetro "
+                            + parameterName
+                            + " deve estar no formato yyyy-MM-dd'T'HH:mm:ss"
+            );
+        }
+    }
+
     private void validateSql(String sql) {
 
         if (sql == null || sql.isBlank()) {
+
             throw new IllegalArgumentException(
                     "SQL do endpoint não informado"
             );
@@ -145,6 +258,7 @@ public class DynamicEndpointService {
                 sql.trim().toLowerCase();
 
         if (!normalizedSql.startsWith("select")) {
+
             throw new IllegalArgumentException(
                     "Endpoints GET permitem apenas comandos SELECT"
             );

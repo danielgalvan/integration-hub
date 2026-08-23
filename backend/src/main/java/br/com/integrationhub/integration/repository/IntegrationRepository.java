@@ -13,5 +13,7 @@ public interface IntegrationRepository {
 
     Optional<Integration> findByBasePath(String basePath);
 
+    Optional<Integration> findBestMatchByRequestPath(String requestPath);
+
     Integration save(Integration integration);
 }
