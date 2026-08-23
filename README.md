@@ -2,15 +2,17 @@
 
 O **Integration Hub** é uma plataforma para criação, gerenciamento e disponibilização de APIs de integração sobre bases de dados Oracle.
 
-O objetivo do projeto é simplificar e padronizar a criação de integrações, permitindo que consultas SQL sejam configuradas e posteriormente disponibilizadas como endpoints HTTP de forma segura, documentada e controlada.
+O objetivo do projeto é simplificar e padronizar a criação de integrações, permitindo que consultas SQL sejam configuradas e disponibilizadas dinamicamente como endpoints HTTP de forma segura, documentada e controlada.
 
-O desenvolvimento está sendo realizado de forma incremental. A primeira versão terá foco em integrações de leitura utilizando `GET`, permitindo validar a arquitetura, o modelo de domínio e a execução das consultas antes da expansão para outros métodos HTTP.
+O desenvolvimento está sendo realizado de forma incremental.
+
+A primeira versão possui foco em integrações de leitura utilizando `GET`, permitindo validar a arquitetura, o modelo de domínio, a persistência das configurações e a execução dinâmica das consultas antes da expansão para outros métodos HTTP.
 
 ---
 
 ## Arquitetura
 
-O projeto utiliza uma arquitetura inicialmente dividida entre backend e frontend.
+O projeto utiliza uma arquitetura dividida entre backend e frontend.
 
 ### Backend
 
@@ -37,6 +39,7 @@ O frontend será desenvolvido em uma etapa posterior, após a consolidação da 
 integration-hub/
 ├── .github/
 │   └── workflows/
+│       └── validate.yml
 │
 ├── backend/
 │   ├── database/
@@ -53,14 +56,15 @@ integration-hub/
 │   │   │   │       ├── controller/
 │   │   │   │       │   └── HealthController.java
 │   │   │   │       │
+│   │   │   │       ├── exception/
+│   │   │   │       │   └── GlobalExceptionHandler.java
+│   │   │   │       │
 │   │   │   │       ├── service/
 │   │   │   │       │   └── DatabaseHealthService.java
 │   │   │   │       │
 │   │   │   │       └── integration/
-│   │   │   │           ├── UsuarioController.java
-│   │   │   │           ├── UsuarioService.java
-│   │   │   │           │
 │   │   │   │           ├── controller/
+│   │   │   │           │   ├── DynamicEndpointController.java
 │   │   │   │           │   ├── IntegrationController.java
 │   │   │   │           │   └── EndpointController.java
 │   │   │   │           │
@@ -77,7 +81,8 @@ integration-hub/
 │   │   │   │           │
 │   │   │   │           └── service/
 │   │   │   │               ├── IntegrationService.java
-│   │   │   │               └── EndpointService.java
+│   │   │   │               ├── EndpointService.java
+│   │   │   │               └── DynamicEndpointService.java
 │   │   │   │
 │   │   │   └── resources/
 │   │   │       ├── application.properties
@@ -135,10 +140,10 @@ updatedAt
 Exemplo:
 
 ```text
-id:           1
-name:         Clientes
-description:  Integração para consulta de clientes
-basePath:     /api/clientes
+id:           8
+name:         Pedidos
+description:  Integração para consulta de pedidos
+basePath:     /api/pedidos
 active:       S
 createdBy:    SYSTEM
 ```
@@ -185,11 +190,10 @@ updatedAt
 Exemplo:
 
 ```text
-id:             1
-integrationId:  1
-name:           Buscar cliente
-description:    Consulta um cliente pelo identificador
-path:           /buscar
+integrationId:  8
+name:           Listar pedidos
+description:    Lista pedidos por status
+path:           /listar
 method:         GET
 active:         S
 createdBy:      SYSTEM
@@ -203,7 +207,7 @@ Na V1, apenas endpoints com método:
 GET
 ```
 
-serão permitidos.
+são suportados.
 
 ---
 
@@ -227,7 +231,7 @@ Exemplo:
 
 ```json
 {
-  "name": "id",
+  "name": "pedido_id",
   "type": "NUMBER",
   "required": true
 }
@@ -243,7 +247,7 @@ Um endpoint pode possuir vários parâmetros:
     "required": true
   },
   {
-    "name": "situacao",
+    "name": "status",
     "type": "VARCHAR2",
     "required": false
   }
@@ -262,53 +266,458 @@ A serialização e desserialização entre os objetos Java e o JSON persistido s
 
 ---
 
+# Tipos de parâmetros suportados
+
+Atualmente a execução dinâmica suporta os tipos:
+
+```text
+VARCHAR2
+NUMBER
+```
+
+Os valores recebidos através da query string são convertidos pelo backend antes da execução da consulta.
+
+Exemplo com `VARCHAR2`:
+
+```http
+GET /api/pedidos/listar?status=ABERTO
+```
+
+Exemplo com `NUMBER`:
+
+```http
+GET /api/pedidos/itens?pedido_id=1
+```
+
+Quando um parâmetro obrigatório não é informado, a execução é interrompida antes do acesso ao banco.
+
+Exemplo:
+
+```http
+GET /api/pedidos/listar
+```
+
+Resposta:
+
+```text
+400 Bad Request
+Parâmetro obrigatório não informado: status
+```
+
+Parâmetros numéricos também são validados.
+
+Exemplo inválido:
+
+```http
+GET /api/pedidos/itens?pedido_id=abc
+```
+
+Resposta:
+
+```text
+400 Bad Request
+Parâmetro pedido_id deve ser numérico
+```
+
+---
+
 # Composição dos endpoints
 
-O endereço final de uma integração será formado pela combinação do `basePath` da integração com o `path` do endpoint.
+O endereço final de uma integração é formado pela combinação do `basePath` da integração com o `path` do endpoint.
 
 Exemplo:
 
 ```text
 Integration.basePath
-/api/clientes
+/api/pedidos
 
 Endpoint.path
-/buscar
+/listar
 ```
 
 Resultado:
 
 ```text
-/api/clientes/buscar
+/api/pedidos/listar
 ```
 
 Uma mesma integração pode possuir diversos endpoints:
 
 ```text
-/api/clientes
+/api/pedidos
     │
-    ├── /buscar
     ├── /listar
+    ├── /itens
     └── /detalhes
 ```
 
 Resultando em:
 
 ```text
-/api/clientes/buscar
-/api/clientes/listar
-/api/clientes/detalhes
+/api/pedidos/listar
+/api/pedidos/itens
+/api/pedidos/detalhes
 ```
 
-A resolução dinâmica dessas rotas será implementada na próxima etapa do projeto.
+A resolução dinâmica dessas rotas já está implementada.
+
+---
+
+# Resolução dinâmica
+
+O `DynamicEndpointController` recebe requisições `GET` que não possuem um controller específico e utiliza o caminho completo da requisição para localizar a integração configurada.
+
+O fluxo é:
+
+```text
+Requisição HTTP
+        │
+        ▼
+DynamicEndpointController
+        │
+        ▼
+IntegrationService
+        │
+        ▼
+IntegrationRepository
+        │
+        ▼
+findBestMatchByRequestPath
+        │
+        ▼
+EndpointService
+        │
+        ▼
+DynamicEndpointService
+        │
+        ▼
+NamedParameterJdbcTemplate
+        │
+        ▼
+Oracle
+```
+
+A integração é localizada através do `basePath` configurado.
+
+Após encontrar a integração, o restante da URL é utilizado para localizar o endpoint correspondente.
+
+Exemplo:
+
+```text
+Request
+/api/pedidos/itens
+
+Integration.basePath
+/api/pedidos
+
+Endpoint.path
+/itens
+```
+
+---
+
+# Resolução do basePath
+
+A resolução da integração considera o `basePath` mais específico compatível com a requisição.
+
+Por exemplo, caso existam duas integrações:
+
+```text
+/api/pedidos
+/api/pedidos/especiais
+```
+
+uma requisição para:
+
+```text
+/api/pedidos/especiais/listar
+```
+
+deve utilizar:
+
+```text
+/api/pedidos/especiais
+```
+
+e não:
+
+```text
+/api/pedidos
+```
+
+A consulta utilizada pelo repository prioriza o maior `basePath` compatível com a URL.
+
+Também é validado o limite do segmento da URL, evitando que:
+
+```text
+/api/pedidos
+```
+
+seja considerado correspondente a:
+
+```text
+/api/pedidos-especiais
+```
+
+Somente integrações ativas são consideradas durante a resolução.
+
+---
+
+# Execução dinâmica de SQL
+
+O SQL armazenado em `IH_ENDPOINT.SQL_TEXT` é executado dinamicamente pelo backend.
+
+Exemplo:
+
+```sql
+select id,
+       numero,
+       cliente_nome,
+       status,
+       valor_total,
+       data_pedido
+  from pedido
+ where status = :status
+```
+
+Considerando:
+
+```text
+basePath: /api/pedidos
+path:     /listar
+```
+
+a consulta fica disponível através de:
+
+```http
+GET /api/pedidos/listar?status=ABERTO
+```
+
+Os parâmetros recebidos através da requisição são validados e utilizados como bind variables na execução da consulta.
+
+Isso evita a necessidade de criar um controller Java específico para cada consulta disponibilizada pelo Integration Hub.
+
+---
+
+# Exemplo de endpoint dinâmico
+
+Integração:
+
+```text
+id:       8
+name:     Pedidos
+basePath: /api/pedidos
+active:   S
+```
+
+Endpoint:
+
+```text
+name:   Listar pedidos
+path:   /listar
+method: GET
+```
+
+Parâmetro:
+
+```json
+{
+  "name": "status",
+  "type": "VARCHAR2",
+  "required": true
+}
+```
+
+Requisição:
+
+```http
+GET /api/pedidos/listar?status=ABERTO
+```
+
+Exemplo de resposta:
+
+```json
+[
+  {
+    "ID": 1,
+    "NUMERO": "PED-0001",
+    "CLIENTE_NOME": "Cliente Exemplo 01",
+    "STATUS": "ABERTO",
+    "VALOR_TOTAL": 249.8,
+    "DATA_PEDIDO": "2026-08-18T12:15:00.000Z"
+  },
+  {
+    "ID": 4,
+    "NUMERO": "PED-0004",
+    "CLIENTE_NOME": "Cliente Exemplo 04",
+    "STATUS": "ABERTO",
+    "VALOR_TOTAL": 529.5,
+    "DATA_PEDIDO": "2026-08-21T19:40:00.000Z"
+  }
+]
+```
+
+---
+
+# Exemplo com parâmetro NUMBER
+
+Um endpoint também pode utilizar parâmetros numéricos.
+
+Exemplo:
+
+```text
+basePath: /api/pedidos
+path:     /itens
+```
+
+SQL:
+
+```sql
+select id,
+       pedido_id,
+       produto,
+       quantidade,
+       valor_unitario
+  from pedido_item
+ where pedido_id = :pedido_id
+```
+
+Parâmetro:
+
+```json
+{
+  "name": "pedido_id",
+  "type": "NUMBER",
+  "required": true
+}
+```
+
+Requisição:
+
+```http
+GET /api/pedidos/itens?pedido_id=1
+```
+
+Exemplo de resposta:
+
+```json
+[
+  {
+    "ID": 1,
+    "PEDIDO_ID": 1,
+    "PRODUTO": "Teclado Mecanico",
+    "QUANTIDADE": 1,
+    "VALOR_UNITARIO": 149.9
+  },
+  {
+    "ID": 2,
+    "PEDIDO_ID": 1,
+    "PRODUTO": "Mouse sem Fio",
+    "QUANTIDADE": 1,
+    "VALOR_UNITARIO": 99.9
+  }
+]
+```
+
+---
+
+# Tratamento de erros
+
+A execução dinâmica possui tratamento padronizado dos principais erros.
+
+## Parâmetro obrigatório ausente
+
+```text
+400 Bad Request
+```
+
+Exemplo:
+
+```json
+{
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Parâmetro obrigatório não informado: status",
+  "path": "/api/pedidos/listar"
+}
+```
+
+## Parâmetro NUMBER inválido
+
+```text
+400 Bad Request
+```
+
+Exemplo:
+
+```json
+{
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Parâmetro pedido_id deve ser numérico",
+  "path": "/api/pedidos/itens"
+}
+```
+
+## Endpoint inexistente
+
+```text
+404 Not Found
+```
+
+Exemplo:
+
+```json
+{
+  "status": 404,
+  "error": "Not Found",
+  "message": "Endpoint não encontrado",
+  "path": "/api/pedidos/nao-existe"
+}
+```
+
+## Integração inexistente
+
+```text
+404 Not Found
+```
+
+Exemplo:
+
+```json
+{
+  "status": 404,
+  "error": "Not Found",
+  "message": "Integração não encontrada",
+  "path": "/api/qualquer-coisa/listar"
+}
+```
+
+## Erro durante a execução da consulta
+
+Erros de acesso ou execução no banco são tratados pelo backend e retornam:
+
+```text
+500 Internal Server Error
+```
+
+As respostas de erro utilizam uma estrutura padronizada contendo:
+
+```text
+timestamp
+status
+error
+message
+path
+```
 
 ---
 
 # Persistência
 
-As configurações de `Integration` e `Endpoint` já são persistidas no Oracle.
+As configurações de `Integration` e `Endpoint` são persistidas no Oracle.
 
-O fluxo atual é:
+O fluxo para integrações é:
 
 ```text
 IntegrationController
@@ -344,7 +753,7 @@ OracleEndpointRepository
 IH_ENDPOINT
 ```
 
-Não existem mais repositories em memória para `Integration` ou `Endpoint`.
+Não são utilizados repositories em memória para `Integration` ou `Endpoint`.
 
 Os registros permanecem disponíveis após reinicializações da aplicação.
 
@@ -457,15 +866,6 @@ INTEGRATION_ID + PATH + METHOD
 
 Isso impede que uma mesma integração possua duas operações iguais para a mesma rota.
 
-Exemplo:
-
-```text
-Integration 1
-GET /buscar
-```
-
-não pode ser cadastrado duas vezes.
-
 ---
 
 # Geração de identificadores
@@ -492,9 +892,9 @@ nocache
 nocycle
 ```
 
-O objetivo é manter identificadores únicos, crescentes e previsíveis.
+Sequences Oracle não garantem ausência absoluta de intervalos entre identificadores.
 
-Sequences Oracle não garantem ausência absoluta de intervalos entre identificadores. Um número pode ser consumido sem resultar em registro persistido, por exemplo, quando uma operação é revertida.
+Um número pode ser consumido sem resultar em registro persistido, por exemplo, quando uma operação é revertida.
 
 ---
 
@@ -688,39 +1088,19 @@ cd backend
 
 ## Desenvolvimento local
 
-No Windows:
+No PowerShell:
 
 ```powershell
-.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
+./mvnw spring-boot:run "-Dspring-boot.run.profiles=local"
 ```
 
-O log deverá indicar:
-
-```text
-The following 1 profile is active: "local"
-```
-
-## Utilizando variáveis de ambiente
-
-Linux ou Git Bash:
-
-```bash
-./mvnw spring-boot:run
-```
-
-Windows:
-
-```powershell
-.\mvnw.cmd spring-boot:run
-```
-
-O backend utiliza a porta:
+A aplicação utiliza a porta:
 
 ```text
 8081
 ```
 
-A aplicação estará disponível em:
+Após a inicialização:
 
 ```text
 http://localhost:8081
@@ -728,540 +1108,262 @@ http://localhost:8081
 
 ---
 
-# Health Check
+# Health check
 
-A aplicação disponibiliza um endpoint próprio para verificar tanto o funcionamento do backend quanto a conectividade com o Oracle.
+O backend possui um endpoint para verificar o estado da aplicação e da conexão com o banco:
 
 ```http
 GET /api/health
 ```
 
-Resposta esperada:
+O health check permite validar se:
 
-```json
-{
-  "database": "Online",
-  "status": "OK"
-}
-```
+- a aplicação está respondendo;
+- o datasource está configurado;
+- o Oracle está acessível.
 
 ---
 
-# API de Integrações
+# APIs administrativas
 
-As operações de Integration utilizam persistência Oracle.
+As configurações das integrações e endpoints são gerenciadas através de APIs administrativas.
 
-## Listar integrações
+Exemplos:
 
 ```http
 GET /api/integrations
-```
-
-Os registros são recuperados diretamente da tabela:
-
-```text
-IH_INTEGRATION
-```
-
-## Buscar integração
-
-```http
 GET /api/integrations/{id}
-```
-
-Exemplo:
-
-```http
-GET /api/integrations/1
-```
-
-## Cadastrar integração
-
-```http
 POST /api/integrations
-```
 
-Exemplo:
-
-```json
-{
-  "name": "Clientes",
-  "description": "Integração para consulta de clientes",
-  "basePath": "/api/clientes",
-  "active": "S"
-}
-```
-
-Não é necessário informar:
-
-```text
-id
-createdBy
-createdAt
-updatedBy
-updatedAt
-```
-
-O identificador é obtido através da `IH_INTEGRATION_SEQ`.
-
-Enquanto não houver autenticação, `createdBy` utiliza:
-
-```text
-SYSTEM
-```
-
----
-
-# API de Endpoints
-
-As operações de Endpoint também utilizam persistência Oracle.
-
-## Listar endpoints
-
-```http
 GET /api/endpoints
-```
-
-Os registros são recuperados diretamente da tabela:
-
-```text
-IH_ENDPOINT
-```
-
-## Buscar endpoint
-
-```http
 GET /api/endpoints/{id}
-```
-
-Exemplo:
-
-```http
-GET /api/endpoints/2
-```
-
-## Listar endpoints de uma integração
-
-```http
-GET /api/endpoints/integration/{integrationId}
-```
-
-Exemplo:
-
-```http
-GET /api/endpoints/integration/1
-```
-
-## Cadastrar endpoint
-
-```http
 POST /api/endpoints
 ```
 
-Exemplo:
-
-```json
-{
-  "integrationId": 1,
-  "name": "Buscar cliente",
-  "description": "Consulta um cliente pelo identificador",
-  "path": "/buscar",
-  "method": "GET",
-  "sqlText": "select id, nome from cliente where id = :id",
-  "parameters": [
-    {
-      "name": "id",
-      "type": "NUMBER",
-      "required": true
-    }
-  ],
-  "active": "S"
-}
-```
-
-Não é necessário informar:
-
-```text
-id
-createdBy
-createdAt
-updatedBy
-updatedAt
-```
-
-O identificador é obtido através da `IH_ENDPOINT_SEQ`.
-
-Os parâmetros são serializados em JSON antes de serem armazenados no Oracle.
-
-Ao consultar um endpoint, o JSON armazenado é desserializado novamente para objetos `EndpointParameter`.
+Esses endpoints administram as configurações que posteriormente serão utilizadas pela execução dinâmica.
 
 ---
 
-# Consultas parametrizadas
+# APIs dinâmicas
 
-As consultas configuradas nos endpoints devem utilizar **bind parameters**.
+As APIs dinâmicas não exigem a criação de um controller Java específico para cada operação.
 
-Exemplo:
+A URL é determinada pelas configurações armazenadas no Oracle.
 
-```sql
-select id,
-       nome
-from cliente
-where id = :id
+Exemplos atualmente utilizados no ambiente de desenvolvimento:
+
+```http
+GET /api/pedidos/listar?status=ABERTO
+GET /api/pedidos/itens?pedido_id=1
 ```
 
-O valor de `id` será recebido pela requisição HTTP e enviado ao banco separadamente da instrução SQL.
-
-Valores recebidos pela API não devem ser concatenados diretamente ao SQL.
-
-Esse modelo reduz riscos de SQL Injection e permite que o Oracle reutilize planos de execução com maior eficiência.
-
----
-
-# Fluxo previsto de execução dinâmica
-
-Com a persistência das configurações concluída, a próxima etapa é utilizar essas configurações para executar endpoints dinamicamente.
-
-O fluxo previsto é:
+Fluxo simplificado:
 
 ```text
-Cliente HTTP
-    │
-    ▼
-GET /api/clientes/buscar?id=123
-    │
-    ▼
-Resolver Integration pelo basePath
-    │
-    ▼
-Resolver Endpoint pelo path
-    │
-    ▼
-Validar Integration ativa
-    │
-    ▼
-Validar Endpoint ativo
-    │
-    ▼
-Validar método HTTP
-    │
-    ▼
-Validar parâmetros
-    │
-    ▼
-Executar SQL_TEXT
-    │
-    ▼
-Oracle Database
-    │
-    ▼
-Resultado
-    │
-    ▼
+Configuração no Oracle
+        │
+        ▼
+Integration + Endpoint
+        │
+        ▼
+URL dinâmica
+        │
+        ▼
+Validação dos parâmetros
+        │
+        ▼
+Execução do SQL
+        │
+        ▼
 JSON
 ```
 
-Exemplo de configuração:
-
-```text
-Integration.basePath = /api/clientes
-Endpoint.path        = /buscar
-Endpoint.method      = GET
-```
-
-A rota dinâmica será:
-
-```http
-GET /api/clientes/buscar?id=123
-```
-
-O Integration Hub deverá localizar a configuração correspondente, validar os parâmetros, executar o SQL configurado e retornar o resultado em JSON.
-
 ---
 
-# Validação do projeto
+# Testes automatizados
 
-Para executar compilação e testes:
+O backend possui testes automatizados para controllers, services, repositories e execução dinâmica.
 
-Linux:
+Entre os cenários cobertos estão:
+
+- criação e consulta de integrações;
+- criação e consulta de endpoints;
+- persistência Oracle;
+- resolução de integração pelo caminho da requisição;
+- seleção do `basePath` mais específico;
+- prevenção de correspondência parcial de `basePath`;
+- execução de endpoint dinâmico;
+- repasse dos query parameters;
+- parâmetro obrigatório ausente;
+- parâmetro `NUMBER` inválido;
+- integração inexistente;
+- endpoint inexistente;
+- tratamento de erro de banco;
+- health check.
+
+A suíte atual possui:
+
+```text
+Tests run: 39
+Failures: 0
+Errors: 0
+Skipped: 0
+```
+
+Para executar os testes:
 
 ```bash
-cd backend
+./mvnw clean test
+```
+
+Para executar a validação completa:
+
+```bash
 ./mvnw clean verify
 ```
 
-Windows:
-
-```powershell
-cd backend
-.\mvnw.cmd clean verify
-```
-
-O projeto possui testes automatizados para validar componentes do backend.
-
-O mesmo processo de build e testes é executado pelo pipeline do GitHub Actions.
-
 ---
 
-# CI/CD
+# Integração contínua
 
-O repositório possui um workflow do **GitHub Actions** responsável pela validação automática do backend.
+O projeto utiliza **GitHub Actions** para validar automaticamente o backend.
 
-O fluxo executa:
+O workflow está localizado em:
 
 ```text
-checkout
-    │
-    ▼
-configuração do Java
-    │
-    ▼
-Maven
-    │
-    ▼
+.github/workflows/validate.yml
+```
+
+A validação é executada em alterações relevantes através de:
+
+```text
+push → main
+pull request → main
+```
+
+O workflow utiliza filtros de `paths`, evitando execuções desnecessárias quando não existem alterações relacionadas ao backend ou ao próprio workflow.
+
+A execução também pode ser disponibilizada manualmente através de:
+
+```yaml
+workflow_dispatch:
+```
+
+A validação utiliza:
+
+```text
+Java 21
+Temurin
+Maven Wrapper
+Maven dependency cache
 clean verify
-    │
-    ▼
-compilação + testes
 ```
 
-Isso permite detectar problemas de compilação e regressões antes que novas alterações sejam incorporadas ao projeto.
+O comando executado no CI é:
 
----
-
-# Escopo da V1
-
-A primeira versão do Integration Hub terá foco em:
-
-- cadastro de integrações;
-- cadastro de endpoints;
-- relacionamento `Integration 1:N Endpoint`;
-- persistência Oracle das configurações;
-- endpoints de consumo do tipo `GET`;
-- consultas SQL parametrizadas;
-- validação dos parâmetros recebidos;
-- conexão com Oracle através de pool;
-- execução dinâmica das consultas;
-- retorno dos resultados em JSON;
-- documentação da API;
-- ambiente Oracle local para desenvolvimento.
-
----
-
-# Fora do escopo inicial
-
-Não fazem parte da primeira implementação:
-
-- operações dinâmicas `POST`;
-- operações dinâmicas `PUT`;
-- operações dinâmicas `PATCH`;
-- operações dinâmicas `DELETE`;
-- mensageria;
-- processamento assíncrono;
-- orquestração em Kubernetes;
-- persistência das configurações fora do Oracle;
-- recursos avançados de escalabilidade distribuída.
-
-Essas funcionalidades poderão ser avaliadas conforme o crescimento e as necessidades reais da plataforma.
-
----
-
-# Segurança
-
-A execução de SQL configurável exige controles específicos.
-
-Entre os princípios previstos para o projeto estão:
-
-- utilização obrigatória de bind parameters;
-- proibição de concatenação direta de parâmetros no SQL;
-- validação dos parâmetros antes da execução;
-- separação entre configuração e consumo das integrações;
-- controle de acesso;
-- armazenamento seguro das credenciais;
-- restrição dos tipos de SQL permitidos;
-- auditoria das execuções em etapas futuras.
-
-Na V1, o foco será em consultas de leitura.
-
----
-
-# Perfis de acesso previstos
-
-A plataforma deverá possuir dois perfis principais.
-
-## Criador
-
-Responsável pela configuração das integrações.
-
-Poderá:
-
-- cadastrar integrações;
-- cadastrar endpoints;
-- definir consultas SQL;
-- definir parâmetros;
-- testar consultas;
-- visualizar documentação;
-- ativar ou desativar integrações.
-
-## Consumidor
-
-Responsável pelo consumo e validação das integrações disponibilizadas.
-
-Poderá:
-
-- consultar integrações disponíveis;
-- visualizar documentação;
-- visualizar os parâmetros necessários;
-- testar endpoints autorizados;
-- consumir as APIs publicadas.
-
-O mecanismo de autenticação e autorização será implementado em uma etapa posterior.
-
----
-
-# Documentação da API
-
-Está prevista a adoção de:
-
-```text
-OpenAPI
-Swagger UI
+```bash
+./mvnw --batch-mode --no-transfer-progress clean verify
 ```
 
-A documentação deverá permitir visualizar:
-
-- integrações disponíveis;
-- endpoints;
-- métodos HTTP;
-- parâmetros;
-- exemplos de requisição;
-- exemplos de resposta;
-- testes diretamente pela interface.
+Alterações que quebrem compilação ou testes podem ser identificadas automaticamente pelo pipeline.
 
 ---
 
-# Estado atual
+# Segurança das configurações
 
-Atualmente estão implementados e validados:
+Credenciais e informações específicas de ambiente não devem ser adicionadas ao repositório.
 
-- aplicação Spring Boot com Java 21;
-- backend executando na porta `8081`;
-- conexão JDBC com Oracle;
-- configuração de datasource por variáveis de ambiente;
-- profile `local` para desenvolvimento;
-- HikariCP;
-- health check da aplicação;
-- health check do Oracle;
-- tabela `IH_INTEGRATION`;
-- sequence `IH_INTEGRATION_SEQ`;
-- tabela `IH_ENDPOINT`;
-- sequence `IH_ENDPOINT_SEQ`;
-- relacionamento `IH_INTEGRATION 1:N IH_ENDPOINT`;
-- foreign key entre Endpoint e Integration;
-- constraints de integridade;
-- scripts de instalação `001` e `002`;
-- persistência Oracle das integrações;
-- persistência Oracle dos endpoints;
-- `OracleIntegrationRepository`;
-- `OracleEndpointRepository`;
-- cadastro de integrações via API;
-- listagem de integrações;
-- busca de integração por ID;
-- busca de integração por `basePath`;
-- cadastro de endpoints via API;
-- listagem de endpoints;
-- busca de endpoint por ID;
-- listagem de endpoints por Integration;
-- campos de auditoria;
-- model `EndpointParameter`;
-- parâmetros estruturados por nome, tipo e obrigatoriedade;
-- armazenamento dos parâmetros como JSON em `CLOB`;
-- serialização e desserialização dos parâmetros;
-- SQL dos endpoints armazenado em `CLOB`;
-- Maven Wrapper;
-- testes automatizados;
-- build com `clean verify`;
-- workflow de validação no GitHub Actions;
-- VM dedicada para Oracle;
-- Oracle Linux configurado;
-- Oracle Database Free 23ai instalado;
-- Oracle Net Listener configurado;
-- inicialização automática dos serviços Oracle;
-- endereço IPv4 estático para a VM;
-- comunicação entre máquina de desenvolvimento e VM;
-- conexão ponta a ponta entre Spring Boot e Oracle validada.
-
-A camada de configuração e persistência das integrações e endpoints está concluída para esta etapa.
-
-A execução dinâmica dos endpoints cadastrados ainda será implementada.
-
----
-
-# Próximas etapas
-
-A sequência prevista de desenvolvimento passa a ser:
-
-1. implementar resolução dinâmica de `basePath + path`;
-2. localizar a Integration correspondente à requisição;
-3. localizar o Endpoint correspondente à rota;
-4. validar se Integration e Endpoint estão ativos;
-5. validar o método HTTP configurado;
-6. validar parâmetros obrigatórios;
-7. converter os parâmetros conforme o tipo configurado;
-8. executar `SQL_TEXT` utilizando bind parameters;
-9. retornar o resultado da consulta em JSON;
-10. adicionar tratamento padronizado de erros;
-11. adicionar validações de segurança para o SQL configurado;
-12. adicionar Swagger/OpenAPI;
-13. ampliar os testes automatizados;
-14. implementar autenticação e controle de acesso;
-15. iniciar o frontend em React.
-
----
-
-# Princípio de desenvolvimento
-
-O Integration Hub está sendo desenvolvido de forma incremental.
-
-A prioridade é manter uma arquitetura simples enquanto os requisitos fundamentais são validados.
-
-Novas tecnologias e componentes serão adicionados apenas quando houver uma necessidade concreta de arquitetura, desempenho, segurança ou escalabilidade.
-
-A infraestrutura de configuração já permite:
+Devem permanecer fora do versionamento:
 
 ```text
-Cadastrar Integration
-        │
-        ▼
-Persistir em IH_INTEGRATION
-        │
-        ▼
-Cadastrar Endpoint
-        │
-        ▼
-Persistir em IH_ENDPOINT
-        │
-        ▼
-Armazenar SQL e parâmetros
+DB_URL real
+DB_USERNAME real
+DB_PASSWORD real
+application-local.yml com credenciais
+endereços específicos do ambiente local
 ```
 
-O próximo marco da V1 será completar:
+O objetivo é permitir que o mesmo artefato seja utilizado em diferentes ambientes apenas alterando a configuração externa.
+
+---
+
+# Estado atual do projeto
+
+A base funcional da V1 já permite:
 
 ```text
-Requisição HTTP dinâmica
+✓ conexão com Oracle
+✓ health check da aplicação e banco
+✓ persistência de Integration
+✓ persistência de Endpoint
+✓ parâmetros persistidos como JSON
+✓ criação de integrações
+✓ criação de endpoints
+✓ resolução dinâmica de basePath
+✓ resolução dinâmica de path
+✓ execução dinâmica de endpoints GET
+✓ execução de SQL configurado
+✓ bind variables
+✓ parâmetros VARCHAR2
+✓ parâmetros NUMBER
+✓ validação de parâmetros obrigatórios
+✓ tratamento de NUMBER inválido
+✓ resposta JSON dinâmica
+✓ tratamento padronizado de erros
+✓ testes automatizados
+✓ validação através de GitHub Actions
+```
+
+Isso permite que uma consulta Oracle configurada como `Integration + Endpoint` seja exposta como uma API `GET` sem a necessidade de implementar um controller específico para aquela consulta.
+
+---
+
+# Próximos passos
+
+Com a execução dinâmica de endpoints `GET` consolidada, as próximas evoluções previstas incluem:
+
+1. ampliar os tipos de parâmetros suportados, incluindo datas e timestamps;
+2. adicionar documentação OpenAPI/Swagger;
+3. implementar autenticação e autorização;
+4. diferenciar os perfis **Criador** e **Consumidor**;
+5. iniciar o frontend React para gerenciamento das integrações;
+6. adicionar operações de edição e exclusão de integrações e endpoints;
+7. evoluir logs e observabilidade;
+8. preparar o projeto para publicação em ambiente remoto;
+9. avaliar suporte futuro a outros métodos HTTP.
+
+---
+
+# Objetivo da V1
+
+A V1 do Integration Hub tem como objetivo consolidar o fluxo:
+
+```text
+Cadastrar integração
         │
         ▼
-Resolver Integration + Endpoint
+Cadastrar endpoint
+        │
+        ▼
+Definir SQL
+        │
+        ▼
+Definir parâmetros
+        │
+        ▼
+Persistir configuração
+        │
+        ▼
+Resolver URL dinamicamente
         │
         ▼
 Validar parâmetros
         │
         ▼
-Executar SQL_TEXT
-        │
-        ▼
-Oracle Database
+Executar SQL no Oracle
         │
         ▼
 Retornar JSON
 ```
+
+A partir dessa base, o projeto poderá evoluir para recursos de segurança, documentação, interface visual, observabilidade e novos tipos de integração.
