@@ -32,7 +32,7 @@ public class DynamicEndpointController {
         this.dynamicEndpointService = dynamicEndpointService;
     }
 
-    @GetMapping("/**")
+    @GetMapping("/api/**")
     public ResponseEntity<?> executeGet(
             HttpServletRequest request,
             @RequestParam Map<String, String> requestParameters) {

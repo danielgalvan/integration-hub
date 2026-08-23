@@ -45,6 +45,10 @@ public class IntegrationService {
 
     public Integration save(Integration integration) {
 
+        validateBasePath(
+                integration.getBasePath()
+        );
+
         if (integration.getActive() == null) {
             integration.setActive("S");
         }
@@ -56,5 +60,32 @@ public class IntegrationService {
         return integrationRepository.save(
                 integration
         );
+    }
+
+    private void validateBasePath(String basePath) {
+
+        if (basePath == null || basePath.isBlank()) {
+            throw new IllegalArgumentException(
+                    "basePath é obrigatório"
+            );
+        }
+
+        if (!basePath.startsWith("/api/")) {
+            throw new IllegalArgumentException(
+                    "basePath deve iniciar com /api/"
+            );
+        }
+
+        if (basePath.endsWith("/")) {
+            throw new IllegalArgumentException(
+                    "basePath não deve terminar com /"
+            );
+        }
+
+        if (basePath.contains(" ")) {
+            throw new IllegalArgumentException(
+                    "basePath não deve conter espaços"
+            );
+        }
     }
 }
