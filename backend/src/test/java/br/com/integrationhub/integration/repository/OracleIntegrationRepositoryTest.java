@@ -4,6 +4,7 @@ import br.com.integrationhub.integration.model.Integration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
@@ -13,7 +14,6 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -42,8 +42,8 @@ class OracleIntegrationRepositoryTest {
 
         when(jdbcTemplate.query(
                 anyString(),
-                any(Map.class),
-                any(RowMapper.class)
+                ArgumentMatchers.<Map<String, ?>>any(),
+                ArgumentMatchers.<RowMapper<Integration>>any()
         )).thenReturn(List.of(integration));
 
         Optional<Integration> result =
@@ -64,8 +64,8 @@ class OracleIntegrationRepositoryTest {
 
         when(jdbcTemplate.query(
                 anyString(),
-                any(Map.class),
-                any(RowMapper.class)
+                ArgumentMatchers.<Map<String, ?>>any(),
+                ArgumentMatchers.<RowMapper<Integration>>any()
         )).thenReturn(List.of());
 
         Optional<Integration> result =
@@ -81,22 +81,21 @@ class OracleIntegrationRepositoryTest {
 
         when(jdbcTemplate.query(
                 anyString(),
-                any(Map.class),
-                any(RowMapper.class)
+                ArgumentMatchers.<Map<String, ?>>any(),
+                ArgumentMatchers.<RowMapper<Integration>>any()
         )).thenReturn(List.of());
 
         repository.findBestMatchByRequestPath(
                 "/api/pedidos/buscar"
         );
 
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<Map<String, Object>> paramsCaptor =
-                ArgumentCaptor.forClass(Map.class);
+        ArgumentCaptor<Map<String, ?>> paramsCaptor =
+                createMapCaptor();
 
         verify(jdbcTemplate).query(
                 anyString(),
                 paramsCaptor.capture(),
-                any(RowMapper.class)
+                ArgumentMatchers.<RowMapper<Integration>>any()
         );
 
         assertEquals(
@@ -173,8 +172,8 @@ class OracleIntegrationRepositoryTest {
 
         when(jdbcTemplate.query(
                 anyString(),
-                any(Map.class),
-                any(RowMapper.class)
+                ArgumentMatchers.<Map<String, ?>>any(),
+                ArgumentMatchers.<RowMapper<Integration>>any()
         )).thenReturn(List.of());
 
         repository.findBestMatchByRequestPath(
@@ -186,11 +185,19 @@ class OracleIntegrationRepositoryTest {
 
         verify(jdbcTemplate).query(
                 sqlCaptor.capture(),
-                any(Map.class),
-                any(RowMapper.class)
+                ArgumentMatchers.<Map<String, ?>>any(),
+                ArgumentMatchers.<RowMapper<Integration>>any()
         );
 
         return sqlCaptor.getValue();
+    }
+
+    @SuppressWarnings("unchecked")
+    private ArgumentCaptor<Map<String, ?>> createMapCaptor() {
+
+        return ArgumentCaptor.forClass(
+                (Class<Map<String, ?>>) (Class<?>) Map.class
+        );
     }
 
     private String normalizeSql(String sql) {

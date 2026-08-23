@@ -40,16 +40,7 @@ public class DynamicEndpointController {
         String requestPath = request.getRequestURI();
 
         Integration integration = integrationService
-                .findAll()
-                .stream()
-                .filter(item -> "S".equalsIgnoreCase(item.getActive()))
-                .filter(item ->
-                        matchesBasePath(
-                                requestPath,
-                                item.getBasePath()
-                        )
-                )
-                .findFirst()
+                .findBestMatchByRequestPath(requestPath)
                 .orElseThrow(() ->
                         new ResponseStatusException(
                                 HttpStatus.NOT_FOUND,
@@ -82,21 +73,6 @@ public class DynamicEndpointController {
                         requestParameters
                 )
         );
-    }
-
-    private boolean matchesBasePath(
-            String requestPath,
-            String basePath) {
-
-        if (requestPath == null
-                || basePath == null
-                || basePath.isBlank()) {
-
-            return false;
-        }
-
-        return requestPath.equals(basePath)
-                || requestPath.startsWith(basePath + "/");
     }
 
     private String normalizePath(String path) {
