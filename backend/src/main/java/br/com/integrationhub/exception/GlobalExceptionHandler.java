@@ -43,6 +43,30 @@ public class GlobalExceptionHandler {
                 .body(error);
     }
 
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiError> handleIllegalStateException(
+            IllegalStateException exception,
+            HttpServletRequest request) {
+
+        logger.warn(
+                "Conflito ao processar {}: {}",
+                request.getRequestURI(),
+                exception.getMessage()
+        );
+
+        ApiError error = new ApiError(
+                LocalDateTime.now(),
+                HttpStatus.CONFLICT.value(),
+                HttpStatus.CONFLICT.getReasonPhrase(),
+                exception.getMessage(),
+                request.getRequestURI()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(error);
+    }
+
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ApiError> handleMissingServletRequestParameterException(
             MissingServletRequestParameterException exception,

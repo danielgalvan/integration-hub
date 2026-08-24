@@ -16,4 +16,8 @@ public interface IntegrationRepository {
     Optional<Integration> findBestMatchByRequestPath(String requestPath);
 
     Integration save(Integration integration);
+
+    Integration update(Long id, Integration integration);
+
+    void deleteById(Long id);
 }

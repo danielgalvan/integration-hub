@@ -199,6 +199,78 @@ public class OracleIntegrationRepository implements IntegrationRepository {
                 .orElse(integration);
     }
 
+    @Override
+    public Integration update(
+            Long id,
+            Integration integration) {
+
+        String sql = """
+                update ih_integration
+                   set name = :name,
+                       description = :description,
+                       base_path = :basePath,
+                       active = :active,
+                       updated_by = :updatedBy,
+                       updated_at = systimestamp
+                 where id = :id
+                """;
+
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("id", id)
+                .addValue("name", integration.getName())
+                .addValue(
+                        "description",
+                        integration.getDescription()
+                )
+                .addValue(
+                        "basePath",
+                        integration.getBasePath()
+                )
+                .addValue(
+                        "active",
+                        integration.getActive() == null
+                                ? "S"
+                                : integration.getActive()
+                )
+                .addValue(
+                        "updatedBy",
+                        integration.getUpdatedBy() == null
+                                ? "SYSTEM"
+                                : integration.getUpdatedBy()
+                );
+
+        int rows = jdbcTemplate.update(sql, params);
+
+        if (rows == 0) {
+            throw new IllegalArgumentException(
+                    "Integração não encontrada: " + id
+            );
+        }
+
+        return findById(id)
+                .orElseThrow();
+    }
+
+    @Override
+    public void deleteById(Long id) {
+
+        String sql = """
+                delete from ih_integration
+                where id = :id
+                """;
+
+        int rows = jdbcTemplate.update(
+                sql,
+                Map.of("id", id)
+        );
+
+        if (rows == 0) {
+            throw new IllegalArgumentException(
+                    "Integração não encontrada: " + id
+            );
+        }
+    }
+
     private Integration mapRow(ResultSet rs)
             throws SQLException {
 
@@ -212,7 +284,9 @@ public class OracleIntegrationRepository implements IntegrationRepository {
         integration.setBasePath(
                 rs.getString("base_path")
         );
-        integration.setActive(rs.getString("active"));
+        integration.setActive(
+                rs.getString("active")
+        );
         integration.setCreatedBy(
                 rs.getString("created_by")
         );

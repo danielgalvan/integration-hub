@@ -1,6 +1,7 @@
 package br.com.integrationhub.integration.service;
 
 import br.com.integrationhub.integration.model.Integration;
+import br.com.integrationhub.integration.repository.EndpointRepository;
 import br.com.integrationhub.integration.repository.IntegrationRepository;
 import org.springframework.stereotype.Service;
 
@@ -11,11 +12,14 @@ import java.util.Optional;
 public class IntegrationService {
 
     private final IntegrationRepository integrationRepository;
+    private final EndpointRepository endpointRepository;
 
     public IntegrationService(
-            IntegrationRepository integrationRepository) {
+            IntegrationRepository integrationRepository,
+            EndpointRepository endpointRepository) {
 
         this.integrationRepository = integrationRepository;
+        this.endpointRepository = endpointRepository;
     }
 
     public List<Integration> findAll() {
@@ -60,6 +64,60 @@ public class IntegrationService {
         return integrationRepository.save(
                 integration
         );
+    }
+
+    public Integration update(
+            Long id,
+            Integration integration) {
+
+        Integration current = integrationRepository
+                .findById(id)
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "Integração não encontrada: " + id
+                        )
+                );
+
+        validateBasePath(
+                integration.getBasePath()
+        );
+
+        if (integration.getActive() == null) {
+            integration.setActive(
+                    current.getActive()
+            );
+        }
+
+        if (integration.getUpdatedBy() == null) {
+            integration.setUpdatedBy("SYSTEM");
+        }
+
+        return integrationRepository.update(
+                id,
+                integration
+        );
+    }
+
+    public void delete(Long id) {
+
+        integrationRepository
+                .findById(id)
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "Integração não encontrada: " + id
+                        )
+                );
+
+        if (!endpointRepository
+                .findByIntegrationId(id)
+                .isEmpty()) {
+
+            throw new IllegalStateException(
+                    "A integração possui endpoints vinculados"
+            );
+        }
+
+        integrationRepository.deleteById(id);
     }
 
     private void validateBasePath(String basePath) {

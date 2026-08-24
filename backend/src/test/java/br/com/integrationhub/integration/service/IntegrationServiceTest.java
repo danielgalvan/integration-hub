@@ -1,6 +1,7 @@
 package br.com.integrationhub.integration.service;
 
 import br.com.integrationhub.integration.model.Integration;
+import br.com.integrationhub.integration.repository.EndpointRepository;
 import br.com.integrationhub.integration.repository.IntegrationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,13 +17,17 @@ import static org.mockito.Mockito.when;
 class IntegrationServiceTest {
 
     private IntegrationRepository integrationRepository;
+    private EndpointRepository endpointRepository;
     private IntegrationService integrationService;
 
     @BeforeEach
     void setUp() {
         integrationRepository = mock(IntegrationRepository.class);
+        endpointRepository = mock(EndpointRepository.class);
+
         integrationService = new IntegrationService(
-                integrationRepository
+                integrationRepository,
+                endpointRepository
         );
     }
 

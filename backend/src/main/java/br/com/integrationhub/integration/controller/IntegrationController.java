@@ -13,7 +13,9 @@ public class IntegrationController {
 
     private final IntegrationService integrationService;
 
-    public IntegrationController(IntegrationService integrationService) {
+    public IntegrationController(
+            IntegrationService integrationService) {
+
         this.integrationService = integrationService;
     }
 
@@ -35,8 +37,29 @@ public class IntegrationController {
     public ResponseEntity<Integration> save(
             @RequestBody Integration integration) {
 
-        Integration saved = integrationService.save(integration);
+        Integration saved =
+                integrationService.save(integration);
 
         return ResponseEntity.ok(saved);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Integration> update(
+            @PathVariable("id") Long id,
+            @RequestBody Integration integration) {
+
+        Integration updated =
+                integrationService.update(id, integration);
+
+        return ResponseEntity.ok(updated);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(
+            @PathVariable("id") Long id) {
+
+        integrationService.delete(id);
+
+        return ResponseEntity.noContent().build();
     }
 }
