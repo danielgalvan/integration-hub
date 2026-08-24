@@ -1,0 +1,82 @@
+.integration-form {
+  padding: 24px;
+}
+
+.integration-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.integration-form__field label {
+  color: #334155;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.integration-form__field input,
+.integration-form__field textarea,
+.integration-form__field select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f172a;
+  font-family: inherit;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.integration-form__field textarea {
+  resize: vertical;
+}
+
+.integration-form__field input:focus,
+.integration-form__field textarea:focus,
+.integration-form__field select:focus {
+  border-color: #2563eb;
+  outline: none;
+}
+
+.integration-form__field input::placeholder,
+.integration-form__field textarea::placeholder {
+  color: #94a3b8;
+}
+
+.integration-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.integration-form__cancel,
+.integration-form__submit {
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.integration-form__cancel {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+}
+
+.integration-form__cancel:hover {
+  background: #f8fafc;
+}
+
+.integration-form__submit {
+  border: 0;
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.integration-form__submit:hover {
+  background: #1d4ed8;
+}

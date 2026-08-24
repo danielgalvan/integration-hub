@@ -1,64 +1,116 @@
 import { useEffect, useState } from 'react'
 import './IntegrationsPage.css'
+import IntegrationForm from '../components/integrations/IntegrationForm'
 import IntegrationList from '../components/integrations/IntegrationList'
-import { getIntegrations } from '../services/integrationService'
+import {
+  createIntegration,
+  getIntegrations,
+} from '../services/integrationService'
 
 function IntegrationsPage() {
   const [integrations, setIntegrations] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [showForm, setShowForm] = useState(false)
+
+  async function loadIntegrations() {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const data = await getIntegrations()
+      setIntegrations(data)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    async function loadIntegrations() {
-      try {
-        const data = await getIntegrations()
-        setIntegrations(data)
-      } catch (err) {
-        setError(err.message)
-      } finally {
-        setLoading(false)
-      }
-    }
-
     loadIntegrations()
   }, [])
+
+  function handleOpenForm() {
+    setShowForm(true)
+  }
+
+  function handleCloseForm() {
+    setShowForm(false)
+  }
+
+  async function handleCreateIntegration(integration) {
+    try {
+      setError(null)
+
+      await createIntegration(integration)
+
+      setShowForm(false)
+
+      await loadIntegrations()
+    } catch (err) {
+      setError(err.message)
+    }
+  }
 
   return (
     <section className="integrations-page">
       <div className="integrations-page__header">
         <div>
           <h2 className="integrations-page__title">
-            Integrações
+            {showForm ? 'Nova integração' : 'Integrações'}
           </h2>
 
           <p className="integrations-page__description">
-            Gerencie as integrações disponíveis no Integration Hub.
+            {showForm
+              ? 'Cadastre uma nova integração no Integration Hub.'
+              : 'Gerencie as integrações disponíveis no Integration Hub.'}
           </p>
         </div>
 
-        <button
-          type="button"
-          className="integrations-page__new"
-        >
-          + Nova integração
-        </button>
+        {!showForm && (
+          <button
+            type="button"
+            className="integrations-page__new"
+            onClick={handleOpenForm}
+          >
+            + Nova integração
+          </button>
+        )}
       </div>
 
       <div className="integrations-page__content">
-        {loading && (
-          <div className="integrations-page__message">
-            Carregando integrações...
-          </div>
-        )}
+        {showForm ? (
+          <>
+            {error && (
+              <div className="integrations-page__message integrations-page__message--error">
+                {error}
+              </div>
+            )}
 
-        {error && (
-          <div className="integrations-page__message integrations-page__message--error">
-            {error}
-          </div>
-        )}
+            <IntegrationForm
+              onCancel={handleCloseForm}
+              onSubmit={handleCreateIntegration}
+            />
+          </>
+        ) : (
+          <>
+            {loading && (
+              <div className="integrations-page__message">
+                Carregando integrações...
+              </div>
+            )}
 
-        {!loading && !error && (
-          <IntegrationList integrations={integrations} />
+            {error && (
+              <div className="integrations-page__message integrations-page__message--error">
+                {error}
+              </div>
+            )}
+
+            {!loading && !error && (
+              <IntegrationList integrations={integrations} />
+            )}
+          </>
         )}
       </div>
     </section>
