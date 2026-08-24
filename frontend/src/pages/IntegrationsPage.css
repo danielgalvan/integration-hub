@@ -1,0 +1,57 @@
+.integrations-page {
+  width: 100%;
+}
+
+.integrations-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.integrations-page__title {
+  margin: 0;
+  color: #0f172a;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.integrations-page__description {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.integrations-page__new {
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.integrations-page__new:hover {
+  background: #1d4ed8;
+}
+
+.integrations-page__content {
+  min-height: 360px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.integrations-page__message {
+  padding: 32px;
+  color: #64748b;
+  font-size: 14px;
+  text-align: center;
+}
+
+.integrations-page__message--error {
+  color: #dc2626;
+}
