@@ -28,7 +28,18 @@ function IntegrationsPage() {
   }
 
   useEffect(() => {
-    loadIntegrations()
+    async function load() {
+      try {
+        const data = await getIntegrations()
+        setIntegrations(data)
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    load()
   }, [])
 
   function handleOpenForm() {
