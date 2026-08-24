@@ -29,9 +29,19 @@ O projeto utiliza uma arquitetura dividida entre backend e frontend.
 
 ### Frontend
 
-- React
+- React 19
+- Vite
+- JavaScript
+- ESLint
+- npm
 
-O frontend será desenvolvido após a consolidação da API e da execução dinâmica das integrações.
+O frontend está em desenvolvimento e será responsável pela interface administrativa do Integration Hub, permitindo o gerenciamento visual das integrações e endpoints.
+
+Durante o desenvolvimento local, a aplicação é disponibilizada em:
+
+```text
+http://localhost:5175
+```
 
 ---
 
@@ -99,6 +109,19 @@ integration-hub/
 │   ├── mvnw
 │   ├── mvnw.cmd
 │   └── pom.xml
+│
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   │   ├── assets/
+│   │   ├── App.jsx
+│   │   ├── index.css
+│   │   └── main.jsx
+│   ├── eslint.config.js
+│   ├── index.html
+│   ├── package.json
+│   ├── package-lock.json
+│   └── vite.config.js
 │
 └── README.md
 ```
@@ -1078,6 +1101,54 @@ http://localhost:8081
 
 ---
 
+# Executando o frontend
+
+Entre no diretório:
+
+```bash
+cd frontend
+```
+
+Na primeira execução, instale as dependências:
+
+```bash
+npm install
+```
+
+Para iniciar o servidor de desenvolvimento:
+
+```bash
+npm run dev
+```
+
+O frontend fica disponível em:
+
+```text
+http://localhost:5175
+```
+
+A porta é configurada em:
+
+```text
+frontend/vite.config.js
+```
+
+Para executar o lint:
+
+```bash
+npm run lint
+```
+
+Para gerar o build de produção:
+
+```bash
+npm run build
+```
+
+O build é gerado em `frontend/dist/`, diretório que não deve ser versionado.
+
+---
+
 # Health check
 
 ```http
@@ -1199,7 +1270,7 @@ Validação completa:
 
 # Integração contínua
 
-O projeto utiliza **GitHub Actions** para validar automaticamente o backend.
+O projeto utiliza **GitHub Actions** para validar automaticamente o backend e o frontend.
 
 Workflow:
 
@@ -1214,7 +1285,7 @@ push → main
 pull request → main
 ```
 
-A validação utiliza:
+A validação do backend utiliza:
 
 ```text
 Java 21
@@ -1228,6 +1299,16 @@ Comando:
 
 ```bash
 ./mvnw --batch-mode --no-transfer-progress clean verify
+```
+
+A validação do frontend utiliza:
+
+```text
+Node.js 24
+npm dependency cache
+npm ci
+npm run lint
+npm run build
 ```
 
 ---
@@ -1291,6 +1372,10 @@ A base funcional da V1 já permite:
 ✓ testes automatizados
 ✓ 61 testes passando
 ✓ validação através de GitHub Actions
+
+✓ frontend React inicializado
+✓ Vite configurado
+✓ frontend disponível localmente na porta 5175
 ```
 
 Isso permite que uma consulta Oracle configurada como `Integration + Endpoint` seja exposta como uma API `GET`, validada e documentada automaticamente sem a necessidade de implementar um controller específico para aquela consulta.
@@ -1299,12 +1384,14 @@ Isso permite que uma consulta Oracle configurada como `Integration + Endpoint` s
 
 # Próximos passos
 
-Com a execução dinâmica e a documentação OpenAPI consolidadas, os próximos passos da V1 são:
+Com a execução dinâmica, a documentação OpenAPI e a estrutura inicial do frontend consolidadas, os próximos passos da V1 são:
 
-1. iniciar o frontend React para gerenciamento das integrações;
-2. adicionar operações de edição e exclusão de integrações e endpoints;
-3. evoluir logs e observabilidade;
-4. preparar o projeto para publicação em ambiente remoto.
+1. desenvolver o layout administrativo do frontend;
+2. integrar o frontend com as APIs administrativas;
+3. implementar o gerenciamento visual de integrações e endpoints;
+4. adicionar operações de edição e exclusão de integrações e endpoints;
+5. evoluir logs e observabilidade;
+6. preparar o projeto para publicação em ambiente remoto.
 
 Autenticação, autorização, diferenciação entre perfis **Criador** e **Consumidor** e suporte a outros métodos HTTP ficam fora do escopo inicial da V1.
 
@@ -1348,4 +1435,4 @@ Disponibilizar no Swagger
 Retornar JSON
 ```
 
-A partir dessa base, o projeto poderá evoluir para interface visual, edição das configurações, observabilidade, publicação remota e, posteriormente, recursos adicionais fora do escopo inicial da V1.
+A partir dessa base, o projeto passa a evoluir também sua interface visual para gerenciamento das configurações, mantendo como próximas etapas a integração do frontend com as APIs administrativas, edição das configurações, observabilidade, publicação remota e, posteriormente, recursos adicionais fora do escopo inicial da V1.
