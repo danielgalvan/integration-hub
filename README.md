@@ -1366,7 +1366,7 @@ A primeira versão do Integration Hub possui foco em:
 - documentação OpenAPI/Swagger;
 - tratamento padronizado de erros;
 - interface administrativa em React;
-- criação e exclusão de integrações pelo frontend;
+- criação, edição e exclusão de integrações pelo frontend;
 - componentes de diálogo reutilizáveis;
 - ambiente Oracle local para desenvolvimento;
 - testes automatizados e validação por CI.
@@ -1523,6 +1523,7 @@ Atualmente estão implementados e validados:
 - `IntegrationForm`;
 - `IntegrationList`;
 - cadastro de integrações pelo frontend;
+- edição de integrações pelo frontend;
 - exclusão de integrações pelo frontend;
 - `ConfirmDialog` para confirmação de ações destrutivas;
 - `MessageDialog` para mensagens e erros;
@@ -1538,13 +1539,12 @@ Atualmente estão implementados e validados:
 
 A sequência imediata prevista é:
 
-1. implementar a edição de integrações no frontend utilizando `PUT /api/integrations/{id}`;
-2. evoluir a página de endpoints e sua integração com o backend;
-3. implementar as operações administrativas restantes de endpoints conforme a necessidade;
-4. ampliar os testes automatizados conforme novos fluxos forem adicionados;
-5. evoluir os componentes comuns somente quando surgirem necessidades reais;
-6. revisar validações e experiência de uso dos formulários;
-7. implementar autenticação e controle de acesso em etapa posterior.
+1. evoluir a página de endpoints e sua integração com o backend;
+2. implementar as operações administrativas restantes de endpoints conforme a necessidade;
+3. ampliar os testes automatizados conforme novos fluxos forem adicionados;
+4. evoluir os componentes comuns somente quando surgirem necessidades reais;
+5. revisar validações e experiência de uso dos formulários;
+6. implementar autenticação e controle de acesso em etapa posterior.
 
 ---
 
@@ -1552,6 +1552,6 @@ A sequência imediata prevista é:
 
 O núcleo da V1 já permite configurar integrações e endpoints no Oracle e disponibilizar consultas `GET` dinamicamente sem a necessidade de criar um controller Java específico para cada nova consulta.
 
-O projeto também já possui uma interface administrativa React integrada ao backend, com criação e exclusão de integrações, além da infraestrutura de testes, documentação OpenAPI e validação automática por GitHub Actions.
+O projeto também já possui uma interface administrativa React integrada ao backend, com criação, edição e exclusão de integrações, além da infraestrutura de testes, documentação OpenAPI e validação automática por GitHub Actions.
 
 O desenvolvimento continua de forma incremental, priorizando a conclusão do CRUD administrativo e da interface de gerenciamento antes da expansão dos tipos de endpoints dinâmicos.
