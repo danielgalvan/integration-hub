@@ -51,6 +51,10 @@
   border-bottom: 0;
 }
 
+.integration-list__info {
+  min-width: 0;
+}
+
 .integration-list__name {
   margin: 0 0 5px;
   color: #0f172a;
@@ -64,10 +68,16 @@
   font-size: 12px;
 }
 
+.integration-list__right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
 .integration-list__actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .integration-list__status {
@@ -87,15 +97,28 @@
   color: #64748b;
 }
 
+.integration-list__edit,
 .integration-list__delete {
   padding: 6px 10px;
-  border: 1px solid #fecaca;
   border-radius: 6px;
   background: #fff;
-  color: #dc2626;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+}
+
+.integration-list__edit {
+  border: 1px solid #bfdbfe;
+  color: #2563eb;
+}
+
+.integration-list__edit:hover {
+  background: #eff6ff;
+}
+
+.integration-list__delete {
+  border: 1px solid #fecaca;
+  color: #dc2626;
 }
 
 .integration-list__delete:hover {

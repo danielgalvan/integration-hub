@@ -30,6 +30,26 @@ export async function createIntegration(integration) {
   return response.json()
 }
 
+export async function updateIntegration(id, integration) {
+  const response = await fetch(`${API_URL}/api/integrations/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(integration),
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null)
+
+    throw new Error(
+      error?.message || 'Não foi possível atualizar a integração.',
+    )
+  }
+
+  return response.json()
+}
+
 export async function deleteIntegration(id) {
   const response = await fetch(`${API_URL}/api/integrations/${id}`, {
     method: 'DELETE',

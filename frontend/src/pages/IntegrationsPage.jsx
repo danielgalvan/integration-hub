@@ -8,6 +8,7 @@ import {
   createIntegration,
   deleteIntegration,
   getIntegrations,
+  updateIntegration,
 } from '../services/integrationService'
 
 function IntegrationsPage() {
@@ -15,6 +16,7 @@ function IntegrationsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showForm, setShowForm] = useState(false)
+  const [integrationToEdit, setIntegrationToEdit] = useState(null)
   const [integrationToDelete, setIntegrationToDelete] = useState(null)
 
   async function loadIntegrations() {
@@ -47,24 +49,39 @@ function IntegrationsPage() {
   }, [])
 
   function handleOpenForm() {
+    setIntegrationToEdit(null)
+    setShowForm(true)
+  }
+
+  function handleEditIntegration(integration) {
+    setIntegrationToEdit(integration)
     setShowForm(true)
   }
 
   function handleCloseForm() {
     setShowForm(false)
+    setIntegrationToEdit(null)
   }
 
   function handleCloseError() {
     setError(null)
   }
 
-  async function handleCreateIntegration(integration) {
+  async function handleSubmitIntegration(integration) {
     try {
       setError(null)
 
-      await createIntegration(integration)
+      if (integrationToEdit) {
+        await updateIntegration(
+          integrationToEdit.id,
+          integration,
+        )
+      } else {
+        await createIntegration(integration)
+      }
 
       setShowForm(false)
+      setIntegrationToEdit(null)
 
       await loadIntegrations()
     } catch (err) {
@@ -99,17 +116,25 @@ function IntegrationsPage() {
     }
   }
 
+  const isEditing = integrationToEdit !== null
+
   return (
     <section className="integrations-page">
       <div className="integrations-page__header">
         <div>
           <h2 className="integrations-page__title">
-            {showForm ? 'Nova integração' : 'Integrações'}
+            {showForm
+              ? isEditing
+                ? 'Editar integração'
+                : 'Nova integração'
+              : 'Integrações'}
           </h2>
 
           <p className="integrations-page__description">
             {showForm
-              ? 'Cadastre uma nova integração no Integration Hub.'
+              ? isEditing
+                ? 'Atualize os dados da integração selecionada.'
+                : 'Cadastre uma nova integração no Integration Hub.'
               : 'Gerencie as integrações disponíveis no Integration Hub.'}
           </p>
         </div>
@@ -128,8 +153,9 @@ function IntegrationsPage() {
       <div className="integrations-page__content">
         {showForm ? (
           <IntegrationForm
+            integration={integrationToEdit}
             onCancel={handleCloseForm}
-            onSubmit={handleCreateIntegration}
+            onSubmit={handleSubmitIntegration}
           />
         ) : (
           <>
@@ -142,6 +168,7 @@ function IntegrationsPage() {
             {!loading && (
               <IntegrationList
                 integrations={integrations}
+                onEdit={handleEditIntegration}
                 onDelete={handleDeleteIntegration}
               />
             )}

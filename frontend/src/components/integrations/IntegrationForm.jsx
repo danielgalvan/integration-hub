@@ -1,11 +1,25 @@
 import { useState } from 'react'
 import './IntegrationForm.css'
 
-function IntegrationForm({ onCancel, onSubmit }) {
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [basePath, setBasePath] = useState('')
-  const [active, setActive] = useState('S')
+function IntegrationForm({
+  integration = null,
+  onCancel,
+  onSubmit,
+}) {
+  const [name, setName] = useState(
+    integration?.name || '',
+  )
+  const [description, setDescription] = useState(
+    integration?.description || '',
+  )
+  const [basePath, setBasePath] = useState(
+    integration?.basePath || '',
+  )
+  const [active, setActive] = useState(
+    integration?.active || 'S',
+  )
+
+  const isEditing = integration !== null
 
   function handleSubmit(event) {
     event.preventDefault()
@@ -25,6 +39,7 @@ function IntegrationForm({ onCancel, onSubmit }) {
     >
       <div className="integration-form__field">
         <label htmlFor="name">Nome</label>
+
         <input
           id="name"
           name="name"
@@ -38,6 +53,7 @@ function IntegrationForm({ onCancel, onSubmit }) {
 
       <div className="integration-form__field">
         <label htmlFor="description">Descrição</label>
+
         <textarea
           id="description"
           name="description"
@@ -50,6 +66,7 @@ function IntegrationForm({ onCancel, onSubmit }) {
 
       <div className="integration-form__field">
         <label htmlFor="basePath">Base Path</label>
+
         <input
           id="basePath"
           name="basePath"
@@ -63,6 +80,7 @@ function IntegrationForm({ onCancel, onSubmit }) {
 
       <div className="integration-form__field">
         <label htmlFor="active">Status</label>
+
         <select
           id="active"
           name="active"
@@ -87,7 +105,9 @@ function IntegrationForm({ onCancel, onSubmit }) {
           type="submit"
           className="integration-form__submit"
         >
-          Salvar integração
+          {isEditing
+            ? 'Salvar alterações'
+            : 'Salvar integração'}
         </button>
       </div>
     </form>
