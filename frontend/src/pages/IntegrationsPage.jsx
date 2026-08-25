@@ -11,7 +11,7 @@ import {
   updateIntegration,
 } from '../services/integrationService'
 
-function IntegrationsPage() {
+function IntegrationsPage({ onOpenEndpoints }) {
   const [integrations, setIntegrations] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -168,6 +168,7 @@ function IntegrationsPage() {
             {!loading && (
               <IntegrationList
                 integrations={integrations}
+                onOpenEndpoints={onOpenEndpoints}
                 onEdit={handleEditIntegration}
                 onDelete={handleDeleteIntegration}
               />

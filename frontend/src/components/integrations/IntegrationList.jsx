@@ -2,6 +2,7 @@ import './IntegrationList.css'
 
 function IntegrationList({
   integrations = [],
+  onOpenEndpoints,
   onEdit,
   onDelete,
 }) {
@@ -52,6 +53,14 @@ function IntegrationList({
             </span>
 
             <div className="integration-list__actions">
+              <button
+                type="button"
+                className="integration-list__endpoints"
+                onClick={() => onOpenEndpoints(integration)}
+              >
+                Endpoints
+              </button>
+
               <button
                 type="button"
                 className="integration-list__edit"
