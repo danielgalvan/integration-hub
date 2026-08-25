@@ -40,3 +40,23 @@ export async function getEndpointsByIntegration(integrationId) {
 
   return response.json()
 }
+
+export async function createEndpoint(endpoint) {
+  const response = await fetch(`${API_URL}/api/endpoints`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(endpoint),
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null)
+
+    throw new Error(
+      error?.message || 'Não foi possível cadastrar o endpoint.',
+    )
+  }
+
+  return response.json()
+}

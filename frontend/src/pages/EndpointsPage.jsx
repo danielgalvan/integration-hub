@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import './EndpointsPage.css'
 import MessageDialog from '../components/common/MessageDialog'
+import EndpointForm from '../components/endpoints/EndpointForm'
 import EndpointList from '../components/endpoints/EndpointList'
 import {
+  createEndpoint,
   getEndpointsByIntegration,
 } from '../services/endpointService'
 
@@ -13,6 +15,30 @@ function EndpointsPage({
   const [endpoints, setEndpoints] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [showForm, setShowForm] = useState(false)
+
+  async function loadEndpoints() {
+    if (!integration) {
+      setEndpoints([])
+      setLoading(false)
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError(null)
+
+      const data = await getEndpointsByIntegration(
+        integration.id,
+      )
+
+      setEndpoints(data)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
     async function load() {
@@ -23,9 +49,6 @@ function EndpointsPage({
       }
 
       try {
-        setLoading(true)
-        setError(null)
-
         const data = await getEndpointsByIntegration(
           integration.id,
         )
@@ -41,8 +64,30 @@ function EndpointsPage({
     load()
   }, [integration])
 
+  function handleOpenForm() {
+    setShowForm(true)
+  }
+
+  function handleCloseForm() {
+    setShowForm(false)
+  }
+
   function handleCloseError() {
     setError(null)
+  }
+
+  async function handleCreateEndpoint(endpoint) {
+    try {
+      setError(null)
+
+      await createEndpoint(endpoint)
+
+      setShowForm(false)
+
+      await loadEndpoints()
+    } catch (err) {
+      setError(err.message)
+    }
   }
 
   if (!integration) {
@@ -76,38 +121,63 @@ function EndpointsPage({
       <div className="endpoints-page__header">
         <div>
           <h2 className="endpoints-page__title">
-            Endpoints
+            {showForm ? 'Novo endpoint' : 'Endpoints'}
           </h2>
 
           <p className="endpoints-page__description">
-            Integração: {integration.name}
+            {showForm
+              ? `Cadastre um novo endpoint para a integração ${integration.name}.`
+              : `Integração: ${integration.name}`}
           </p>
         </div>
 
-        <button
-          type="button"
-          className="endpoints-page__back"
-          onClick={onBack}
-        >
-          Voltar para integrações
-        </button>
+        {!showForm && (
+          <div className="endpoints-page__header-actions">
+            <button
+              type="button"
+              className="endpoints-page__new"
+              onClick={handleOpenForm}
+            >
+              + Novo endpoint
+            </button>
+
+            <button
+              type="button"
+              className="endpoints-page__back"
+              onClick={onBack}
+            >
+              Voltar para integrações
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="endpoints-page__content">
-        {loading && (
-          <div className="endpoints-page__message">
-            Carregando endpoints...
-          </div>
-        )}
+        {showForm ? (
+          <EndpointForm
+            integrationId={integration.id}
+            onCancel={handleCloseForm}
+            onSubmit={handleCreateEndpoint}
+            onValidationError={setError}
+          />
+        ) : (
+          <>
+            {loading && (
+              <div className="endpoints-page__message">
+                Carregando endpoints...
+              </div>
+            )}
 
-        {!loading && (
-          <EndpointList endpoints={endpoints} />
+            {!loading && (
+              <EndpointList endpoints={endpoints} />
+            )}
+          </>
         )}
       </div>
 
       <MessageDialog
         open={error !== null}
-        title="Não foi possível carregar os endpoints"
+        title="Não foi possível concluir a operação"
         message={error || ''}
         onClose={handleCloseError}
       />
