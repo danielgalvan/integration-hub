@@ -43,6 +43,7 @@ public class EndpointService {
     }
 
     public Endpoint save(Endpoint endpoint) {
+
         if (endpoint.getActive() == null) {
             endpoint.setActive("S");
         }
@@ -52,6 +53,41 @@ public class EndpointService {
         }
 
         return endpointRepository.save(endpoint);
+    }
+
+    public Endpoint update(
+            Long id,
+            Endpoint endpoint) {
+
+        Endpoint existing = endpointRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Endpoint não encontrado"
+                        )
+                );
+
+        endpoint.setId(id);
+
+        endpoint.setCreatedBy(
+                existing.getCreatedBy()
+        );
+
+        endpoint.setCreatedAt(
+                existing.getCreatedAt()
+        );
+
+        if (endpoint.getActive() == null) {
+            endpoint.setActive(
+                    existing.getActive()
+            );
+        }
+
+        if (endpoint.getUpdatedBy() == null) {
+            endpoint.setUpdatedBy("SYSTEM");
+        }
+
+        return endpointRepository.update(endpoint);
     }
 
     public void delete(Long id) {

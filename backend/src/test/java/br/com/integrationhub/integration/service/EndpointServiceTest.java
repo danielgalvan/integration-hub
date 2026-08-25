@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -58,16 +59,19 @@ class EndpointServiceTest {
                 endpointService.findAll();
 
         assertEquals(2, result.size());
+
         assertEquals(
                 endpoint1,
                 result.get(0)
         );
+
         assertEquals(
                 endpoint2,
                 result.get(1)
         );
 
-        verify(endpointRepository).findAll();
+        verify(endpointRepository)
+                .findAll();
     }
 
     @Test
@@ -81,12 +85,15 @@ class EndpointServiceTest {
         endpoint.setId(10L);
 
         when(endpointRepository.findById(10L))
-                .thenReturn(Optional.of(endpoint));
+                .thenReturn(
+                        Optional.of(endpoint)
+                );
 
         Optional<Endpoint> result =
                 endpointService.findById(10L);
 
         assertTrue(result.isPresent());
+
         assertEquals(
                 endpoint,
                 result.get()
@@ -100,7 +107,9 @@ class EndpointServiceTest {
     void deveRetornarOptionalVazioQuandoEndpointNaoExistir() {
 
         when(endpointRepository.findById(99L))
-                .thenReturn(Optional.empty());
+                .thenReturn(
+                        Optional.empty()
+                );
 
         Optional<Endpoint> result =
                 endpointService.findById(99L);
@@ -140,7 +149,10 @@ class EndpointServiceTest {
                         8L
                 );
 
-        assertEquals(2, result.size());
+        assertEquals(
+                2,
+                result.size()
+        );
 
         verify(endpointRepository)
                 .findByIntegrationId(8L);
@@ -161,7 +173,9 @@ class EndpointServiceTest {
                                 "/buscar",
                                 "GET"
                         )
-        ).thenReturn(Optional.of(endpoint));
+        ).thenReturn(
+                Optional.of(endpoint)
+        );
 
         Optional<Endpoint> result =
                 endpointService
@@ -172,6 +186,7 @@ class EndpointServiceTest {
                         );
 
         assertTrue(result.isPresent());
+
         assertEquals(
                 endpoint,
                 result.get()
@@ -303,6 +318,246 @@ class EndpointServiceTest {
     }
 
     @Test
+    void deveAtualizarEndpointExistente() {
+
+        Endpoint existing = createEndpoint(
+                8L,
+                "/buscar"
+        );
+
+        existing.setId(12L);
+
+        Endpoint updated = createEndpoint(
+                8L,
+                "/buscar-atualizado"
+        );
+
+        updated.setName(
+                "Endpoint atualizado"
+        );
+
+        when(endpointRepository.findById(12L))
+                .thenReturn(
+                        Optional.of(existing)
+                );
+
+        when(endpointRepository.update(updated))
+                .thenReturn(updated);
+
+        Endpoint result =
+                endpointService.update(
+                        12L,
+                        updated
+                );
+
+        assertEquals(
+                12L,
+                result.getId()
+        );
+
+        assertEquals(
+                "Endpoint atualizado",
+                result.getName()
+        );
+
+        assertEquals(
+                "/buscar-atualizado",
+                result.getPath()
+        );
+
+        verify(endpointRepository)
+                .findById(12L);
+
+        verify(endpointRepository)
+                .update(updated);
+    }
+
+    @Test
+    void deveDefinirUpdatedByComoSystemQuandoNaoInformado() {
+
+        Endpoint existing = createEndpoint(
+                8L,
+                "/buscar"
+        );
+
+        existing.setId(12L);
+
+        Endpoint updated = createEndpoint(
+                8L,
+                "/buscar"
+        );
+
+        updated.setUpdatedBy(null);
+
+        when(endpointRepository.findById(12L))
+                .thenReturn(
+                        Optional.of(existing)
+                );
+
+        when(endpointRepository.update(updated))
+                .thenReturn(updated);
+
+        Endpoint result =
+                endpointService.update(
+                        12L,
+                        updated
+                );
+
+        assertEquals(
+                "SYSTEM",
+                result.getUpdatedBy()
+        );
+
+        verify(endpointRepository)
+                .update(updated);
+    }
+
+    @Test
+    void devePreservarDadosDeCriacaoAoAtualizar() {
+
+        Endpoint existing = createEndpoint(
+                8L,
+                "/buscar"
+        );
+
+        existing.setId(12L);
+        existing.setCreatedBy("CREATOR");
+
+        LocalDateTime createdAt =
+                LocalDateTime.of(
+                        2026,
+                        8,
+                        25,
+                        10,
+                        30
+                );
+
+        existing.setCreatedAt(createdAt);
+
+        Endpoint updated = createEndpoint(
+                8L,
+                "/buscar"
+        );
+
+        updated.setCreatedBy(
+                "OUTRO_USUARIO"
+        );
+
+        updated.setCreatedAt(
+                LocalDateTime.now()
+        );
+
+        when(endpointRepository.findById(12L))
+                .thenReturn(
+                        Optional.of(existing)
+                );
+
+        when(endpointRepository.update(updated))
+                .thenReturn(updated);
+
+        Endpoint result =
+                endpointService.update(
+                        12L,
+                        updated
+                );
+
+        assertEquals(
+                "CREATOR",
+                result.getCreatedBy()
+        );
+
+        assertEquals(
+                createdAt,
+                result.getCreatedAt()
+        );
+
+        verify(endpointRepository)
+                .update(updated);
+    }
+
+    @Test
+    void deveManterActiveExistenteQuandoNaoInformadoNaAtualizacao() {
+
+        Endpoint existing = createEndpoint(
+                8L,
+                "/buscar"
+        );
+
+        existing.setId(12L);
+        existing.setActive("N");
+
+        Endpoint updated = createEndpoint(
+                8L,
+                "/buscar"
+        );
+
+        updated.setActive(null);
+
+        when(endpointRepository.findById(12L))
+                .thenReturn(
+                        Optional.of(existing)
+                );
+
+        when(endpointRepository.update(updated))
+                .thenReturn(updated);
+
+        Endpoint result =
+                endpointService.update(
+                        12L,
+                        updated
+                );
+
+        assertEquals(
+                "N",
+                result.getActive()
+        );
+
+        verify(endpointRepository)
+                .update(updated);
+    }
+
+    @Test
+    void deveRetornarNotFoundAoAtualizarEndpointInexistente() {
+
+        Endpoint updated = createEndpoint(
+                8L,
+                "/buscar"
+        );
+
+        when(endpointRepository.findById(99L))
+                .thenReturn(
+                        Optional.empty()
+                );
+
+        ResponseStatusException exception =
+                assertThrows(
+                        ResponseStatusException.class,
+                        () -> endpointService.update(
+                                99L,
+                                updated
+                        )
+                );
+
+        assertEquals(
+                HttpStatus.NOT_FOUND,
+                exception.getStatusCode()
+        );
+
+        assertEquals(
+                "Endpoint não encontrado",
+                exception.getReason()
+        );
+
+        verify(endpointRepository)
+                .findById(99L);
+
+        verify(
+                endpointRepository,
+                never()
+        ).update(updated);
+    }
+
+    @Test
     void deveExcluirEndpointExistente() {
 
         Endpoint endpoint = createEndpoint(
@@ -313,7 +568,9 @@ class EndpointServiceTest {
         endpoint.setId(12L);
 
         when(endpointRepository.findById(12L))
-                .thenReturn(Optional.of(endpoint));
+                .thenReturn(
+                        Optional.of(endpoint)
+                );
 
         endpointService.delete(12L);
 
@@ -328,12 +585,16 @@ class EndpointServiceTest {
     void deveRetornarNotFoundAoExcluirEndpointInexistente() {
 
         when(endpointRepository.findById(99L))
-                .thenReturn(Optional.empty());
+                .thenReturn(
+                        Optional.empty()
+                );
 
         ResponseStatusException exception =
                 assertThrows(
                         ResponseStatusException.class,
-                        () -> endpointService.delete(99L)
+                        () -> endpointService.delete(
+                                99L
+                        )
                 );
 
         assertEquals(
@@ -361,16 +622,25 @@ class EndpointServiceTest {
 
         Endpoint endpoint = new Endpoint();
 
-        endpoint.setIntegrationId(integrationId);
-        endpoint.setName("Endpoint de teste");
+        endpoint.setIntegrationId(
+                integrationId
+        );
+
+        endpoint.setName(
+                "Endpoint de teste"
+        );
+
         endpoint.setDescription(
                 "Endpoint utilizado nos testes"
         );
+
         endpoint.setPath(path);
         endpoint.setMethod("GET");
+
         endpoint.setSqlText(
                 "select id from pedido where id = :id"
         );
+
         endpoint.setActive("S");
         endpoint.setCreatedBy("SYSTEM");
 

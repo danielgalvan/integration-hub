@@ -233,6 +233,55 @@ public class OracleEndpointRepository implements EndpointRepository {
     }
 
     @Override
+    public Endpoint update(Endpoint endpoint) {
+
+        String sql = """
+                update ih_endpoint
+                   set integration_id = :integrationId,
+                       name = :name,
+                       description = :description,
+                       path = :path,
+                       method = :method,
+                       sql_text = :sqlText,
+                       parameters = :parameters,
+                       active = :active,
+                       updated_by = :updatedBy,
+                       updated_at = systimestamp
+                 where id = :id
+                """;
+
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("id", endpoint.getId())
+                .addValue("integrationId", endpoint.getIntegrationId())
+                .addValue("name", endpoint.getName())
+                .addValue("description", endpoint.getDescription())
+                .addValue("path", endpoint.getPath())
+                .addValue("method", endpoint.getMethod())
+                .addValue("sqlText", endpoint.getSqlText())
+                .addValue(
+                        "parameters",
+                        serializeParameters(endpoint.getParameters())
+                )
+                .addValue(
+                        "active",
+                        endpoint.getActive() == null
+                                ? "S"
+                                : endpoint.getActive()
+                )
+                .addValue(
+                        "updatedBy",
+                        endpoint.getUpdatedBy() == null
+                                ? "SYSTEM"
+                                : endpoint.getUpdatedBy()
+                );
+
+        jdbcTemplate.update(sql, params);
+
+        return findById(endpoint.getId())
+                .orElse(endpoint);
+    }
+
+    @Override
     public void deleteById(Long id) {
 
         String sql = """

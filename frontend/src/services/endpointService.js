@@ -61,6 +61,26 @@ export async function createEndpoint(endpoint) {
   return response.json()
 }
 
+export async function updateEndpoint(id, endpoint) {
+  const response = await fetch(`${API_URL}/api/endpoints/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(endpoint),
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null)
+
+    throw new Error(
+      error?.message || 'Não foi possível atualizar o endpoint.',
+    )
+  }
+
+  return response.json()
+}
+
 export async function deleteEndpoint(id) {
   const response = await fetch(`${API_URL}/api/endpoints/${id}`, {
     method: 'DELETE',

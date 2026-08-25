@@ -2,6 +2,7 @@ import './EndpointList.css'
 
 function EndpointList({
   endpoints = [],
+  onEdit,
   onDelete,
 }) {
   if (endpoints.length === 0) {
@@ -57,6 +58,14 @@ function EndpointList({
             </span>
 
             <div className="endpoint-list__actions">
+              <button
+                type="button"
+                className="endpoint-list__edit"
+                onClick={() => onEdit(endpoint)}
+              >
+                Editar
+              </button>
+
               <button
                 type="button"
                 className="endpoint-list__delete"

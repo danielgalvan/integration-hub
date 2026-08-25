@@ -21,5 +21,7 @@ public interface EndpointRepository {
 
     Endpoint save(Endpoint endpoint);
 
+    Endpoint update(Endpoint endpoint);
+
     void deleteById(Long id);
 }

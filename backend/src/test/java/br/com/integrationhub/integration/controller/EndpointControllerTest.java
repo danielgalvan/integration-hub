@@ -22,6 +22,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -172,6 +173,115 @@ class EndpointControllerTest {
 
         verify(endpointService)
                 .save(any(Endpoint.class));
+    }
+
+    @Test
+    void deveAtualizarEndpoint() throws Exception {
+
+        Endpoint endpoint = createEndpoint();
+
+        endpoint.setName("Buscar usuario atualizado");
+        endpoint.setPath("/usuario-atualizado");
+        endpoint.setActive("N");
+        endpoint.setUpdatedBy("SYSTEM");
+
+        when(
+                endpointService.update(
+                        org.mockito.ArgumentMatchers.eq(1L),
+                        any(Endpoint.class)
+                )
+        ).thenReturn(endpoint);
+
+        mockMvc.perform(
+                        put("/api/endpoints/1")
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content("""
+                                        {
+                                          "integrationId": 2,
+                                          "name": "Buscar usuario atualizado",
+                                          "description": "Consulta atualizada",
+                                          "path": "/usuario-atualizado",
+                                          "method": "GET",
+                                          "sqlText": "select 1",
+                                          "parameters": [
+                                            {
+                                              "name": "id",
+                                              "type": "NUMBER",
+                                              "required": true
+                                            }
+                                          ],
+                                          "active": "N"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.id")
+                                .value(1)
+                )
+                .andExpect(
+                        jsonPath("$.name")
+                                .value("Buscar usuario atualizado")
+                )
+                .andExpect(
+                        jsonPath("$.path")
+                                .value("/usuario-atualizado")
+                )
+                .andExpect(
+                        jsonPath("$.active")
+                                .value("N")
+                );
+
+        verify(endpointService)
+                .update(
+                        org.mockito.ArgumentMatchers.eq(1L),
+                        any(Endpoint.class)
+                );
+    }
+
+    @Test
+    void deveRetornarNotFoundAoAtualizarEndpointInexistente()
+            throws Exception {
+
+        when(
+                endpointService.update(
+                        org.mockito.ArgumentMatchers.eq(99L),
+                        any(Endpoint.class)
+                )
+        ).thenThrow(
+                new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Endpoint não encontrado"
+                )
+        );
+
+        mockMvc.perform(
+                        put("/api/endpoints/99")
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content("""
+                                        {
+                                          "integrationId": 2,
+                                          "name": "Endpoint inexistente",
+                                          "description": "Teste",
+                                          "path": "/inexistente",
+                                          "method": "GET",
+                                          "sqlText": "select 1",
+                                          "parameters": [],
+                                          "active": "S"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isNotFound());
+
+        verify(endpointService)
+                .update(
+                        org.mockito.ArgumentMatchers.eq(99L),
+                        any(Endpoint.class)
+                );
     }
 
     @Test

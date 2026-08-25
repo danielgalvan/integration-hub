@@ -126,3 +126,18 @@
 .endpoint-list__delete:hover {
   background: #fef2f2;
 }
+
+.endpoint-list__edit {
+  padding: 6px 10px;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.endpoint-list__edit:hover {
+  background: #eff6ff;
+}

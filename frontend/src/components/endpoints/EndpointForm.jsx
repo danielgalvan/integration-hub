@@ -3,17 +3,40 @@ import './EndpointForm.css'
 
 function EndpointForm({
   integrationId,
+  endpoint = null,
   onCancel,
   onSubmit,
   onValidationError,
 }) {
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [path, setPath] = useState('')
-  const [method, setMethod] = useState('GET')
-  const [sqlText, setSqlText] = useState('')
-  const [active, setActive] = useState('S')
-  const [parameters, setParameters] = useState([])
+  const [name, setName] = useState(
+    endpoint?.name || '',
+  )
+
+  const [description, setDescription] = useState(
+    endpoint?.description || '',
+  )
+
+  const [path, setPath] = useState(
+    endpoint?.path || '',
+  )
+
+  const [method, setMethod] = useState(
+    endpoint?.method || 'GET',
+  )
+
+  const [sqlText, setSqlText] = useState(
+    endpoint?.sqlText || '',
+  )
+
+  const [active, setActive] = useState(
+    endpoint?.active || 'S',
+  )
+
+  const [parameters, setParameters] = useState(
+    endpoint?.parameters || [],
+  )
+
+  const isEditing = endpoint !== null
 
   function extractParameterNames(sql) {
     const matches = sql.matchAll(
@@ -308,7 +331,9 @@ function EndpointForm({
           type="submit"
           className="endpoint-form__submit"
         >
-          Salvar endpoint
+          {isEditing
+            ? 'Salvar alterações'
+            : 'Salvar endpoint'}
         </button>
       </div>
     </form>

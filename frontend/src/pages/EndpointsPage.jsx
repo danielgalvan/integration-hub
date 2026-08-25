@@ -8,6 +8,7 @@ import {
   createEndpoint,
   deleteEndpoint,
   getEndpointsByIntegration,
+  updateEndpoint,
 } from '../services/endpointService'
 
 function EndpointsPage({
@@ -18,6 +19,7 @@ function EndpointsPage({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showForm, setShowForm] = useState(false)
+  const [endpointToEdit, setEndpointToEdit] = useState(null)
   const [endpointToDelete, setEndpointToDelete] = useState(null)
 
   async function loadEndpoints() {
@@ -52,6 +54,9 @@ function EndpointsPage({
       }
 
       try {
+        setLoading(true)
+        setError(null)
+
         const data = await getEndpointsByIntegration(
           integration.id,
         )
@@ -68,24 +73,39 @@ function EndpointsPage({
   }, [integration])
 
   function handleOpenForm() {
+    setEndpointToEdit(null)
+    setShowForm(true)
+  }
+
+  function handleEditEndpoint(endpoint) {
+    setEndpointToEdit(endpoint)
     setShowForm(true)
   }
 
   function handleCloseForm() {
     setShowForm(false)
+    setEndpointToEdit(null)
   }
 
   function handleCloseError() {
     setError(null)
   }
 
-  async function handleCreateEndpoint(endpoint) {
+  async function handleSubmitEndpoint(endpoint) {
     try {
       setError(null)
 
-      await createEndpoint(endpoint)
+      if (endpointToEdit) {
+        await updateEndpoint(
+          endpointToEdit.id,
+          endpoint,
+        )
+      } else {
+        await createEndpoint(endpoint)
+      }
 
       setShowForm(false)
+      setEndpointToEdit(null)
 
       await loadEndpoints()
     } catch (err) {
@@ -151,12 +171,18 @@ function EndpointsPage({
       <div className="endpoints-page__header">
         <div>
           <h2 className="endpoints-page__title">
-            {showForm ? 'Novo endpoint' : 'Endpoints'}
+            {showForm
+              ? endpointToEdit
+                ? 'Editar endpoint'
+                : 'Novo endpoint'
+              : 'Endpoints'}
           </h2>
 
           <p className="endpoints-page__description">
             {showForm
-              ? `Cadastre um novo endpoint para a integração ${integration.name}.`
+              ? endpointToEdit
+                ? `Edite o endpoint da integração ${integration.name}.`
+                : `Cadastre um novo endpoint para a integração ${integration.name}.`
               : `Integração: ${integration.name}`}
           </p>
         </div>
@@ -186,8 +212,9 @@ function EndpointsPage({
         {showForm ? (
           <EndpointForm
             integrationId={integration.id}
+            endpoint={endpointToEdit}
             onCancel={handleCloseForm}
-            onSubmit={handleCreateEndpoint}
+            onSubmit={handleSubmitEndpoint}
             onValidationError={setError}
           />
         ) : (
@@ -201,6 +228,7 @@ function EndpointsPage({
             {!loading && (
               <EndpointList
                 endpoints={endpoints}
+                onEdit={handleEditEndpoint}
                 onDelete={handleDeleteEndpoint}
               />
             )}

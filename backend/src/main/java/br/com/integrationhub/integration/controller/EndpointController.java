@@ -47,6 +47,19 @@ public class EndpointController {
         return ResponseEntity.ok(saved);
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<Endpoint> update(
+            @PathVariable("id") Long id,
+            @RequestBody Endpoint endpoint) {
+
+        Endpoint updated = endpointService.update(
+                id,
+                endpoint
+        );
+
+        return ResponseEntity.ok(updated);
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
             @PathVariable("id") Long id) {
