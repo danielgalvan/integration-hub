@@ -232,6 +232,20 @@ public class OracleEndpointRepository implements EndpointRepository {
                 .orElse(endpoint);
     }
 
+    @Override
+    public void deleteById(Long id) {
+
+        String sql = """
+                delete from ih_endpoint
+                where id = :id
+                """;
+
+        jdbcTemplate.update(
+                sql,
+                Map.of("id", id)
+        );
+    }
+
     private Endpoint mapRow(ResultSet rs) throws SQLException {
 
         Endpoint endpoint = new Endpoint();

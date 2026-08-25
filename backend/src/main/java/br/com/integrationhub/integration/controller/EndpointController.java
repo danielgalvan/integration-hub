@@ -46,4 +46,13 @@ public class EndpointController {
 
         return ResponseEntity.ok(saved);
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(
+            @PathVariable("id") Long id) {
+
+        endpointService.delete(id);
+
+        return ResponseEntity.noContent().build();
+    }
 }

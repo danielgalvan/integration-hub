@@ -2,7 +2,9 @@ package br.com.integrationhub.integration.service;
 
 import br.com.integrationhub.integration.model.Endpoint;
 import br.com.integrationhub.integration.repository.EndpointRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
@@ -50,5 +52,18 @@ public class EndpointService {
         }
 
         return endpointRepository.save(endpoint);
+    }
+
+    public void delete(Long id) {
+
+        Endpoint endpoint = endpointRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Endpoint não encontrado"
+                        )
+                );
+
+        endpointRepository.deleteById(endpoint.getId());
     }
 }

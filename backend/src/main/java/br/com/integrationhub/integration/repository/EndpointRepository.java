@@ -20,4 +20,6 @@ public interface EndpointRepository {
     );
 
     Endpoint save(Endpoint endpoint);
+
+    void deleteById(Long id);
 }

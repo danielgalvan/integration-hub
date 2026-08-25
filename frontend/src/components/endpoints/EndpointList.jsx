@@ -1,6 +1,9 @@
 import './EndpointList.css'
 
-function EndpointList({ endpoints = [] }) {
+function EndpointList({
+  endpoints = [],
+  onDelete,
+}) {
   if (endpoints.length === 0) {
     return (
       <div className="endpoint-list endpoint-list--empty">
@@ -42,15 +45,27 @@ function EndpointList({ endpoints = [] }) {
             </div>
           </div>
 
-          <span
-            className={`endpoint-list__status ${
-              endpoint.active === 'S'
-                ? 'endpoint-list__status--active'
-                : 'endpoint-list__status--inactive'
-            }`}
-          >
-            {endpoint.active === 'S' ? 'Ativo' : 'Inativo'}
-          </span>
+          <div className="endpoint-list__right">
+            <span
+              className={`endpoint-list__status ${
+                endpoint.active === 'S'
+                  ? 'endpoint-list__status--active'
+                  : 'endpoint-list__status--inactive'
+              }`}
+            >
+              {endpoint.active === 'S' ? 'Ativo' : 'Inativo'}
+            </span>
+
+            <div className="endpoint-list__actions">
+              <button
+                type="button"
+                className="endpoint-list__delete"
+                onClick={() => onDelete(endpoint)}
+              >
+                Excluir
+              </button>
+            </div>
+          </div>
         </div>
       ))}
     </div>

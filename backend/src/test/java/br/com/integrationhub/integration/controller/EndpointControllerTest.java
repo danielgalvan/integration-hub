@@ -1,24 +1,29 @@
 package br.com.integrationhub.integration.controller;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-import java.util.List;
-import java.util.Optional;
-
 import br.com.integrationhub.integration.model.Endpoint;
 import br.com.integrationhub.integration.model.EndpointParameter;
 import br.com.integrationhub.integration.service.EndpointService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
+import java.util.Optional;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(EndpointController.class)
 class EndpointControllerTest {
@@ -30,70 +35,201 @@ class EndpointControllerTest {
     private EndpointService endpointService;
 
     @Test
-    void deveListarBuscarECriarEndpoints() throws Exception {
-        EndpointParameter parameter = new EndpointParameter(
-                "id",
-                "NUMBER",
-                true
-        );
+    void deveListarEndpoints() throws Exception {
 
-        Endpoint endpoint = new Endpoint();
-        endpoint.setId(1L);
-        endpoint.setIntegrationId(2L);
-        endpoint.setName("Buscar usuario");
-        endpoint.setDescription("Consulta usuario pelo identificador");
-        endpoint.setPath("/usuario");
-        endpoint.setMethod("GET");
-        endpoint.setSqlText("select 1");
-        endpoint.setParameters(List.of(parameter));
-        endpoint.setActive("S");
-        endpoint.setCreatedBy("SYSTEM");
+        Endpoint endpoint = createEndpoint();
 
-        when(endpointService.findAll()).thenReturn(List.of(endpoint));
-        when(endpointService.findById(1L)).thenReturn(Optional.of(endpoint));
-        when(endpointService.save(any(Endpoint.class))).thenReturn(endpoint);
+        when(endpointService.findAll())
+                .thenReturn(List.of(endpoint));
 
         mockMvc.perform(get("/api/endpoints"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].name").value("Buscar usuario"))
-                .andExpect(jsonPath("$[0].active").value("S"))
-                .andExpect(jsonPath("$[0].parameters[0].name").value("id"));
+                .andExpect(
+                        jsonPath("$[0].name")
+                                .value("Buscar usuario")
+                )
+                .andExpect(
+                        jsonPath("$[0].active")
+                                .value("S")
+                )
+                .andExpect(
+                        jsonPath("$[0].parameters[0].name")
+                                .value("id")
+                );
 
-        mockMvc.perform(get("/api/endpoints/1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.integrationId").value(2))
-                .andExpect(jsonPath("$.sqlText").value("select 1"));
-
-        mockMvc.perform(post("/api/endpoints")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "integrationId": 2,
-                                  "name": "Buscar usuario",
-                                  "description": "Consulta usuario pelo identificador",
-                                  "path": "/usuario",
-                                  "method": "GET",
-                                  "sqlText": "select 1",
-                                  "parameters": [
-                                    {
-                                      "name": "id",
-                                      "type": "NUMBER",
-                                      "required": true
-                                    }
-                                  ],
-                                  "active": "S"
-                                }
-                                """))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.active").value("S"));
+        verify(endpointService).findAll();
     }
 
     @Test
-    void deveRetornarNotFoundParaEndpointInexistente() throws Exception {
-        when(endpointService.findById(99L)).thenReturn(Optional.empty());
+    void deveBuscarEndpointPorId() throws Exception {
+
+        Endpoint endpoint = createEndpoint();
+
+        when(endpointService.findById(1L))
+                .thenReturn(Optional.of(endpoint));
+
+        mockMvc.perform(get("/api/endpoints/1"))
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.id")
+                                .value(1)
+                )
+                .andExpect(
+                        jsonPath("$.integrationId")
+                                .value(2)
+                )
+                .andExpect(
+                        jsonPath("$.sqlText")
+                                .value("select 1")
+                );
+
+        verify(endpointService).findById(1L);
+    }
+
+    @Test
+    void deveRetornarNotFoundParaEndpointInexistente()
+            throws Exception {
+
+        when(endpointService.findById(99L))
+                .thenReturn(Optional.empty());
 
         mockMvc.perform(get("/api/endpoints/99"))
                 .andExpect(status().isNotFound());
+
+        verify(endpointService).findById(99L);
+    }
+
+    @Test
+    void deveListarEndpointsPorIntegracao() throws Exception {
+
+        Endpoint endpoint = createEndpoint();
+
+        when(endpointService.findByIntegrationId(2L))
+                .thenReturn(List.of(endpoint));
+
+        mockMvc.perform(
+                        get("/api/endpoints/integration/2")
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$[0].id")
+                                .value(1)
+                )
+                .andExpect(
+                        jsonPath("$[0].integrationId")
+                                .value(2)
+                )
+                .andExpect(
+                        jsonPath("$[0].name")
+                                .value("Buscar usuario")
+                );
+
+        verify(endpointService)
+                .findByIntegrationId(2L);
+    }
+
+    @Test
+    void deveCriarEndpoint() throws Exception {
+
+        Endpoint endpoint = createEndpoint();
+
+        when(endpointService.save(any(Endpoint.class)))
+                .thenReturn(endpoint);
+
+        mockMvc.perform(
+                        post("/api/endpoints")
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content("""
+                                        {
+                                          "integrationId": 2,
+                                          "name": "Buscar usuario",
+                                          "description": "Consulta usuario pelo identificador",
+                                          "path": "/usuario",
+                                          "method": "GET",
+                                          "sqlText": "select 1",
+                                          "parameters": [
+                                            {
+                                              "name": "id",
+                                              "type": "NUMBER",
+                                              "required": true
+                                            }
+                                          ],
+                                          "active": "S"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.id")
+                                .value(1)
+                )
+                .andExpect(
+                        jsonPath("$.active")
+                                .value("S")
+                );
+
+        verify(endpointService)
+                .save(any(Endpoint.class));
+    }
+
+    @Test
+    void deveExcluirEndpoint() throws Exception {
+
+        mockMvc.perform(
+                        delete("/api/endpoints/1")
+                )
+                .andExpect(status().isNoContent());
+
+        verify(endpointService).delete(1L);
+    }
+
+    @Test
+    void deveRetornarNotFoundAoExcluirEndpointInexistente()
+            throws Exception {
+
+        doThrow(
+                new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Endpoint não encontrado"
+                )
+        ).when(endpointService).delete(99L);
+
+        mockMvc.perform(
+                        delete("/api/endpoints/99")
+                )
+                .andExpect(status().isNotFound());
+
+        verify(endpointService).delete(99L);
+    }
+
+    private Endpoint createEndpoint() {
+
+        EndpointParameter parameter =
+                new EndpointParameter(
+                        "id",
+                        "NUMBER",
+                        true
+                );
+
+        Endpoint endpoint = new Endpoint();
+
+        endpoint.setId(1L);
+        endpoint.setIntegrationId(2L);
+        endpoint.setName("Buscar usuario");
+        endpoint.setDescription(
+                "Consulta usuario pelo identificador"
+        );
+        endpoint.setPath("/usuario");
+        endpoint.setMethod("GET");
+        endpoint.setSqlText("select 1");
+        endpoint.setParameters(
+                List.of(parameter)
+        );
+        endpoint.setActive("S");
+        endpoint.setCreatedBy("SYSTEM");
+
+        return endpoint;
     }
 }

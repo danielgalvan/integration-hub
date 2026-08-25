@@ -83,6 +83,18 @@
   font-size: 12px;
 }
 
+.endpoint-list__right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.endpoint-list__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .endpoint-list__status {
   padding: 5px 9px;
   border-radius: 999px;
@@ -98,4 +110,19 @@
 .endpoint-list__status--inactive {
   background: #f1f5f9;
   color: #64748b;
+}
+
+.endpoint-list__delete {
+  padding: 6px 10px;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.endpoint-list__delete:hover {
+  background: #fef2f2;
 }

@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import './EndpointsPage.css'
+import ConfirmDialog from '../components/common/ConfirmDialog'
 import MessageDialog from '../components/common/MessageDialog'
 import EndpointForm from '../components/endpoints/EndpointForm'
 import EndpointList from '../components/endpoints/EndpointList'
 import {
   createEndpoint,
+  deleteEndpoint,
   getEndpointsByIntegration,
 } from '../services/endpointService'
 
@@ -16,6 +18,7 @@ function EndpointsPage({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showForm, setShowForm] = useState(false)
+  const [endpointToDelete, setEndpointToDelete] = useState(null)
 
   async function loadEndpoints() {
     if (!integration) {
@@ -86,6 +89,33 @@ function EndpointsPage({
 
       await loadEndpoints()
     } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  function handleDeleteEndpoint(endpoint) {
+    setEndpointToDelete(endpoint)
+  }
+
+  function handleCancelDelete() {
+    setEndpointToDelete(null)
+  }
+
+  async function handleConfirmDelete() {
+    if (!endpointToDelete) {
+      return
+    }
+
+    try {
+      setError(null)
+
+      await deleteEndpoint(endpointToDelete.id)
+
+      setEndpointToDelete(null)
+
+      await loadEndpoints()
+    } catch (err) {
+      setEndpointToDelete(null)
       setError(err.message)
     }
   }
@@ -169,11 +199,28 @@ function EndpointsPage({
             )}
 
             {!loading && (
-              <EndpointList endpoints={endpoints} />
+              <EndpointList
+                endpoints={endpoints}
+                onDelete={handleDeleteEndpoint}
+              />
             )}
           </>
         )}
       </div>
+
+      <ConfirmDialog
+        open={endpointToDelete !== null}
+        title="Excluir endpoint?"
+        message={
+          endpointToDelete
+            ? `O endpoint "${endpointToDelete.name}" será removido permanentemente. Essa ação não pode ser desfeita.`
+            : ''
+        }
+        confirmLabel="Excluir"
+        cancelLabel="Cancelar"
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+      />
 
       <MessageDialog
         open={error !== null}
