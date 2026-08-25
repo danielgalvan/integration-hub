@@ -1,0 +1,55 @@
+.message-dialog__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.message-dialog {
+  width: 100%;
+  max-width: 420px;
+  padding: 24px;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.2);
+}
+
+.message-dialog__title {
+  margin: 0;
+  color: #0f172a;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.message-dialog__message {
+  margin: 12px 0 0;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.message-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.message-dialog__close {
+  padding: 9px 18px;
+  border: 1px solid #2563eb;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.message-dialog__close:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}

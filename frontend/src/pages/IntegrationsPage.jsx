@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
 import './IntegrationsPage.css'
+import ConfirmDialog from '../components/common/ConfirmDialog'
+import MessageDialog from '../components/common/MessageDialog'
 import IntegrationForm from '../components/integrations/IntegrationForm'
 import IntegrationList from '../components/integrations/IntegrationList'
 import {
   createIntegration,
+  deleteIntegration,
   getIntegrations,
 } from '../services/integrationService'
 
@@ -12,6 +15,7 @@ function IntegrationsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showForm, setShowForm] = useState(false)
+  const [integrationToDelete, setIntegrationToDelete] = useState(null)
 
   async function loadIntegrations() {
     try {
@@ -50,6 +54,10 @@ function IntegrationsPage() {
     setShowForm(false)
   }
 
+  function handleCloseError() {
+    setError(null)
+  }
+
   async function handleCreateIntegration(integration) {
     try {
       setError(null)
@@ -60,6 +68,33 @@ function IntegrationsPage() {
 
       await loadIntegrations()
     } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  function handleDeleteIntegration(integration) {
+    setIntegrationToDelete(integration)
+  }
+
+  function handleCancelDelete() {
+    setIntegrationToDelete(null)
+  }
+
+  async function handleConfirmDelete() {
+    if (!integrationToDelete) {
+      return
+    }
+
+    try {
+      setError(null)
+
+      await deleteIntegration(integrationToDelete.id)
+
+      setIntegrationToDelete(null)
+
+      await loadIntegrations()
+    } catch (err) {
+      setIntegrationToDelete(null)
       setError(err.message)
     }
   }
@@ -92,18 +127,10 @@ function IntegrationsPage() {
 
       <div className="integrations-page__content">
         {showForm ? (
-          <>
-            {error && (
-              <div className="integrations-page__message integrations-page__message--error">
-                {error}
-              </div>
-            )}
-
-            <IntegrationForm
-              onCancel={handleCloseForm}
-              onSubmit={handleCreateIntegration}
-            />
-          </>
+          <IntegrationForm
+            onCancel={handleCloseForm}
+            onSubmit={handleCreateIntegration}
+          />
         ) : (
           <>
             {loading && (
@@ -112,18 +139,36 @@ function IntegrationsPage() {
               </div>
             )}
 
-            {error && (
-              <div className="integrations-page__message integrations-page__message--error">
-                {error}
-              </div>
-            )}
-
-            {!loading && !error && (
-              <IntegrationList integrations={integrations} />
+            {!loading && (
+              <IntegrationList
+                integrations={integrations}
+                onDelete={handleDeleteIntegration}
+              />
             )}
           </>
         )}
       </div>
+
+      <ConfirmDialog
+        open={integrationToDelete !== null}
+        title="Excluir integração?"
+        message={
+          integrationToDelete
+            ? `A integração "${integrationToDelete.name}" será removida permanentemente. Essa ação não pode ser desfeita.`
+            : ''
+        }
+        confirmLabel="Excluir"
+        cancelLabel="Cancelar"
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+      />
+
+      <MessageDialog
+        open={error !== null}
+        title="Não foi possível concluir a operação"
+        message={error || ''}
+        onClose={handleCloseError}
+      />
     </section>
   )
 }

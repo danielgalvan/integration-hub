@@ -29,3 +29,17 @@ export async function createIntegration(integration) {
 
   return response.json()
 }
+
+export async function deleteIntegration(id) {
+  const response = await fetch(`${API_URL}/api/integrations/${id}`, {
+    method: 'DELETE',
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null)
+
+    throw new Error(
+      error?.message || 'Não foi possível excluir a integração.',
+    )
+  }
+}

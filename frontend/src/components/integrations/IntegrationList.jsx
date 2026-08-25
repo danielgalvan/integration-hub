@@ -1,6 +1,9 @@
 import './IntegrationList.css'
 
-function IntegrationList({ integrations = [] }) {
+function IntegrationList({
+  integrations = [],
+  onDelete,
+}) {
   if (integrations.length === 0) {
     return (
       <div className="integration-list integration-list--empty">
@@ -36,15 +39,25 @@ function IntegrationList({ integrations = [] }) {
             </span>
           </div>
 
-          <span
-            className={`integration-list__status ${
-              integration.active === 'S'
-                ? 'integration-list__status--active'
-                : 'integration-list__status--inactive'
-            }`}
-          >
-            {integration.active === 'S' ? 'Ativa' : 'Inativa'}
-          </span>
+          <div className="integration-list__actions">
+            <span
+              className={`integration-list__status ${
+                integration.active === 'S'
+                  ? 'integration-list__status--active'
+                  : 'integration-list__status--inactive'
+              }`}
+            >
+              {integration.active === 'S' ? 'Ativa' : 'Inativa'}
+            </span>
+
+            <button
+              type="button"
+              className="integration-list__delete"
+              onClick={() => onDelete(integration)}
+            >
+              Excluir
+            </button>
+          </div>
         </div>
       ))}
     </div>
