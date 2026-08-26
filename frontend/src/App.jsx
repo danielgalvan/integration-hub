@@ -21,7 +21,7 @@ function App() {
 
   return (
     <div className="app">
-      <Sidebar />
+      <Sidebar onOpenIntegrations={handleBackToIntegrations} />
 
       <div className="app__content">
         <Header />

@@ -1,6 +1,6 @@
 import './Sidebar.css'
 
-function Sidebar() {
+function Sidebar({ onOpenIntegrations }) {
   return (
     <aside className="sidebar">
       <div className="sidebar__brand">
@@ -16,17 +16,10 @@ function Sidebar() {
         <button
           type="button"
           className="sidebar__item sidebar__item--active"
+          onClick={onOpenIntegrations}
         >
           <span className="sidebar__icon">⌘</span>
           <span>Integrações</span>
-        </button>
-
-        <button
-          type="button"
-          className="sidebar__item"
-        >
-          <span className="sidebar__icon">↔</span>
-          <span>Endpoints</span>
         </button>
       </nav>
 
