@@ -14,6 +14,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @Service
@@ -244,7 +245,7 @@ public class DynamicEndpointService {
         }
 
         String normalizedSql =
-                sql.trim().toLowerCase();
+                sql.trim().toLowerCase(Locale.ROOT);
 
         if (normalizedSql.contains(";")) {
             throw new IllegalArgumentException(
