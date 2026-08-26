@@ -3,12 +3,15 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+
   server: {
     port: 5175,
   },
+
   test: {
     environment: 'jsdom',
     setupFiles: './src/test/setup.js',
+    pool: 'threads',
     maxWorkers: 1,
     fileParallelism: false,
   },

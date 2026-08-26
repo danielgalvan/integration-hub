@@ -4,6 +4,7 @@ import ConfirmDialog from '../components/common/ConfirmDialog'
 import MessageDialog from '../components/common/MessageDialog'
 import EndpointForm from '../components/endpoints/EndpointForm'
 import EndpointList from '../components/endpoints/EndpointList'
+import EndpointTestModal from '../components/endpoints/EndpointTestModal'
 import {
   createEndpoint,
   deleteEndpoint,
@@ -21,6 +22,7 @@ function EndpointsPage({
   const [showForm, setShowForm] = useState(false)
   const [endpointToEdit, setEndpointToEdit] = useState(null)
   const [endpointToDelete, setEndpointToDelete] = useState(null)
+  const [endpointToTest, setEndpointToTest] = useState(null)
 
   async function loadEndpoints() {
     if (!integration) {
@@ -111,6 +113,14 @@ function EndpointsPage({
     } catch (err) {
       setError(err.message)
     }
+  }
+
+  function handleTestEndpoint(endpoint) {
+    setEndpointToTest(endpoint)
+  }
+
+  function handleCloseTest() {
+    setEndpointToTest(null)
   }
 
   function handleDeleteEndpoint(endpoint) {
@@ -228,6 +238,7 @@ function EndpointsPage({
             {!loading && (
               <EndpointList
                 endpoints={endpoints}
+                onTest={handleTestEndpoint}
                 onEdit={handleEditEndpoint}
                 onDelete={handleDeleteEndpoint}
               />
@@ -235,6 +246,13 @@ function EndpointsPage({
           </>
         )}
       </div>
+
+      <EndpointTestModal
+        open={endpointToTest !== null}
+        integration={integration}
+        endpoint={endpointToTest}
+        onClose={handleCloseTest}
+      />
 
       <ConfirmDialog
         open={endpointToDelete !== null}

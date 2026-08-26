@@ -952,7 +952,9 @@ Os parâmetros recebidos são validados e utilizados como bind variables.
 
 Isso evita a necessidade de criar um controller Java específico para cada consulta disponibilizada pelo Integration Hub.
 
-A execução dinâmica é limitada a consultas de leitura e possui limite configurável de resultados através da propriedade:
+A execução dinâmica é limitada a consultas de leitura. O backend aceita somente comandos iniciados por `SELECT` e rejeita `SELECT ... FOR UPDATE`, evitando bloqueios de registros durante o consumo dos endpoints.
+
+Também possui limite configurável de resultados através da propriedade:
 
 \`\`\`text
 
@@ -1885,7 +1887,13 @@ Os testes cobrem componentes importantes da execução e das regras de negócio,
 
 \- limite máximo de resultados;
 
+\- rejeição de `SELECT ... FOR UPDATE`;
+
+\- serialização e desserialização dos parâmetros JSON no repositório Oracle;
+
 \- comportamento dos controllers;
+
+\- preservação das rotas administrativas e resposta `405 Method Not Allowed` para métodos não suportados nas rotas dinâmicas;
 
 \- respostas para recursos inexistentes;
 
@@ -1942,6 +1950,8 @@ cd backend
 cd frontend
 
 npm run lint
+
+npm run test
 
 npm run build
 
@@ -2078,6 +2088,8 @@ Entre os princípios do projeto estão:
 \- armazenamento seguro das credenciais;
 
 \- restrição dos tipos de SQL permitidos;
+
+\- bloqueio de `SELECT ... FOR UPDATE` para impedir bloqueios de registros;
 
 \- limite máximo de resultados;
 
@@ -2254,6 +2266,8 @@ Atualmente estão implementados e validados:
 - configuração de tipo e obrigatoriedade dos parâmetros;
 
 - validação de sincronização entre SQL e parâmetros antes do salvamento;
+
+- modal para testar endpoints diretamente pela interface, com parâmetros, URL executada, duração e resposta;
 
 \- \`ConfirmDialog\` para confirmação de ações destrutivas;
 

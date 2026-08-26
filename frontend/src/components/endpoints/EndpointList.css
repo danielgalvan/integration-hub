@@ -141,3 +141,25 @@
 .endpoint-list__edit:hover {
   background: #eff6ff;
 }
+
+.endpoint-list__test {
+  padding: 6px 10px;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #15803d;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.endpoint-list__test:hover {
+  background: #f0fdf4;
+}
+
+.endpoint-list__test:disabled {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+  color: #94a3b8;
+  cursor: not-allowed;
+}

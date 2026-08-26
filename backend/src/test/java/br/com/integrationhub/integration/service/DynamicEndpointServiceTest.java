@@ -512,6 +512,33 @@ class DynamicEndpointServiceTest {
     }
 
     @Test
+    void deveRejeitarSelectForUpdate() {
+
+        Endpoint endpoint = createEndpoint(
+                "select id from pedido where id = :id for update",
+                new EndpointParameter("id", "NUMBER", true)
+        );
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> dynamicEndpointService.executeGet(
+                        endpoint,
+                        Map.of("id", "1")
+                )
+        );
+
+        assertEquals(
+                "Endpoints GET não permitem SELECT FOR UPDATE",
+                exception.getMessage()
+        );
+
+        verify(jdbcTemplate, never()).queryForList(
+                anyString(),
+                any(MapSqlParameterSource.class)
+        );
+    }
+
+    @Test
     void deveRejeitarTipoNaoSuportado() {
 
         Endpoint endpoint = createEndpoint(

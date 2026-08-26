@@ -263,5 +263,11 @@ public class DynamicEndpointService {
                     "Endpoints GET permitem apenas comandos SELECT"
             );
         }
+
+        if (normalizedSql.matches("(?s).*\\bfor\\s+update\\b.*")) {
+            throw new IllegalArgumentException(
+                    "Endpoints GET não permitem SELECT FOR UPDATE"
+            );
+        }
     }
 }

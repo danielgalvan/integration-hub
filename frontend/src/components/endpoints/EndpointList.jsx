@@ -2,6 +2,7 @@ import './EndpointList.css'
 
 function EndpointList({
   endpoints = [],
+  onTest,
   onEdit,
   onDelete,
 }) {
@@ -58,6 +59,15 @@ function EndpointList({
             </span>
 
             <div className="endpoint-list__actions">
+              <button
+                type="button"
+                className="endpoint-list__test"
+                disabled={endpoint.active !== 'S'}
+                onClick={() => onTest(endpoint)}
+              >
+                Testar
+              </button>
+
               <button
                 type="button"
                 className="endpoint-list__edit"

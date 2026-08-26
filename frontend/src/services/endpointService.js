@@ -94,3 +94,53 @@ export async function deleteEndpoint(id) {
     )
   }
 }
+
+export async function executeEndpoint(
+  integration,
+  endpoint,
+  parameters = {},
+) {
+  const basePath = integration.basePath.replace(/\/$/, '')
+  const endpointPath = endpoint.path.replace(/^\//, '')
+
+  const url = new URL(
+    `${API_URL}${basePath}/${endpointPath}`,
+  )
+
+  Object.entries(parameters).forEach(([name, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      url.searchParams.append(name, value)
+    }
+  })
+
+  const startedAt = performance.now()
+
+  try {
+    const response = await fetch(url)
+    const duration = Math.round(
+      performance.now() - startedAt,
+    )
+    const contentType = response.headers.get('content-type')
+
+    let data
+
+    if (contentType?.includes('application/json')) {
+      data = await response.json()
+    } else {
+      data = await response.text()
+    }
+
+    return {
+      success: response.ok,
+      status: response.status,
+      statusText: response.statusText,
+      url: url.toString(),
+      duration,
+      data,
+    }
+  } catch {
+    throw new Error(
+      'Não foi possível executar o endpoint.',
+    )
+  }
+}

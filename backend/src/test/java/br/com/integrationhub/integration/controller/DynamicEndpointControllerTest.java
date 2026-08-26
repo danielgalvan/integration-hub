@@ -29,6 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest({
         DynamicEndpointController.class,
+        IntegrationController.class,
         GlobalExceptionHandler.class
 })
 class DynamicEndpointControllerTest {
@@ -400,6 +401,38 @@ class DynamicEndpointControllerTest {
                         20L,
                         "/buscar",
                         "GET"
+                );
+    }
+
+    @Test
+    void deveManterRotaAdministrativaForaDoControllerDinamico()
+            throws Exception {
+
+        when(integrationService.findAll()).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/integrations"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+
+        verify(integrationService).findAll();
+    }
+
+    @Test
+    void deveRejeitarMetodoDiferenteDeGetNaRotaDinamica()
+            throws Exception {
+
+        mockMvc.perform(
+                        org.springframework.test.web.servlet.request
+                                .MockMvcRequestBuilders.post(
+                                        "/api/pedidos/buscar"
+                                )
+                )
+                .andExpect(status().isMethodNotAllowed())
+                .andExpect(jsonPath("$.status").value(405))
+                .andExpect(jsonPath("$.error").value("Method Not Allowed"))
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("Método HTTP não suportado")
                 );
     }
 
