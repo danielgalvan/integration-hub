@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -380,41 +379,73 @@ class DynamicEndpointServiceTest {
     }
 
     @Test
-    void deveRemoverPontoEVirgulaDoFinalDoSql() {
+    void deveRejeitarSqlComPontoEVirgula() {
 
         Endpoint endpoint = createEndpoint(
                 "select id from pedido where id = :id;",
                 new EndpointParameter("id", "NUMBER", true)
         );
 
-        when(jdbcTemplate.queryForList(
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> dynamicEndpointService.executeGet(
+                        endpoint,
+                        Map.of("id", "1")
+                )
+        );
+
+        assertEquals(
+                "SQL do endpoint não pode conter ponto e vírgula",
+                exception.getMessage()
+        );
+
+        verify(jdbcTemplate, never()).queryForList(
                 anyString(),
                 any(MapSqlParameterSource.class)
-        )).thenReturn(List.of());
+        );
+    }
 
-        dynamicEndpointService.executeGet(
-                endpoint,
-                Map.of("id", "1")
+    @Test
+    void deveRejeitarSqlComComentarioDeLinha() {
+
+        Endpoint endpoint = createEndpoint(
+                "select id from pedido -- comentário",
+                new EndpointParameter("id", "NUMBER", true)
         );
 
-        ArgumentCaptor<String> sqlCaptor =
-                ArgumentCaptor.forClass(String.class);
-
-        verify(jdbcTemplate).queryForList(
-                sqlCaptor.capture(),
-                any(MapSqlParameterSource.class)
-        );
-
-        String sql = sqlCaptor.getValue();
-
-        assertFalse(
-                sql.contains("where id = :id;")
-        );
-
-        assertTrue(
-                normalizeSql(sql).contains(
-                        "where id = :id"
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> dynamicEndpointService.executeGet(
+                        endpoint,
+                        Map.of("id", "1")
                 )
+        );
+
+        assertEquals(
+                "SQL do endpoint não pode conter comentários",
+                exception.getMessage()
+        );
+    }
+
+    @Test
+    void deveRejeitarSqlComComentarioDeBloco() {
+
+        Endpoint endpoint = createEndpoint(
+                "select /* comentário */ id from pedido",
+                new EndpointParameter("id", "NUMBER", true)
+        );
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> dynamicEndpointService.executeGet(
+                        endpoint,
+                        Map.of("id", "1")
+                )
+        );
+
+        assertEquals(
+                "SQL do endpoint não pode conter comentários",
+                exception.getMessage()
         );
     }
 
@@ -593,4 +624,5 @@ class DynamicEndpointServiceTest {
                 .trim()
                 .toLowerCase();
     }
+
 }

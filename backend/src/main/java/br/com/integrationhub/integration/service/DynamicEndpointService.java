@@ -83,18 +83,7 @@ public class DynamicEndpointService {
             return null;
         }
 
-        String normalizedSql = sql.trim();
-
-        while (normalizedSql.endsWith(";")) {
-            normalizedSql = normalizedSql
-                    .substring(
-                            0,
-                            normalizedSql.length() - 1
-                    )
-                    .trim();
-        }
-
-        return normalizedSql;
+        return sql.trim();
     }
 
     private MapSqlParameterSource buildSqlParameters(
@@ -257,7 +246,22 @@ public class DynamicEndpointService {
         String normalizedSql =
                 sql.trim().toLowerCase();
 
-        if (!normalizedSql.startsWith("select")) {
+        if (normalizedSql.contains(";")) {
+            throw new IllegalArgumentException(
+                    "SQL do endpoint não pode conter ponto e vírgula"
+            );
+        }
+
+        if (normalizedSql.contains("--")
+                || normalizedSql.contains("/*")
+                || normalizedSql.contains("*/")) {
+
+            throw new IllegalArgumentException(
+                    "SQL do endpoint não pode conter comentários"
+            );
+        }
+
+        if (!normalizedSql.matches("(?s)^select\\b.*")) {
 
             throw new IllegalArgumentException(
                     "Endpoints GET permitem apenas comandos SELECT"

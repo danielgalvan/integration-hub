@@ -952,7 +952,7 @@ Os parâmetros recebidos são validados e utilizados como bind variables.
 
 Isso evita a necessidade de criar um controller Java específico para cada consulta disponibilizada pelo Integration Hub.
 
-A execução dinâmica é limitada a consultas de leitura. O backend aceita somente comandos iniciados por `SELECT` e rejeita `SELECT ... FOR UPDATE`, evitando bloqueios de registros durante o consumo dos endpoints.
+A execução dinâmica segue uma política restritiva na V1: aceita somente SQL iniciado por `SELECT`, em uma única instrução, sem ponto e vírgula e sem comentários SQL. Também rejeita `SELECT ... FOR UPDATE`, evitando bloqueios de registros durante o consumo dos endpoints.
 
 Também possui limite configurável de resultados através da propriedade:
 
@@ -1889,6 +1889,8 @@ Os testes cobrem componentes importantes da execução e das regras de negócio,
 
 \- rejeição de `SELECT ... FOR UPDATE`;
 
+\- rejeição de ponto e vírgula e comentários SQL;
+
 \- serialização e desserialização dos parâmetros JSON no repositório Oracle;
 
 \- comportamento dos controllers;
@@ -2087,7 +2089,7 @@ Entre os princípios do projeto estão:
 
 \- armazenamento seguro das credenciais;
 
-\- restrição dos tipos de SQL permitidos;
+\- aceitação exclusiva de uma instrução iniciada por `SELECT`, sem ponto e vírgula ou comentários SQL;
 
 \- bloqueio de `SELECT ... FOR UPDATE` para impedir bloqueios de registros;
 
