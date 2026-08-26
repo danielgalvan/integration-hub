@@ -1,8 +1,16 @@
 package br.com.integrationhub.integration.model;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+
 public class EndpointParameter {
 
+    @NotBlank(message = "nome do parâmetro é obrigatório")
+    @Pattern(regexp = "[A-Za-z][A-Za-z0-9_]*", message = "nome do parâmetro é inválido")
     private String name;
+
+    @NotBlank(message = "tipo do parâmetro é obrigatório")
+    @Pattern(regexp = "VARCHAR2|VARCHAR|CHAR|NUMBER|DATE|TIMESTAMP", flags = Pattern.Flag.CASE_INSENSITIVE, message = "tipo de parâmetro não suportado")
     private String type;
     private boolean required;
 

@@ -2,6 +2,7 @@ package br.com.integrationhub.integration.service;
 
 import br.com.integrationhub.integration.model.Endpoint;
 import br.com.integrationhub.integration.repository.EndpointRepository;
+import br.com.integrationhub.integration.repository.IntegrationRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -13,9 +14,14 @@ import java.util.Optional;
 public class EndpointService {
 
     private final EndpointRepository endpointRepository;
+    private final IntegrationRepository integrationRepository;
 
-    public EndpointService(EndpointRepository endpointRepository) {
+    public EndpointService(
+            EndpointRepository endpointRepository,
+            IntegrationRepository integrationRepository) {
+
         this.endpointRepository = endpointRepository;
+        this.integrationRepository = integrationRepository;
     }
 
     public List<Endpoint> findAll() {
@@ -44,6 +50,8 @@ public class EndpointService {
 
     public Endpoint save(Endpoint endpoint) {
 
+        validateIntegrationExists(endpoint.getIntegrationId());
+
         if (endpoint.getActive() == null) {
             endpoint.setActive("S");
         }
@@ -66,6 +74,8 @@ public class EndpointService {
                                 "Endpoint não encontrado"
                         )
                 );
+
+        validateIntegrationExists(endpoint.getIntegrationId());
 
         endpoint.setId(id);
 
@@ -101,5 +111,16 @@ public class EndpointService {
                 );
 
         endpointRepository.deleteById(endpoint.getId());
+    }
+
+    private void validateIntegrationExists(Long integrationId) {
+
+        if (integrationId == null
+                || integrationRepository.findById(integrationId).isEmpty()) {
+
+            throw new IllegalArgumentException(
+                    "Integração não encontrada: " + integrationId
+            );
+        }
     }
 }

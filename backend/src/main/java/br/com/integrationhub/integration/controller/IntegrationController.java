@@ -2,6 +2,7 @@ package br.com.integrationhub.integration.controller;
 
 import br.com.integrationhub.integration.model.Integration;
 import br.com.integrationhub.integration.service.IntegrationService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,7 +36,7 @@ public class IntegrationController {
 
     @PostMapping
     public ResponseEntity<Integration> save(
-            @RequestBody Integration integration) {
+            @Valid @RequestBody Integration integration) {
 
         Integration saved =
                 integrationService.save(integration);
@@ -46,7 +47,7 @@ public class IntegrationController {
     @PutMapping("/{id}")
     public ResponseEntity<Integration> update(
             @PathVariable("id") Long id,
-            @RequestBody Integration integration) {
+            @Valid @RequestBody Integration integration) {
 
         Integration updated =
                 integrationService.update(id, integration);

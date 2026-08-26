@@ -17,6 +17,7 @@ import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -312,6 +313,17 @@ class EndpointControllerTest {
                 .andExpect(status().isNotFound());
 
         verify(endpointService).delete(99L);
+    }
+
+    @Test
+    void deveRejeitarEndpointComDadosInvalidos() throws Exception {
+
+        mockMvc.perform(post("/api/endpoints")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Endpoint\",\"path\":\"sem-barra\",\"method\":\"POST\",\"sqlText\":\"\"}"))
+                .andExpect(status().isBadRequest());
+
+        verify(endpointService, never()).save(any(Endpoint.class));
     }
 
     private Endpoint createEndpoint() {

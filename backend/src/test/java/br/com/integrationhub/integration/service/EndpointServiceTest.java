@@ -2,6 +2,7 @@ package br.com.integrationhub.integration.service;
 
 import br.com.integrationhub.integration.model.Endpoint;
 import br.com.integrationhub.integration.repository.EndpointRepository;
+import br.com.integrationhub.integration.repository.IntegrationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -23,14 +24,21 @@ import static org.mockito.Mockito.when;
 class EndpointServiceTest {
 
     private EndpointRepository endpointRepository;
+    private IntegrationRepository integrationRepository;
     private EndpointService endpointService;
 
     @BeforeEach
     void setUp() {
         endpointRepository = mock(EndpointRepository.class);
+        integrationRepository = mock(IntegrationRepository.class);
+
+        when(integrationRepository.findById(
+                org.mockito.ArgumentMatchers.anyLong()
+        )).thenReturn(Optional.of(new br.com.integrationhub.integration.model.Integration()));
 
         endpointService = new EndpointService(
-                endpointRepository
+                endpointRepository,
+                integrationRepository
         );
     }
 
@@ -614,6 +622,23 @@ class EndpointServiceTest {
                 endpointRepository,
                 never()
         ).deleteById(99L);
+    }
+
+    @Test
+    void deveRejeitarEndpointQuandoIntegracaoNaoExiste() {
+
+        Endpoint endpoint = createEndpoint(99L, "/buscar");
+
+        when(integrationRepository.findById(99L))
+                .thenReturn(Optional.empty());
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> endpointService.save(endpoint)
+        );
+
+        assertEquals("Integração não encontrada: 99", exception.getMessage());
+        verify(endpointRepository, never()).save(endpoint);
     }
 
     private Endpoint createEndpoint(

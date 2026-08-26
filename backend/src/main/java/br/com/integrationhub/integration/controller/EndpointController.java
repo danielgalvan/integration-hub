@@ -2,6 +2,7 @@ package br.com.integrationhub.integration.controller;
 
 import br.com.integrationhub.integration.model.Endpoint;
 import br.com.integrationhub.integration.service.EndpointService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -40,7 +41,7 @@ public class EndpointController {
 
     @PostMapping
     public ResponseEntity<Endpoint> save(
-            @RequestBody Endpoint endpoint) {
+            @Valid @RequestBody Endpoint endpoint) {
 
         Endpoint saved = endpointService.save(endpoint);
 
@@ -50,7 +51,7 @@ public class EndpointController {
     @PutMapping("/{id}")
     public ResponseEntity<Endpoint> update(
             @PathVariable("id") Long id,
-            @RequestBody Endpoint endpoint) {
+            @Valid @RequestBody Endpoint endpoint) {
 
         Endpoint updated = endpointService.update(
                 id,

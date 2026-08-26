@@ -1,13 +1,20 @@
 package br.com.integrationhub.integration.model;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+
 import java.time.LocalDateTime;
 
 public class Integration {
 
     private Long id;
+    @NotBlank(message = "name é obrigatório")
     private String name;
     private String description;
+    @NotBlank(message = "basePath é obrigatório")
     private String basePath;
+
+    @Pattern(regexp = "[SNsn]", message = "active deve ser S ou N")
     private String active;
     private String createdBy;
     private LocalDateTime createdAt;

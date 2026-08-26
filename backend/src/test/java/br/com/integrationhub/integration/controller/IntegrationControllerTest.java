@@ -34,7 +34,7 @@ class IntegrationControllerTest {
         integration.setId(1L);
         integration.setName("Usuarios");
         integration.setDescription("Consulta");
-        integration.setBasePath("/usuarios");
+        integration.setBasePath("/api/usuarios");
         integration.setActive("S");
         integration.setCreatedBy("SYSTEM");
 
@@ -44,7 +44,7 @@ class IntegrationControllerTest {
 
         mockMvc.perform(get("/api/integrations"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].basePath").value("/usuarios"))
+                .andExpect(jsonPath("$[0].basePath").value("/api/usuarios"))
                 .andExpect(jsonPath("$[0].active").value("S"));
 
         mockMvc.perform(get("/api/integrations/1"))
@@ -58,7 +58,7 @@ class IntegrationControllerTest {
                                 {
                                   "name": "Usuarios",
                                   "description": "Consulta",
-                                  "basePath": "/usuarios",
+                                  "basePath": "/api/usuarios",
                                   "active": "S"
                                 }
                                 """))
@@ -73,5 +73,13 @@ class IntegrationControllerTest {
 
         mockMvc.perform(get("/api/integrations/99"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void deveRejeitarIntegracaoSemNome() throws Exception {
+        mockMvc.perform(post("/api/integrations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"basePath\":\"/api/usuarios\"}"))
+                .andExpect(status().isBadRequest());
     }
 }
