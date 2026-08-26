@@ -247,12 +247,15 @@ function EndpointsPage({
         )}
       </div>
 
-      <EndpointTestModal
-        open={endpointToTest !== null}
-        integration={integration}
-        endpoint={endpointToTest}
-        onClose={handleCloseTest}
-      />
+      {endpointToTest && (
+        <EndpointTestModal
+          key={endpointToTest.id}
+          open
+          integration={integration}
+          endpoint={endpointToTest}
+          onClose={handleCloseTest}
+        />
+      )}
 
       <ConfirmDialog
         open={endpointToDelete !== null}
