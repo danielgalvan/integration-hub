@@ -1,6 +1,6 @@
 import './Header.css'
 
-function Header() {
+function Header({ onLogout }) {
   return (
     <header className="header">
       <div className="header__content">
@@ -20,6 +20,14 @@ function Header() {
               <span className="header__user-role">Administrador</span>
             </div>
           </div>
+
+          <button
+            type="button"
+            className="header__logout"
+            onClick={onLogout}
+          >
+            Sair
+          </button>
         </div>
       </div>
     </header>

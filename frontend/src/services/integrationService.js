@@ -1,7 +1,7 @@
-const API_URL = 'http://localhost:8081'
+import { apiFetch } from '../utils/api'
 
 export async function getIntegrations() {
-  const response = await fetch(`${API_URL}/api/integrations`)
+  const response = await apiFetch('/api/integrations')
 
   if (!response.ok) {
     throw new Error('Não foi possível carregar as integrações.')
@@ -11,7 +11,7 @@ export async function getIntegrations() {
 }
 
 export async function createIntegration(integration) {
-  const response = await fetch(`${API_URL}/api/integrations`, {
+  const response = await apiFetch('/api/integrations', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -31,7 +31,7 @@ export async function createIntegration(integration) {
 }
 
 export async function updateIntegration(id, integration) {
-  const response = await fetch(`${API_URL}/api/integrations/${id}`, {
+  const response = await apiFetch(`/api/integrations/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -51,7 +51,7 @@ export async function updateIntegration(id, integration) {
 }
 
 export async function deleteIntegration(id) {
-  const response = await fetch(`${API_URL}/api/integrations/${id}`, {
+  const response = await apiFetch(`/api/integrations/${id}`, {
     method: 'DELETE',
   })
 

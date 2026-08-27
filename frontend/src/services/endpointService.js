@@ -1,7 +1,9 @@
+import { apiFetch } from '../utils/api'
+
 const API_URL = 'http://localhost:8081'
 
 export async function getEndpoints() {
-  const response = await fetch(`${API_URL}/api/endpoints`)
+  const response = await apiFetch('/api/endpoints')
 
   if (!response.ok) {
     throw new Error('Não foi possível carregar os endpoints.')
@@ -11,7 +13,7 @@ export async function getEndpoints() {
 }
 
 export async function getEndpointById(id) {
-  const response = await fetch(`${API_URL}/api/endpoints/${id}`)
+  const response = await apiFetch(`/api/endpoints/${id}`)
 
   if (!response.ok) {
     const error = await response.json().catch(() => null)
@@ -25,8 +27,8 @@ export async function getEndpointById(id) {
 }
 
 export async function getEndpointsByIntegration(integrationId) {
-  const response = await fetch(
-    `${API_URL}/api/endpoints/integration/${integrationId}`,
+  const response = await apiFetch(
+    `/api/endpoints/integration/${integrationId}`,
   )
 
   if (!response.ok) {
@@ -42,7 +44,7 @@ export async function getEndpointsByIntegration(integrationId) {
 }
 
 export async function createEndpoint(endpoint) {
-  const response = await fetch(`${API_URL}/api/endpoints`, {
+  const response = await apiFetch('/api/endpoints', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -62,7 +64,7 @@ export async function createEndpoint(endpoint) {
 }
 
 export async function updateEndpoint(id, endpoint) {
-  const response = await fetch(`${API_URL}/api/endpoints/${id}`, {
+  const response = await apiFetch(`/api/endpoints/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -82,7 +84,7 @@ export async function updateEndpoint(id, endpoint) {
 }
 
 export async function deleteEndpoint(id) {
-  const response = await fetch(`${API_URL}/api/endpoints/${id}`, {
+  const response = await apiFetch(`/api/endpoints/${id}`, {
     method: 'DELETE',
   })
 
@@ -117,9 +119,11 @@ export async function executeEndpoint(
 
   try {
     const response = await fetch(url)
+
     const duration = Math.round(
       performance.now() - startedAt,
     )
+
     const contentType = response.headers.get('content-type')
 
     let data
