@@ -76,7 +76,7 @@ O frontend fornece a interface administrativa do Integration Hub.
 
 A implementação atual já possui a estrutura visual principal da aplicação, gerenciamento de integrações e endpoints conectado ao backend, operações de cadastro, edição e exclusão, geração automática de parâmetros a partir do SQL e componentes reutilizáveis para confirmação e apresentação de mensagens.
 
-A autenticação já está implementada no backend. A integração da autenticação JWT com o frontend é a próxima etapa do desenvolvimento da V1.
+A autenticação administrativa está implementada de ponta a ponta. O frontend oferece tela de login, armazena o JWT da sessão, envia o token nas chamadas administrativas e retorna ao login quando recebe `401 Unauthorized`.
 
 Durante o desenvolvimento local, a aplicação é disponibilizada em:
 
@@ -1700,11 +1700,7 @@ Isso evita configuração manual duplicada e reduz inconsistências entre o SQL 
 
 # Autenticação no frontend
 
-O backend de autenticação já está implementado.
-
-O frontend ainda precisa incorporar o fluxo administrativo de autenticação.
-
-O fluxo previsto é:
+O fluxo administrativo de autenticação está implementado:
 
 ```text
 Tela de login
@@ -1732,15 +1728,19 @@ As chamadas para:
 /api/endpoints/**
 ```
 
-deverão incluir o token.
+incluem automaticamente o cabeçalho:
 
-Também será necessário tratar:
+```http
+Authorization: Bearer <token>
+```
+
+Quando a API retorna:
 
 ```text
 401 Unauthorized
 ```
 
-para sessões inexistentes, inválidas ou expiradas.
+o token local é removido e a aplicação retorna à tela de login. O logout também remove a sessão armazenada.
 
 ---
 
@@ -1997,15 +1997,6 @@ Essa separação permite evoluir a interface administrativa sem ampliar prematur
 
 O backend possui testes automatizados utilizando JUnit e Mockito.
 
-A suíte atual validada antes da inclusão dos testes específicos de autenticação possui:
-
-```text
-108 testes
-0 failures
-0 errors
-0 skipped
-```
-
 Os testes cobrem componentes importantes da execução e das regras de negócio, incluindo:
 
 - validação de `basePath`;
@@ -2037,6 +2028,10 @@ Os testes cobrem componentes importantes da execução e das regras de negócio,
 - bloqueio de `/api/endpoints/**` sem token;
 - acesso administrativo com token válido;
 - rejeição de token inválido.
+- geração, validação, expiração e adulteração de JWT;
+- comportamento do filtro JWT para requisições sem token, token válido e token inválido;
+- validação de campos obrigatórios no login;
+- acesso público ao login e ao health check.
 
 O `IntegrationServiceTest` utiliza mocks de:
 
@@ -2053,20 +2048,17 @@ A proteção de exclusão deve garantir que o repository responsável pela remo�
 
 # Testes de autenticação
 
-A segurança já possui cobertura das rotas administrativas através do:
-
-```text
-SecurityConfigTest
-```
-
-Os próximos testes específicos de autenticação devem cobrir:
+A autenticação possui cobertura em:
 
 ```text
 AuthServiceTest
 AuthControllerTest
+JwtServiceTest
+JwtAuthenticationFilterTest
+SecurityConfigTest
 ```
 
-Os cenários incluem:
+Os cenários cobertos incluem:
 
 ```text
 ✓ login com credenciais válidas
@@ -2079,9 +2071,12 @@ Os cenários incluem:
 ✓ username obrigatório
 ✓ password obrigatório
 ✓ 401 para credenciais inválidas
+✓ JWT válido, expirado, adulterado e assinado por outra chave
+✓ filtro de autenticação com e sem Bearer token
+✓ login e health check públicos
 ```
 
-Isso complementa os testes já existentes da configuração de segurança.
+No frontend, a cobertura contempla o login, persistência e remoção da sessão, inclusão do Bearer token, tratamento de `401`, logout e os fluxos principais da aplicação autenticada.
 
 ---
 
@@ -2459,7 +2454,7 @@ Atualmente estão implementados e validados:
 - testes das regras administrativas;
 - testes da segurança;
 - build com `clean verify`;
-- 108 testes passando antes da inclusão dos testes específicos de autenticação;
+- testes do fluxo de autenticação no backend e frontend;
 - validação automática do backend pelo GitHub Actions;
 - validação automática do frontend pelo GitHub Actions.
 
@@ -2490,10 +2485,10 @@ Estado atual:
 [x] validação de JWT
 [x] proteção de /api/integrations/**
 [x] proteção de /api/endpoints/**
-[ ] armazenamento/controlе do JWT no frontend
-[ ] envio do Bearer token pelo frontend
-[ ] tratamento de 401 no frontend
-[ ] tela de login
+[x] armazenamento e controle do JWT no frontend
+[x] envio do Bearer token pelo frontend
+[x] tratamento de 401 no frontend
+[x] tela de login
 ```
 
 ---
@@ -2502,21 +2497,14 @@ Estado atual:
 
 A sequência imediata prevista para conclusão da V1 é:
 
-1. adicionar os testes específicos de `AuthService`;
-2. adicionar os testes específicos de `AuthController`;
-3. implementar o serviço de autenticação no frontend;
-4. implementar armazenamento e controle do JWT no frontend;
-5. enviar `Authorization: Bearer <token>` nas chamadas administrativas;
-6. tratar `401 Unauthorized` no frontend;
-7. criar a tela de login;
-8. validar o fluxo completo frontend → autenticação → APIs administrativas;
-9. executar a suíte completa de testes;
-10. validar o GitHub Actions;
-11. preparar o ambiente cloud;
-12. migrar ou disponibilizar o Oracle em cloud;
-13. publicar o backend;
-14. publicar o frontend;
-15. executar validação final da V1 no ambiente cloud.
+1. validar o fluxo completo frontend → autenticação → APIs administrativas em ambiente local;
+2. executar a suíte completa de testes;
+3. validar o GitHub Actions;
+4. preparar o ambiente cloud;
+5. migrar ou disponibilizar o Oracle em cloud;
+6. publicar o backend;
+7. publicar o frontend;
+8. executar validação final da V1 no ambiente cloud.
 
 ---
 
@@ -2582,9 +2570,9 @@ A V1 poderá ser considerada concluída quando:
 [x] senha administrativa utilizar BCrypt
 [x] backend gerar e validar JWT
 [x] APIs administrativas exigirem autenticação
-[ ] frontend possuir tela de login
-[ ] frontend enviar JWT nas chamadas administrativas
-[ ] frontend tratar expiração/invalidação da sessão
+[x] frontend possuir tela de login
+[x] frontend enviar JWT nas chamadas administrativas
+[x] frontend tratar expiração/invalidação da sessão
 [ ] aplicação estiver publicada em cloud
 [ ] Oracle estiver disponível para o ambiente cloud
 [ ] fluxo completo estiver validado no ambiente publicado
@@ -2600,9 +2588,9 @@ O CRUD administrativo de integrações e endpoints está funcional.
 
 O frontend React já permite administrar integrações e endpoints, gerar parâmetros automaticamente a partir do SQL e testar endpoints diretamente pela interface.
 
-O backend agora possui autenticação administrativa baseada em JWT, senha protegida com BCrypt e bloqueio das APIs administrativas sem autenticação válida.
+O backend possui autenticação administrativa baseada em JWT, senha protegida com BCrypt e bloqueio das APIs administrativas sem autenticação válida. O frontend está integrado a esse fluxo, com login, envio automático do token e encerramento da sessão após `401 Unauthorized`.
 
-Com isso, o trabalho restante da aplicação antes da publicação está concentrado principalmente na integração da autenticação com o frontend.
+Com isso, o trabalho restante da aplicação antes da publicação está concentrado na validação integrada e na preparação do ambiente cloud.
 
 Após essa etapa, a última grande fase da V1 será a publicação do banco, backend e frontend em ambiente cloud.
 

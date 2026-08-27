@@ -109,6 +109,50 @@ class AuthControllerTest {
     }
 
     @Test
+    void deveRejeitarLoginComUsernameEmBranco() throws Exception {
+
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content("""
+                                        {
+                                          "username": "   ",
+                                          "password": "admin"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("Usuário é obrigatório")
+                );
+    }
+
+    @Test
+    void deveRejeitarLoginComPasswordEmBranco() throws Exception {
+
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content("""
+                                        {
+                                          "username": "admin",
+                                          "password": "   "
+                                        }
+                                        """)
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("Senha é obrigatória")
+                );
+    }
+
+    @Test
     void deveRetornarUnauthorizedParaCredenciaisInvalidas()
             throws Exception {
 
