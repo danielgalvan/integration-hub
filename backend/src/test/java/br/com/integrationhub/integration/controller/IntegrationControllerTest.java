@@ -1,5 +1,19 @@
 package br.com.integrationhub.integration.controller;
 
+import br.com.integrationhub.integration.model.Integration;
+import br.com.integrationhub.integration.service.IntegrationService;
+import br.com.integrationhub.security.JwtService;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.List;
+import java.util.Optional;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -7,19 +21,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.util.List;
-import java.util.Optional;
-
-import br.com.integrationhub.integration.model.Integration;
-import br.com.integrationhub.integration.service.IntegrationService;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
-
 @WebMvcTest(IntegrationController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class IntegrationControllerTest {
 
     @Autowired
@@ -28,9 +31,14 @@ class IntegrationControllerTest {
     @MockitoBean
     private IntegrationService integrationService;
 
+    @MockitoBean
+    private JwtService jwtService;
+
     @Test
     void deveListarBuscarECriarIntegracoes() throws Exception {
+
         Integration integration = new Integration();
+
         integration.setId(1L);
         integration.setName("Usuarios");
         integration.setDescription("Consulta");
@@ -38,48 +46,86 @@ class IntegrationControllerTest {
         integration.setActive("S");
         integration.setCreatedBy("SYSTEM");
 
-        when(integrationService.findAll()).thenReturn(List.of(integration));
-        when(integrationService.findById(1L)).thenReturn(Optional.of(integration));
-        when(integrationService.save(any(Integration.class))).thenReturn(integration);
+        when(integrationService.findAll())
+                .thenReturn(List.of(integration));
+
+        when(integrationService.findById(1L))
+                .thenReturn(Optional.of(integration));
+
+        when(integrationService.save(any(Integration.class)))
+                .thenReturn(integration);
 
         mockMvc.perform(get("/api/integrations"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].basePath").value("/api/usuarios"))
-                .andExpect(jsonPath("$[0].active").value("S"));
+                .andExpect(
+                        jsonPath("$[0].basePath")
+                                .value("/api/usuarios")
+                )
+                .andExpect(
+                        jsonPath("$[0].active")
+                                .value("S")
+                );
 
         mockMvc.perform(get("/api/integrations/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Usuarios"))
-                .andExpect(jsonPath("$.active").value("S"));
+                .andExpect(
+                        jsonPath("$.name")
+                                .value("Usuarios")
+                )
+                .andExpect(
+                        jsonPath("$.active")
+                                .value("S")
+                );
 
-        mockMvc.perform(post("/api/integrations")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "name": "Usuarios",
-                                  "description": "Consulta",
-                                  "basePath": "/api/usuarios",
-                                  "active": "S"
-                                }
-                                """))
+        mockMvc.perform(
+                        post("/api/integrations")
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content("""
+                                        {
+                                          "name": "Usuarios",
+                                          "description": "Consulta",
+                                          "basePath": "/api/usuarios",
+                                          "active": "S"
+                                        }
+                                        """)
+                )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.active").value("S"));
+                .andExpect(
+                        jsonPath("$.id")
+                                .value(1)
+                )
+                .andExpect(
+                        jsonPath("$.active")
+                                .value("S")
+                );
     }
 
     @Test
-    void deveRetornarNotFoundParaIntegracaoInexistente() throws Exception {
-        when(integrationService.findById(99L)).thenReturn(Optional.empty());
+    void deveRetornarNotFoundParaIntegracaoInexistente()
+            throws Exception {
+
+        when(integrationService.findById(99L))
+                .thenReturn(Optional.empty());
 
         mockMvc.perform(get("/api/integrations/99"))
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    void deveRejeitarIntegracaoSemNome() throws Exception {
-        mockMvc.perform(post("/api/integrations")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"basePath\":\"/api/usuarios\"}"))
+    void deveRejeitarIntegracaoSemNome()
+            throws Exception {
+
+        mockMvc.perform(
+                        post("/api/integrations")
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content(
+                                        "{\"basePath\":\"/api/usuarios\"}"
+                                )
+                )
                 .andExpect(status().isBadRequest());
     }
 }

@@ -3,8 +3,10 @@ package br.com.integrationhub.integration.controller;
 import br.com.integrationhub.integration.model.Endpoint;
 import br.com.integrationhub.integration.model.EndpointParameter;
 import br.com.integrationhub.integration.service.EndpointService;
+import br.com.integrationhub.security.JwtService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -28,6 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(EndpointController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class EndpointControllerTest {
 
     @Autowired
@@ -35,6 +38,9 @@ class EndpointControllerTest {
 
     @MockitoBean
     private EndpointService endpointService;
+
+    @MockitoBean
+    private JwtService jwtService;
 
     @Test
     void deveListarEndpoints() throws Exception {
@@ -320,10 +326,16 @@ class EndpointControllerTest {
 
         mockMvc.perform(post("/api/endpoints")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"Endpoint\",\"path\":\"sem-barra\",\"method\":\"POST\",\"sqlText\":\"\"}"))
+                        .content(
+                                "{\"name\":\"Endpoint\","
+                                        + "\"path\":\"sem-barra\","
+                                        + "\"method\":\"POST\","
+                                        + "\"sqlText\":\"\"}"
+                        ))
                 .andExpect(status().isBadRequest());
 
-        verify(endpointService, never()).save(any(Endpoint.class));
+        verify(endpointService, never())
+                .save(any(Endpoint.class));
     }
 
     private Endpoint createEndpoint() {

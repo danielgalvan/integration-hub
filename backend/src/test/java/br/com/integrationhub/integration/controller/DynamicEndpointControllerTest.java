@@ -6,10 +6,12 @@ import br.com.integrationhub.integration.model.Integration;
 import br.com.integrationhub.integration.service.DynamicEndpointService;
 import br.com.integrationhub.integration.service.EndpointService;
 import br.com.integrationhub.integration.service.IntegrationService;
+import br.com.integrationhub.security.JwtService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -32,6 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         IntegrationController.class,
         GlobalExceptionHandler.class
 })
+@AutoConfigureMockMvc(addFilters = false)
 class DynamicEndpointControllerTest {
 
     @Autowired
@@ -45,6 +48,9 @@ class DynamicEndpointControllerTest {
 
     @MockitoBean
     private DynamicEndpointService dynamicEndpointService;
+
+    @MockitoBean
+    private JwtService jwtService;
 
     @Test
     void deveExecutarEndpointDinamico() throws Exception {

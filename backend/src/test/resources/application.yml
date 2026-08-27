@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    url: jdbc:oracle:thin:@//localhost:1521/test
+    username: test
+    password: test
+
+integration-hub:
+  security:
+    admin:
+      username: admin
+      password: admin
+
+    jwt:
+      secret: integration-hub-test-secret-key-123456789012345678901234567890
+      expiration-minutes: 60
