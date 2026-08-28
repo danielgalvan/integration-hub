@@ -6,11 +6,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
@@ -108,6 +109,40 @@ public class GlobalExceptionHandler {
                 .findFirst()
                 .map(fieldError -> fieldError.getDefaultMessage())
                 .orElse("Requisição inválida");
+
+        logger.warn(
+                "Requisição inválida em {}: {}",
+                request.getRequestURI(),
+                message
+        );
+
+        ApiError error = new ApiError(
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                message,
+                request.getRequestURI()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(error);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiError> handleHttpMessageNotReadableException(
+            HttpMessageNotReadableException exception,
+            HttpServletRequest request) {
+
+        String message =
+                "Ambiente inválido. Valores permitidos: "
+                        + "DEVELOPMENT, HOMOLOGATION";
+
+        logger.warn(
+                "Requisição inválida em {}: {}",
+                request.getRequestURI(),
+                message
+        );
 
         ApiError error = new ApiError(
                 LocalDateTime.now(),

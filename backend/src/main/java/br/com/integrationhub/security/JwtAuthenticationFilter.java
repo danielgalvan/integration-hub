@@ -48,13 +48,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String username =
                 jwtService.getUsername(token);
 
+        String role =
+                jwtService.getRole(token);
+
+        String authority =
+                mapAuthority(role);
+
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(
                         username,
                         null,
                         List.of(
                                 new SimpleGrantedAuthority(
-                                        "ROLE_ADMIN"
+                                        authority
                                 )
                         )
                 );
@@ -64,5 +70,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 .setAuthentication(authentication);
 
         filterChain.doFilter(request, response);
+    }
+
+    private String mapAuthority(String role) {
+
+        return switch (role) {
+            case "A" -> "ROLE_ADMIN";
+            case "C" -> "ROLE_CREATOR";
+            case "U" -> "ROLE_CONSUMER";
+            default -> throw new IllegalArgumentException(
+                    "Tipo de usuário inválido"
+            );
+        };
     }
 }

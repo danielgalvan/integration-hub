@@ -29,12 +29,17 @@ public class JwtService {
         this.expirationMinutes = expirationMinutes;
     }
 
-    public String generateToken(String username) {
+    public String generateToken(
+            String username,
+            String environment,
+            String role
+    ) {
         Instant now = Instant.now();
 
         return Jwts.builder()
                 .subject(username)
-                .claim("role", "ADMIN")
+                .claim("role", role)
+                .claim("environment", environment)
                 .issuedAt(Date.from(now))
                 .expiration(
                         Date.from(
@@ -51,6 +56,22 @@ public class JwtService {
     public String getUsername(String token) {
         return getClaims(token)
                 .getSubject();
+    }
+
+    public String getEnvironment(String token) {
+        return getClaims(token)
+                .get(
+                        "environment",
+                        String.class
+                );
+    }
+
+    public String getRole(String token) {
+        return getClaims(token)
+                .get(
+                        "role",
+                        String.class
+                );
     }
 
     public boolean isTokenValid(String token) {
@@ -72,7 +93,8 @@ public class JwtService {
     }
 
     private SecretKey getSigningKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(secret);
+        byte[] keyBytes =
+                Decoders.BASE64.decode(secret);
 
         return Keys.hmacShaKeyFor(keyBytes);
     }

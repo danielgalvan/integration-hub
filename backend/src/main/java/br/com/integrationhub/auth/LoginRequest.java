@@ -8,7 +8,10 @@ public record LoginRequest(
         String username,
 
         @NotBlank(message = "Senha é obrigatória")
-        String password
+        String password,
+
+        @NotBlank(message = "Ambiente é obrigatório")
+        String environment
 
 ) {
 }

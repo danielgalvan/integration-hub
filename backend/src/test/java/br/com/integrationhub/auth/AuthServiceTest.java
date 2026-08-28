@@ -1,13 +1,17 @@
 package br.com.integrationhub.auth;
 
 import br.com.integrationhub.security.JwtService;
+import br.com.integrationhub.user.model.User;
+import br.com.integrationhub.user.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.server.ResponseStatusException;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -21,7 +25,7 @@ class AuthServiceTest {
     private JwtService jwtService;
 
     @Mock
-    private PasswordEncoder passwordEncoder;
+    private UserService userService;
 
     private AuthService authService;
 
@@ -30,9 +34,7 @@ class AuthServiceTest {
 
         authService = new AuthService(
                 jwtService,
-                passwordEncoder,
-                "admin",
-                "$2a$10$hash",
+                userService,
                 60
         );
     }
@@ -40,21 +42,36 @@ class AuthServiceTest {
     @Test
     void deveRealizarLoginComCredenciaisValidas() {
 
+        User user = createUser(
+                "admin",
+                "A",
+                "A"
+        );
+
+        when(userService.findByUsername("admin"))
+                .thenReturn(Optional.of(user));
+
         when(
-                passwordEncoder.matches(
+                userService.passwordMatches(
                         "admin",
-                        "$2a$10$hash"
+                        user
                 )
         ).thenReturn(true);
 
-        when(jwtService.generateToken("admin"))
-                .thenReturn("token-jwt");
+        when(
+                jwtService.generateToken(
+                        "admin",
+                        "dev",
+                        "A"
+                )
+        ).thenReturn("token-jwt");
 
         LoginResponse response =
                 authService.login(
                         new LoginRequest(
                                 "admin",
-                                "admin"
+                                "admin",
+                                "dev"
                         )
                 );
 
@@ -73,25 +90,77 @@ class AuthServiceTest {
                 response.expiresIn()
         );
 
-        verify(passwordEncoder)
-                .matches(
+        verify(userService)
+                .findByUsername("admin");
+
+        verify(userService)
+                .passwordMatches(
                         "admin",
-                        "$2a$10$hash"
+                        user
                 );
 
         verify(jwtService)
-                .generateToken("admin");
+                .generateToken(
+                        "admin",
+                        "dev",
+                        "A"
+                );
     }
 
     @Test
-    void deveRejeitarUsuarioInvalido() {
+    void deveRealizarLoginComPerfilCriador() {
+
+        User user = createUser(
+                "criador",
+                "A",
+                "C"
+        );
+
+        when(userService.findByUsername("criador"))
+                .thenReturn(Optional.of(user));
 
         when(
-                passwordEncoder.matches(
-                        "admin",
-                        "$2a$10$hash"
+                userService.passwordMatches(
+                        "senha",
+                        user
                 )
         ).thenReturn(true);
+
+        when(
+                jwtService.generateToken(
+                        "criador",
+                        "homolog",
+                        "C"
+                )
+        ).thenReturn("token-jwt");
+
+        LoginResponse response =
+                authService.login(
+                        new LoginRequest(
+                                "criador",
+                                "senha",
+                                "homolog"
+                        )
+                );
+
+        assertEquals(
+                "token-jwt",
+                response.token()
+        );
+
+        verify(jwtService)
+                .generateToken(
+                        "criador",
+                        "homolog",
+                        "C"
+                );
+    }
+
+    @Test
+    void deveRejeitarUsuarioInexistente() {
+
+        when(userService.findByUsername("outro"))
+                .thenReturn(Optional.empty());
 
         ResponseStatusException exception =
                 assertThrows(
@@ -99,7 +168,38 @@ class AuthServiceTest {
                         () -> authService.login(
                                 new LoginRequest(
                                         "outro",
-                                        "admin"
+                                        "admin",
+                                        "dev"
+                                )
+                        )
+                );
+
+        assertEquals(
+                401,
+                exception.getStatusCode().value()
+        );
+    }
+
+    @Test
+    void deveRejeitarUsuarioInativo() {
+
+        User user = createUser(
+                "admin",
+                "I",
+                "A"
+        );
+
+        when(userService.findByUsername("admin"))
+                .thenReturn(Optional.of(user));
+
+        ResponseStatusException exception =
+                assertThrows(
+                        ResponseStatusException.class,
+                        () -> authService.login(
+                                new LoginRequest(
+                                        "admin",
+                                        "admin",
+                                        "dev"
                                 )
                         )
                 );
@@ -113,10 +213,19 @@ class AuthServiceTest {
     @Test
     void deveRejeitarSenhaInvalida() {
 
+        User user = createUser(
+                "admin",
+                "A",
+                "A"
+        );
+
+        when(userService.findByUsername("admin"))
+                .thenReturn(Optional.of(user));
+
         when(
-                passwordEncoder.matches(
+                userService.passwordMatches(
                         "senha-errada",
-                        "$2a$10$hash"
+                        user
                 )
         ).thenReturn(false);
 
@@ -126,7 +235,8 @@ class AuthServiceTest {
                         () -> authService.login(
                                 new LoginRequest(
                                         "admin",
-                                        "senha-errada"
+                                        "senha-errada",
+                                        "dev"
                                 )
                         )
                 );
@@ -140,27 +250,61 @@ class AuthServiceTest {
     @Test
     void deveRetornarExpiresInEmSegundos() {
 
+        User user = createUser(
+                "admin",
+                "A",
+                "A"
+        );
+
+        when(userService.findByUsername("admin"))
+                .thenReturn(Optional.of(user));
+
         when(
-                passwordEncoder.matches(
+                userService.passwordMatches(
                         "admin",
-                        "$2a$10$hash"
+                        user
                 )
         ).thenReturn(true);
 
-        when(jwtService.generateToken("admin"))
-                .thenReturn("token-jwt");
+        when(
+                jwtService.generateToken(
+                        "admin",
+                        "dev",
+                        "A"
+                )
+        ).thenReturn("token-jwt");
 
         LoginResponse response =
                 authService.login(
                         new LoginRequest(
                                 "admin",
-                                "admin"
+                                "admin",
+                                "dev"
                         )
                 );
 
         assertEquals(
                 60 * 60,
                 response.expiresIn()
+        );
+    }
+
+    private User createUser(
+            String username,
+            String status,
+            String type
+    ) {
+
+        return new User(
+                1L,
+                username,
+                "Usuário Teste",
+                "teste@email.com",
+                "$2a$10$hash",
+                status,
+                type,
+                LocalDateTime.now(),
+                null
         );
     }
 }

@@ -1,9 +1,10 @@
 package br.com.integrationhub.auth;
 
 import br.com.integrationhub.security.JwtService;
+import br.com.integrationhub.user.model.User;
+import br.com.integrationhub.user.service.UserService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -11,48 +12,57 @@ import org.springframework.web.server.ResponseStatusException;
 public class AuthService {
 
     private final JwtService jwtService;
-    private final PasswordEncoder passwordEncoder;
-    private final String adminUsername;
-    private final String adminPassword;
+    private final UserService userService;
     private final long expirationMinutes;
 
     public AuthService(
             JwtService jwtService,
-            PasswordEncoder passwordEncoder,
-            @Value("${integration-hub.security.admin.username}")
-            String adminUsername,
-            @Value("${integration-hub.security.admin.password}")
-            String adminPassword,
+            UserService userService,
             @Value("${integration-hub.security.jwt.expiration-minutes}")
             long expirationMinutes
     ) {
         this.jwtService = jwtService;
-        this.passwordEncoder = passwordEncoder;
-        this.adminUsername = adminUsername;
-        this.adminPassword = adminPassword;
+        this.userService = userService;
         this.expirationMinutes = expirationMinutes;
     }
 
     public LoginResponse login(LoginRequest request) {
 
-        boolean validUsername =
-                adminUsername.equals(request.username());
-
-        boolean validPassword =
-                passwordEncoder.matches(
-                        request.password(),
-                        adminPassword
+        User user = userService.findByUsername(
+                        request.username()
+                )
+                .orElseThrow(
+                        () -> new ResponseStatusException(
+                                HttpStatus.UNAUTHORIZED,
+                                "Usuário ou senha inválidos"
+                        )
                 );
 
-        if (!validUsername || !validPassword) {
+        if (!"A".equals(user.status())) {
             throw new ResponseStatusException(
                     HttpStatus.UNAUTHORIZED,
                     "Usuário ou senha inválidos"
             );
         }
 
-        String token =
-                jwtService.generateToken(request.username());
+        boolean validPassword =
+                userService.passwordMatches(
+                        request.password(),
+                        user
+                );
+
+        if (!validPassword) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "Usuário ou senha inválidos"
+            );
+        }
+
+        String token = jwtService.generateToken(
+                user.username(),
+                request.environment(),
+                user.type()
+        );
 
         return new LoginResponse(
                 token,

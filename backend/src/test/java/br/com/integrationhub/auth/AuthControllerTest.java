@@ -51,7 +51,8 @@ class AuthControllerTest {
                                 .content("""
                                         {
                                           "username": "admin",
-                                          "password": "admin"
+                                          "password": "admin",
+                                          "environment": "dev"
                                         }
                                         """)
                 )
@@ -80,7 +81,8 @@ class AuthControllerTest {
                                 )
                                 .content("""
                                         {
-                                          "password": "admin"
+                                          "password": "admin",
+                                          "environment": "dev"
                                         }
                                         """)
                 )
@@ -99,12 +101,58 @@ class AuthControllerTest {
                                 )
                                 .content("""
                                         {
-                                          "username": "admin"
+                                          "username": "admin",
+                                          "environment": "dev"
                                         }
                                         """)
                 )
                 .andExpect(
                         status().isBadRequest()
+                );
+    }
+
+    @Test
+    void deveRejeitarLoginSemEnvironment() throws Exception {
+
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content("""
+                                        {
+                                          "username": "admin",
+                                          "password": "admin"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("Ambiente é obrigatório")
+                );
+    }
+
+    @Test
+    void deveRejeitarLoginComEnvironmentEmBranco() throws Exception {
+
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content("""
+                                        {
+                                          "username": "admin",
+                                          "password": "admin",
+                                          "environment": "   "
+                                        }
+                                        """)
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("Ambiente é obrigatório")
                 );
     }
 
@@ -119,7 +167,8 @@ class AuthControllerTest {
                                 .content("""
                                         {
                                           "username": "   ",
-                                          "password": "admin"
+                                          "password": "admin",
+                                          "environment": "dev"
                                         }
                                         """)
                 )
@@ -141,7 +190,8 @@ class AuthControllerTest {
                                 .content("""
                                         {
                                           "username": "admin",
-                                          "password": "   "
+                                          "password": "   ",
+                                          "environment": "dev"
                                         }
                                         """)
                 )
@@ -172,7 +222,8 @@ class AuthControllerTest {
                                 .content("""
                                         {
                                           "username": "admin",
-                                          "password": "errada"
+                                          "password": "errada",
+                                          "environment": "dev"
                                         }
                                         """)
                 )

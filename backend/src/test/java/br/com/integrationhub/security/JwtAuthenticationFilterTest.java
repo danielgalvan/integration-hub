@@ -11,6 +11,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -47,7 +48,9 @@ class JwtAuthenticationFilterTest {
                 SecurityContextHolder.getContext()
                         .getAuthentication()
         );
-        verify(filterChain).doFilter(request, response);
+
+        verify(filterChain)
+                .doFilter(request, response);
     }
 
     @Test
@@ -56,30 +59,124 @@ class JwtAuthenticationFilterTest {
 
         when(request.getHeader("Authorization"))
                 .thenReturn("Bearer token-valido");
+
         when(jwtService.isTokenValid("token-valido"))
                 .thenReturn(true);
+
         when(jwtService.getUsername("token-valido"))
                 .thenReturn("admin");
 
+        when(jwtService.getRole("token-valido"))
+                .thenReturn("A");
+
         filter.doFilter(request, response, filterChain);
 
-        var authentication = SecurityContextHolder.getContext()
-                .getAuthentication();
+        var authentication =
+                SecurityContextHolder.getContext()
+                        .getAuthentication();
 
-        assertEquals("admin", authentication.getPrincipal());
+        assertEquals(
+                "admin",
+                authentication.getPrincipal()
+        );
+
         assertEquals(
                 "ROLE_ADMIN",
-                authentication.getAuthorities().iterator().next()
+                authentication.getAuthorities()
+                        .iterator()
+                        .next()
                         .getAuthority()
         );
-        verify(filterChain).doFilter(request, response);
+
+        verify(filterChain)
+                .doFilter(request, response);
     }
 
     @Test
-    void naoDeveAutenticarTokenInvalido() throws Exception {
+    void deveAutenticarTokenValidoComoCriador()
+            throws Exception {
+
+        when(request.getHeader("Authorization"))
+                .thenReturn("Bearer token-valido");
+
+        when(jwtService.isTokenValid("token-valido"))
+                .thenReturn(true);
+
+        when(jwtService.getUsername("token-valido"))
+                .thenReturn("criador");
+
+        when(jwtService.getRole("token-valido"))
+                .thenReturn("C");
+
+        filter.doFilter(request, response, filterChain);
+
+        var authentication =
+                SecurityContextHolder.getContext()
+                        .getAuthentication();
+
+        assertEquals(
+                "criador",
+                authentication.getPrincipal()
+        );
+
+        assertEquals(
+                "ROLE_CREATOR",
+                authentication.getAuthorities()
+                        .iterator()
+                        .next()
+                        .getAuthority()
+        );
+
+        verify(filterChain)
+                .doFilter(request, response);
+    }
+
+    @Test
+    void deveAutenticarTokenValidoComoConsumidor()
+            throws Exception {
+
+        when(request.getHeader("Authorization"))
+                .thenReturn("Bearer token-valido");
+
+        when(jwtService.isTokenValid("token-valido"))
+                .thenReturn(true);
+
+        when(jwtService.getUsername("token-valido"))
+                .thenReturn("consumidor");
+
+        when(jwtService.getRole("token-valido"))
+                .thenReturn("U");
+
+        filter.doFilter(request, response, filterChain);
+
+        var authentication =
+                SecurityContextHolder.getContext()
+                        .getAuthentication();
+
+        assertEquals(
+                "consumidor",
+                authentication.getPrincipal()
+        );
+
+        assertEquals(
+                "ROLE_CONSUMER",
+                authentication.getAuthorities()
+                        .iterator()
+                        .next()
+                        .getAuthority()
+        );
+
+        verify(filterChain)
+                .doFilter(request, response);
+    }
+
+    @Test
+    void naoDeveAutenticarTokenInvalido()
+            throws Exception {
 
         when(request.getHeader("Authorization"))
                 .thenReturn("Bearer token-invalido");
+
         when(jwtService.isTokenValid("token-invalido"))
                 .thenReturn(false);
 
@@ -89,7 +186,9 @@ class JwtAuthenticationFilterTest {
                 SecurityContextHolder.getContext()
                         .getAuthentication()
         );
-        verify(filterChain).doFilter(request, response);
+
+        verify(filterChain)
+                .doFilter(request, response);
     }
 
     @Test
@@ -105,6 +204,34 @@ class JwtAuthenticationFilterTest {
                 SecurityContextHolder.getContext()
                         .getAuthentication()
         );
-        verify(filterChain).doFilter(request, response);
+
+        verify(filterChain)
+                .doFilter(request, response);
+    }
+
+    @Test
+    void deveRejeitarTipoUsuarioInvalido()
+            throws Exception {
+
+        when(request.getHeader("Authorization"))
+                .thenReturn("Bearer token-valido");
+
+        when(jwtService.isTokenValid("token-valido"))
+                .thenReturn(true);
+
+        when(jwtService.getUsername("token-valido"))
+                .thenReturn("usuario");
+
+        when(jwtService.getRole("token-valido"))
+                .thenReturn("X");
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> filter.doFilter(
+                        request,
+                        response,
+                        filterChain
+                )
+        );
     }
 }

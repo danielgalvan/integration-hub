@@ -18,29 +18,99 @@ class JwtServiceTest {
             );
 
     @Test
-    void deveGerarTokenValidoComUsername() {
+    void deveGerarTokenValidoComUsernameAmbienteERole() {
 
         JwtService jwtService = new JwtService(SECRET, 60);
 
-        String token = jwtService.generateToken("admin");
+        String token = jwtService.generateToken(
+                "admin",
+                "dev",
+                "A"
+        );
 
         assertTrue(jwtService.isTokenValid(token));
-        assertEquals("admin", jwtService.getUsername(token));
+
+        assertEquals(
+                "admin",
+                jwtService.getUsername(token)
+        );
+
+        assertEquals(
+                "dev",
+                jwtService.getEnvironment(token)
+        );
+
+        assertEquals(
+                "A",
+                jwtService.getRole(token)
+        );
+    }
+
+    @Test
+    void deveGerarTokenComOutroAmbienteERole() {
+
+        JwtService jwtService = new JwtService(SECRET, 60);
+
+        String token = jwtService.generateToken(
+                "criador",
+                "homolog",
+                "C"
+        );
+
+        assertEquals(
+                "homolog",
+                jwtService.getEnvironment(token)
+        );
+
+        assertEquals(
+                "C",
+                jwtService.getRole(token)
+        );
+    }
+
+    @Test
+    void deveGerarTokenParaConsumidor() {
+
+        JwtService jwtService = new JwtService(SECRET, 60);
+
+        String token = jwtService.generateToken(
+                "consumidor",
+                "prod",
+                "U"
+        );
+
+        assertEquals(
+                "U",
+                jwtService.getRole(token)
+        );
     }
 
     @Test
     void deveRejeitarTokenAdulterado() {
 
         JwtService jwtService = new JwtService(SECRET, 60);
-        String token = jwtService.generateToken("admin");
 
-        assertFalse(jwtService.isTokenValid(token + "alterado"));
+        String token = jwtService.generateToken(
+                "admin",
+                "dev",
+                "A"
+        );
+
+        assertFalse(
+                jwtService.isTokenValid(
+                        token + "alterado"
+                )
+        );
     }
 
     @Test
     void deveRejeitarTokenAssinadoComOutraChave() {
 
-        JwtService issuer = new JwtService(SECRET, 60);
+        JwtService issuer = new JwtService(
+                SECRET,
+                60
+        );
+
         JwtService validator = new JwtService(
                 Base64.getEncoder().encodeToString(
                         "abcdefghijklmnopqrstuvwxyzABCDEF"
@@ -51,7 +121,11 @@ class JwtServiceTest {
 
         assertFalse(
                 validator.isTokenValid(
-                        issuer.generateToken("admin")
+                        issuer.generateToken(
+                                "admin",
+                                "dev",
+                                "A"
+                        )
                 )
         );
     }
@@ -59,11 +133,18 @@ class JwtServiceTest {
     @Test
     void deveRejeitarTokenExpirado() {
 
-        JwtService jwtService = new JwtService(SECRET, -1);
+        JwtService jwtService = new JwtService(
+                SECRET,
+                -1
+        );
 
         assertFalse(
                 jwtService.isTokenValid(
-                        jwtService.generateToken("admin")
+                        jwtService.generateToken(
+                                "admin",
+                                "dev",
+                                "A"
+                        )
                 )
         );
     }

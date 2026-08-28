@@ -61,7 +61,13 @@ class SecurityConfigTest {
     void devePermitirLoginSemToken() throws Exception {
 
         when(authService.login(org.mockito.ArgumentMatchers.any()))
-                .thenReturn(new LoginResponse("token", "Bearer", 3600));
+                .thenReturn(
+                        new LoginResponse(
+                                "token",
+                                "Bearer",
+                                3600
+                        )
+                );
 
         mockMvc.perform(
                         post("/api/auth/login")
@@ -69,7 +75,8 @@ class SecurityConfigTest {
                                 .content("""
                                         {
                                           "username": "admin",
-                                          "password": "senha"
+                                          "password": "senha",
+                                          "environment": "DEVELOPMENT"
                                         }
                                         """)
                 )
