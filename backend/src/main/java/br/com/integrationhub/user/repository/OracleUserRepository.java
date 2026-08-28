@@ -32,6 +32,7 @@ public class OracleUserRepository implements UserRepository {
                     ds_senha,
                     ie_situacao,
                     ie_tipo_usuario,
+                    ie_trocar_senha,
                     dt_criacao,
                     dt_atualizacao
                 from ih_users
@@ -56,6 +57,7 @@ public class OracleUserRepository implements UserRepository {
                     ds_senha,
                     ie_situacao,
                     ie_tipo_usuario,
+                    ie_trocar_senha,
                     dt_criacao,
                     dt_atualizacao
                 from ih_users
@@ -87,6 +89,7 @@ public class OracleUserRepository implements UserRepository {
                     ds_senha,
                     ie_situacao,
                     ie_tipo_usuario,
+                    ie_trocar_senha,
                     dt_criacao,
                     dt_atualizacao
                 from ih_users
@@ -116,21 +119,26 @@ public class OracleUserRepository implements UserRepository {
                     ds_email,
                     ds_senha,
                     ie_situacao,
-                    ie_tipo_usuario
+                    ie_tipo_usuario,
+                    ie_trocar_senha
                 ) values (
                     :username,
                     :name,
                     :email,
                     :password,
                     :status,
-                    :type
+                    :type,
+                    :passwordChangeRequired
                 )
                 """;
 
         MapSqlParameterSource parameters =
                 createParameters(user);
 
-        jdbcTemplate.update(sql, parameters);
+        jdbcTemplate.update(
+                sql,
+                parameters
+        );
 
         return findByUsername(user.username())
                 .orElseThrow(
@@ -151,6 +159,7 @@ public class OracleUserRepository implements UserRepository {
                        ds_senha = :password,
                        ie_situacao = :status,
                        ie_tipo_usuario = :type,
+                       ie_trocar_senha = :passwordChangeRequired,
                        dt_atualizacao = current_timestamp
                  where nr_sequencia = :id
                 """;
@@ -267,7 +276,11 @@ public class OracleUserRepository implements UserRepository {
                 .addValue("email", user.email())
                 .addValue("password", user.password())
                 .addValue("status", user.status())
-                .addValue("type", user.type());
+                .addValue("type", user.type())
+                .addValue(
+                        "passwordChangeRequired",
+                        user.passwordChangeRequired()
+                );
     }
 
     private User mapUser(
@@ -285,6 +298,7 @@ public class OracleUserRepository implements UserRepository {
                 rs.getString("ds_senha"),
                 rs.getString("ie_situacao"),
                 rs.getString("ie_tipo_usuario"),
+                rs.getString("ie_trocar_senha"),
                 rs.getTimestamp("dt_criacao")
                         .toLocalDateTime(),
                 updatedAt != null

@@ -12,9 +12,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.server.ResponseStatusException;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -32,14 +34,16 @@ class AuthControllerTest {
     private JwtService jwtService;
 
     @Test
-    void deveRealizarLogin() throws Exception {
+    void deveRealizarLoginSemTrocaObrigatoriaDeSenha()
+            throws Exception {
 
         when(authService.login(any(LoginRequest.class)))
                 .thenReturn(
                         new LoginResponse(
                                 "token-jwt",
                                 "Bearer",
-                                3600
+                                3600,
+                                false
                         )
                 );
 
@@ -68,11 +72,50 @@ class AuthControllerTest {
                 .andExpect(
                         jsonPath("$.expiresIn")
                                 .value(3600)
+                )
+                .andExpect(
+                        jsonPath("$.passwordChangeRequired")
+                                .value(false)
                 );
     }
 
     @Test
-    void deveRejeitarLoginSemUsername() throws Exception {
+    void deveInformarTrocaObrigatoriaDeSenha()
+            throws Exception {
+
+        when(authService.login(any(LoginRequest.class)))
+                .thenReturn(
+                        new LoginResponse(
+                                "token-jwt",
+                                "Bearer",
+                                3600,
+                                true
+                        )
+                );
+
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content("""
+                                        {
+                                          "username": "admin",
+                                          "password": "admin",
+                                          "environment": "dev"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.passwordChangeRequired")
+                                .value(true)
+                );
+    }
+
+    @Test
+    void deveRejeitarLoginSemUsername()
+            throws Exception {
 
         mockMvc.perform(
                         post("/api/auth/login")
@@ -92,7 +135,8 @@ class AuthControllerTest {
     }
 
     @Test
-    void deveRejeitarLoginSemPassword() throws Exception {
+    void deveRejeitarLoginSemPassword()
+            throws Exception {
 
         mockMvc.perform(
                         post("/api/auth/login")
@@ -112,7 +156,8 @@ class AuthControllerTest {
     }
 
     @Test
-    void deveRejeitarLoginSemEnvironment() throws Exception {
+    void deveRejeitarLoginSemEnvironment()
+            throws Exception {
 
         mockMvc.perform(
                         post("/api/auth/login")
@@ -134,7 +179,8 @@ class AuthControllerTest {
     }
 
     @Test
-    void deveRejeitarLoginComEnvironmentEmBranco() throws Exception {
+    void deveRejeitarLoginComEnvironmentEmBranco()
+            throws Exception {
 
         mockMvc.perform(
                         post("/api/auth/login")
@@ -157,7 +203,8 @@ class AuthControllerTest {
     }
 
     @Test
-    void deveRejeitarLoginComUsernameEmBranco() throws Exception {
+    void deveRejeitarLoginComUsernameEmBranco()
+            throws Exception {
 
         mockMvc.perform(
                         post("/api/auth/login")
@@ -180,7 +227,8 @@ class AuthControllerTest {
     }
 
     @Test
-    void deveRejeitarLoginComPasswordEmBranco() throws Exception {
+    void deveRejeitarLoginComPasswordEmBranco()
+            throws Exception {
 
         mockMvc.perform(
                         post("/api/auth/login")
@@ -229,6 +277,131 @@ class AuthControllerTest {
                 )
                 .andExpect(
                         status().isUnauthorized()
+                );
+    }
+
+    @Test
+    void deveAlterarSenha()
+            throws Exception {
+
+        when(jwtService.isTokenValid("token-valido"))
+                .thenReturn(true);
+
+        when(jwtService.getUsername("token-valido"))
+                .thenReturn("admin");
+
+        when(jwtService.getRole("token-valido"))
+                .thenReturn("A");
+
+        mockMvc.perform(
+                        put("/api/auth/password")
+                                .header(
+                                        "Authorization",
+                                        "Bearer token-valido"
+                                )
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content("""
+                                        {
+                                          "newPassword": "novaSenha123"
+                                        }
+                                        """)
+                )
+                .andExpect(
+                        status().isNoContent()
+                );
+
+        verify(authService)
+                .changePassword(
+                        "admin",
+                        "novaSenha123"
+                );
+    }
+
+    @Test
+    void deveRejeitarTrocaDeSenhaSemToken()
+            throws Exception {
+
+        mockMvc.perform(
+                        put("/api/auth/password")
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content("""
+                                        {
+                                          "newPassword": "novaSenha123"
+                                        }
+                                        """)
+                )
+                .andExpect(
+                        status().isUnauthorized()
+                );
+    }
+
+    @Test
+    void deveRejeitarNovaSenhaEmBranco()
+            throws Exception {
+
+        when(jwtService.isTokenValid("token-valido"))
+                .thenReturn(true);
+
+        when(jwtService.getUsername("token-valido"))
+                .thenReturn("admin");
+
+        when(jwtService.getRole("token-valido"))
+                .thenReturn("A");
+
+        mockMvc.perform(
+                        put("/api/auth/password")
+                                .header(
+                                        "Authorization",
+                                        "Bearer token-valido"
+                                )
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content("""
+                                        {
+                                          "newPassword": "   "
+                                        }
+                                        """)
+                )
+                .andExpect(
+                        status().isBadRequest()
+                );
+    }
+
+    @Test
+    void deveRejeitarNovaSenhaComMenosDeSeisCaracteres()
+            throws Exception {
+
+        when(jwtService.isTokenValid("token-valido"))
+                .thenReturn(true);
+
+        when(jwtService.getUsername("token-valido"))
+                .thenReturn("admin");
+
+        when(jwtService.getRole("token-valido"))
+                .thenReturn("A");
+
+        mockMvc.perform(
+                        put("/api/auth/password")
+                                .header(
+                                        "Authorization",
+                                        "Bearer token-valido"
+                                )
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content("""
+                                        {
+                                          "newPassword": "12345"
+                                        }
+                                        """)
+                )
+                .andExpect(
+                        status().isBadRequest()
                 );
     }
 }

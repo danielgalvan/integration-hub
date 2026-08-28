@@ -4,6 +4,7 @@ import './LoginPage.css'
 function LoginPage({ onLogin }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [environment, setEnvironment] = useState('DEVELOPMENT')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
@@ -22,6 +23,7 @@ function LoginPage({ onLogin }) {
       await onLogin({
         username: username.trim(),
         password,
+        environment,
       })
     } catch (err) {
       setError(
@@ -56,8 +58,8 @@ function LoginPage({ onLogin }) {
             <h2>Acessar plataforma</h2>
 
             <p>
-              Informe suas credenciais para acessar
-              a administração do Integration Hub.
+              Informe suas credenciais e selecione
+              o ambiente que deseja acessar.
             </p>
           </div>
 
@@ -102,6 +104,30 @@ function LoginPage({ onLogin }) {
                 placeholder="Digite sua senha"
                 disabled={loading}
               />
+            </div>
+
+            <div className="login-page__field">
+              <label htmlFor="environment">
+                Ambiente
+              </label>
+
+              <select
+                id="environment"
+                name="environment"
+                value={environment}
+                onChange={(event) =>
+                  setEnvironment(event.target.value)
+                }
+                disabled={loading}
+              >
+                <option value="DEVELOPMENT">
+                  Desenvolvimento
+                </option>
+
+                <option value="HOMOLOGATION">
+                  Homologação
+                </option>
+              </select>
             </div>
 
             {error && (

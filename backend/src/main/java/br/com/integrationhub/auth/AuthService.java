@@ -67,7 +67,27 @@ public class AuthService {
         return new LoginResponse(
                 token,
                 "Bearer",
-                expirationMinutes * 60
+                expirationMinutes * 60,
+                "S".equals(user.passwordChangeRequired())
+        );
+    }
+
+    public void changePassword(
+            String username,
+            String newPassword
+    ) {
+
+        User user = userService.findByUsername(username)
+                .orElseThrow(
+                        () -> new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Usuário não encontrado"
+                        )
+                );
+
+        userService.changePassword(
+                user.id(),
+                newPassword
         );
     }
 }

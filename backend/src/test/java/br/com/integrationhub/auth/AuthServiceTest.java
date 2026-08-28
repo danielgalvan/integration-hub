@@ -14,7 +14,9 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -45,7 +47,8 @@ class AuthServiceTest {
         User user = createUser(
                 "admin",
                 "A",
-                "A"
+                "A",
+                "N"
         );
 
         when(userService.findByUsername("admin"))
@@ -90,6 +93,10 @@ class AuthServiceTest {
                 response.expiresIn()
         );
 
+        assertFalse(
+                response.passwordChangeRequired()
+        );
+
         verify(userService)
                 .findByUsername("admin");
 
@@ -108,12 +115,55 @@ class AuthServiceTest {
     }
 
     @Test
+    void deveInformarTrocaObrigatoriaDeSenha() {
+
+        User user = createUser(
+                "admin",
+                "A",
+                "A",
+                "S"
+        );
+
+        when(userService.findByUsername("admin"))
+                .thenReturn(Optional.of(user));
+
+        when(
+                userService.passwordMatches(
+                        "admin",
+                        user
+                )
+        ).thenReturn(true);
+
+        when(
+                jwtService.generateToken(
+                        "admin",
+                        "dev",
+                        "A"
+                )
+        ).thenReturn("token-jwt");
+
+        LoginResponse response =
+                authService.login(
+                        new LoginRequest(
+                                "admin",
+                                "admin",
+                                "dev"
+                        )
+                );
+
+        assertTrue(
+                response.passwordChangeRequired()
+        );
+    }
+
+    @Test
     void deveRealizarLoginComPerfilCriador() {
 
         User user = createUser(
                 "criador",
                 "A",
-                "C"
+                "C",
+                "N"
         );
 
         when(userService.findByUsername("criador"))
@@ -186,7 +236,8 @@ class AuthServiceTest {
         User user = createUser(
                 "admin",
                 "I",
-                "A"
+                "A",
+                "N"
         );
 
         when(userService.findByUsername("admin"))
@@ -216,7 +267,8 @@ class AuthServiceTest {
         User user = createUser(
                 "admin",
                 "A",
-                "A"
+                "A",
+                "N"
         );
 
         when(userService.findByUsername("admin"))
@@ -253,7 +305,8 @@ class AuthServiceTest {
         User user = createUser(
                 "admin",
                 "A",
-                "A"
+                "A",
+                "N"
         );
 
         when(userService.findByUsername("admin"))
@@ -292,7 +345,8 @@ class AuthServiceTest {
     private User createUser(
             String username,
             String status,
-            String type
+            String type,
+            String passwordChangeRequired
     ) {
 
         return new User(
@@ -303,6 +357,7 @@ class AuthServiceTest {
                 "$2a$10$hash",
                 status,
                 type,
+                passwordChangeRequired,
                 LocalDateTime.now(),
                 null
         );

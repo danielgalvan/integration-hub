@@ -1,6 +1,6 @@
 const API_URL = 'http://localhost:8081'
 
-export async function login(username, password) {
+export async function login(username, password, environment) {
   const response = await fetch(`${API_URL}/api/auth/login`, {
     method: 'POST',
     headers: {
@@ -9,6 +9,7 @@ export async function login(username, password) {
     body: JSON.stringify({
       username,
       password,
+      environment,
     }),
   })
 

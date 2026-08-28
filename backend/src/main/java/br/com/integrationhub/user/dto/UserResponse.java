@@ -1,17 +1,16 @@
-package br.com.integrationhub.user.model;
+package br.com.integrationhub.user.dto;
 
 import java.time.LocalDateTime;
 
-public record User(
+public record UserResponse(
 
         Long id,
         String username,
         String name,
         String email,
-        String password,
         String status,
         String type,
-        String passwordChangeRequired,
+        boolean passwordChangeRequired,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 

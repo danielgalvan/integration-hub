@@ -50,17 +50,15 @@ public class SecurityConfig {
 
                         .authenticationEntryPoint(
                                 (request, response, authException) ->
-                                        response.sendError(
-                                                HttpServletResponse.SC_UNAUTHORIZED,
-                                                "Unauthorized"
+                                        response.setStatus(
+                                                HttpServletResponse.SC_UNAUTHORIZED
                                         )
                         )
 
                         .accessDeniedHandler(
                                 (request, response, accessDeniedException) ->
-                                        response.sendError(
-                                                HttpServletResponse.SC_FORBIDDEN,
-                                                "Forbidden"
+                                        response.setStatus(
+                                                HttpServletResponse.SC_FORBIDDEN
                                         )
                         )
                 )
@@ -77,14 +75,34 @@ public class SecurityConfig {
                         .permitAll()
 
                         /*
-                         * Rotas públicas
+                         * Login público
                          */
-                        .requestMatchers("/api/auth/**")
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/auth/login"
+                        )
                         .permitAll()
 
+                        /*
+                         * Troca de senha
+                         *
+                         * Qualquer usuário autenticado.
+                         */
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/auth/password"
+                        )
+                        .authenticated()
+
+                        /*
+                         * Health público
+                         */
                         .requestMatchers("/api/health")
                         .permitAll()
 
+                        /*
+                         * Documentação
+                         */
                         .requestMatchers(
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
@@ -197,9 +215,6 @@ public class SecurityConfig {
                          *
                          * Todos os perfis autenticados
                          * podem executar/testar.
-                         *
-                         * Deve ficar depois das rotas
-                         * administrativas específicas.
                          */
                         .requestMatchers(
                                 HttpMethod.GET,
@@ -213,7 +228,7 @@ public class SecurityConfig {
 
                         /*
                          * Qualquer outra rota exige
-                         * autenticação por segurança.
+                         * autenticação.
                          */
                         .anyRequest()
                         .authenticated()

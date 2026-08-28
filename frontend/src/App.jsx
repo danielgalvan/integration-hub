@@ -42,6 +42,7 @@ function App() {
     const response = await login(
       credentials.username,
       credentials.password,
+      credentials.environment,
     )
 
     saveToken(response.token)

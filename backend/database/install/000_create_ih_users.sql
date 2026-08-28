@@ -6,6 +6,7 @@ create table ih_users (
     ds_senha           varchar2(100) not null,
     ie_situacao        varchar2(1) default 'A' not null,
     ie_tipo_usuario    varchar2(1) not null,
+    ie_trocar_senha    varchar2(1) default 'S' not null,
     dt_criacao         timestamp default current_timestamp not null,
     dt_atualizacao     timestamp,
 
@@ -22,7 +23,10 @@ create table ih_users (
         check (ie_situacao in ('A', 'I')),
 
     constraint ck_ih_users_tipo
-        check (ie_tipo_usuario in ('A', 'C', 'U'))
+        check (ie_tipo_usuario in ('A', 'C', 'U')),
+
+    constraint ck_ih_users_trocar_senha
+        check (ie_trocar_senha in ('S', 'N'))
 );
 
 comment on table ih_users is
@@ -48,6 +52,9 @@ comment on column ih_users.ie_situacao is
 
 comment on column ih_users.ie_tipo_usuario is
     'Tipo do usuário: A=Administrador, C=Criador, U=Consumidor';
+
+comment on column ih_users.ie_trocar_senha is
+    'Indica troca obrigatória de senha: S=Sim, N=Não';
 
 comment on column ih_users.dt_criacao is
     'Data e hora de criação do usuário';
