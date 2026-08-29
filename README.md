@@ -56,7 +56,7 @@ O projeto utiliza uma arquitetura dividida entre backend, frontend e banco de da
 - JUnit
 - Mockito
 
-O backend é responsável pela persistência das configurações, resolução das rotas dinâmicas, validação dos parâmetros, execução das consultas SQL, autenticação administrativa e disponibilização das APIs administrativas e dinâmicas.
+O backend é responsável pela persistência das configurações, resolução das rotas dinâmicas, validação dos parâmetros, execução das consultas SQL, autenticação dos usuários, autorização baseada em perfis e disponibilização das APIs administrativas e dinâmicas.
 
 Durante o desenvolvimento local, o backend utiliza:
 
@@ -76,7 +76,7 @@ O frontend fornece a interface administrativa do Integration Hub.
 
 A implementação atual já possui a estrutura visual principal da aplicação, gerenciamento de integrações e endpoints conectado ao backend, operações de cadastro, edição e exclusão, geração automática de parâmetros a partir do SQL e componentes reutilizáveis para confirmação e apresentação de mensagens.
 
-A autenticação administrativa está implementada de ponta a ponta. O frontend oferece tela de login, armazena o JWT da sessão, envia o token nas chamadas administrativas e retorna ao login quando recebe `401 Unauthorized`.
+A autenticação está implementada de ponta a ponta com usuários persistidos no Oracle. O frontend oferece tela de login, armazena o JWT da sessão, aplica permissões conforme o perfil, suporta troca obrigatória de senha e envia o token nas chamadas protegidas. Respostas `401 Unauthorized` encerram a sessão; respostas `403 Forbidden` indicam ausência de permissão para a operação.
 
 Durante o desenvolvimento local, a aplicação é disponibilizada em:
 
@@ -392,6 +392,7 @@ As tabelas principais são:
 ```text
 IH_INTEGRATION
 IH_ENDPOINT
+IH_USERS
 ```
 
 Relacionamento:
@@ -743,355 +744,111 @@ Esse modelo reduz riscos de SQL Injection e permite que o Oracle reutilize plano
 
 ---
 
-# Autenticação administrativa
+# Autenticação e usuários
 
-O backend possui autenticação administrativa baseada em JWT.
-
-O fluxo é:
+A autenticação da V1 utiliza usuários persistidos no Oracle, senha protegida com BCrypt e JWT stateless.
 
 ```text
 Usuário
-   │
    │ username + password
    ▼
 POST /api/auth/login
    │
    ▼
-AuthController
-   │
-   ▼
 AuthService
    │
-   ├── valida username
-   │
+   ├── localiza usuário em IH_USERS
+   ├── valida status
    ├── valida senha com BCrypt
-   │
    ▼
 JwtService
    │
    ▼
-JWT
+JWT com username + perfil
 ```
 
-A autenticação é stateless.
-
-O backend não cria sessão HTTP para armazenar o usuário autenticado.
-
-Cada requisição administrativa protegida deve fornecer o JWT.
-
----
-
-# Login
-
-O endpoint de autenticação é público:
-
-```http
-POST /api/auth/login
-```
-
-Exemplo de requisição:
-
-```json
-{
-  "username": "admin",
-  "password": "senha"
-}
-```
-
-Quando as credenciais são válidas, a API retorna:
-
-```json
-{
-  "token": "eyJ...",
-  "tokenType": "Bearer",
-  "expiresIn": 3600
-}
-```
-
-O campo `expiresIn` é informado em segundos.
-
-Com a configuração padrão de 60 minutos:
+A tabela `IH_USERS` mantém os usuários da aplicação. Os perfis suportados são:
 
 ```text
-60 × 60 = 3600 segundos
+A = Administrador
+C = Criador
+U = Consumidor
 ```
 
-Quando usuário ou senha são inválidos, a autenticação é rejeitada com:
+O status do usuário utiliza:
 
 ```text
-401 Unauthorized
+A = ativo
+I = inativo
 ```
 
----
-
-# Senha administrativa
-
-A senha administrativa não é armazenada em texto puro na configuração utilizada pelo backend.
-
-A aplicação utiliza:
-
-```text
-BCryptPasswordEncoder
-```
-
-O valor configurado em:
-
-```text
-integration-hub.security.admin.password
-```
-
-deve ser um hash BCrypt.
-
-Exemplo:
-
-```text
-$2a$10$...
-```
-
-Durante o login:
-
-```text
-senha informada
-      │
-      ▼
-PasswordEncoder.matches()
-      │
-      ▼
-hash BCrypt configurado
-```
-
-A senha original não precisa ser recuperada ou descriptografada.
-
-O BCrypt realiza a comparação entre a senha recebida e o hash armazenado.
-
----
-
-# JWT
-
-A geração e validação dos tokens é realizada por:
-
-```text
-JwtService
-```
-
-O token possui atualmente:
-
-```text
-subject = username
-role    = ADMIN
-issuedAt
-expiration
-```
-
-Exemplo conceitual:
-
-```json
-{
-  "sub": "admin",
-  "role": "ADMIN",
-  "iat": 1787840000,
-  "exp": 1787843600
-}
-```
-
-Os valores reais de `iat` e `exp` são definidos no momento da geração do token.
-
-O token é assinado utilizando o segredo configurado em:
-
-```text
-integration-hub.security.jwt.secret
-```
-
-A validade é configurada através de:
-
-```text
-integration-hub.security.jwt.expiration-minutes
-```
-
-O valor padrão é:
-
-```text
-60 minutos
-```
-
----
-
-# JwtAuthenticationFilter
-
-As requisições passam pelo:
-
-```text
-JwtAuthenticationFilter
-```
-
-O filtro procura pelo header:
+A autenticação é stateless. Cada requisição protegida deve fornecer:
 
 ```http
 Authorization: Bearer <token>
 ```
 
-Fluxo:
+# Login
 
-```text
-Requisição
-    │
-    ▼
-Authorization header existe?
-    │
-    ├── não ──► continua sem autenticação
-    │
-    ▼
-Bearer token
-    │
-    ▼
-JwtService.isTokenValid()
-    │
-    ├── inválido ──► continua sem autenticação
-    │
-    ▼
-obtém username
-    │
-    ▼
-cria Authentication
-    │
-    ▼
-SecurityContext
+```http
+POST /api/auth/login
 ```
 
-Quando uma rota exige autenticação e nenhum usuário válido foi colocado no `SecurityContext`, o Spring Security retorna:
+O login é público. Credenciais inválidas ou usuário sem autenticação válida resultam em `401 Unauthorized`.
 
-```text
-401 Unauthorized
+Quando o usuário está autenticado, mas seu perfil não permite determinada operação, a API retorna `403 Forbidden`.
+
+O JWT contém a identidade do usuário e seu perfil, que é convertido pelo filtro de autenticação para a authority correspondente.
+
+# Senhas
+
+As senhas são armazenadas somente como hash BCrypt em `IH_USERS`.
+
+O fluxo de usuários contempla senha temporária e troca obrigatória. O indicador `ie_trocar_senha` utiliza `S/N` para informar se a senha deve ser alterada no próximo acesso.
+
+Ao criar um usuário ou executar o reset administrativo de senha, o backend gera uma senha temporária, persiste apenas seu hash BCrypt, marca a troca como obrigatória e devolve a senha temporária uma única vez ao administrador.
+
+O usuário que entrar com senha temporária deve concluir a troca antes de utilizar normalmente a aplicação.
+
+A administração também possui reset de senha:
+
+```http
+POST /api/users/{id}/reset-password
 ```
 
-O filtro adiciona atualmente a authority:
+# Controle de acesso e RBAC
+
+A V1 implementa autorização por perfil.
+
+| Recurso | Administrador | Criador | Consumidor |
+| --- | --- | --- | --- |
+| Consultar integrações/endpoints | ✓ | ✓ | ✓ |
+| Criar/editar/excluir integrações | ✓ | ✓ | — |
+| Criar/editar/excluir endpoints | ✓ | ✓ | — |
+| Executar endpoints dinâmicos GET | ✓ | ✓ | ✓ |
+| Administrar usuários | ✓ | — | — |
+
+Em termos de API:
 
 ```text
-ROLE_ADMIN
+GET /api/integrations/**  → A, C, U
+GET /api/endpoints/**     → A, C, U
+POST/PUT/DELETE           → A, C
+/api/users/**             → A
+endpoints dinâmicos GET   → A, C, U
 ```
 
-Na V1, as rotas administrativas exigem apenas que o usuário esteja autenticado.
+O `/api/health` e o login permanecem públicos. Os endpoints dinâmicos não são mais públicos: exigem JWT válido.
 
-O uso efetivo de autorização baseada em roles poderá ser evoluído posteriormente.
+# API de usuários
 
----
-
-# Controle de acesso
-
-A configuração de segurança fica em:
-
-```text
-br.com.integrationhub.config.SecurityConfig
-```
-
-A aplicação utiliza:
-
-```text
-SessionCreationPolicy.STATELESS
-```
-
-As seguintes rotas são públicas:
-
-```text
-/api/auth/**
-/api/health
-```
-
-As seguintes rotas administrativas exigem autenticação:
-
-```text
-/api/integrations/**
-/api/endpoints/**
-```
-
-As demais rotas permanecem públicas na configuração atual.
-
-Isso permite que os endpoints dinâmicos de consumo continuem acessíveis sem JWT durante a V1.
-
-Exemplo:
-
-```text
-/api/pedidos/listar
-```
-
-continua sendo um endpoint de consumo público.
-
-Já:
-
-```text
-/api/integrations
-/api/endpoints
-```
-
-exigem autenticação.
-
----
+O gerenciamento de usuários é exclusivo do perfil Administrador e contempla consulta, cadastro, atualização e reset de senha. A senha temporária gerada em cadastro/reset deve ser apresentada somente no momento da operação e não é persistida em texto puro.
 
 # Utilização do token
 
-Após realizar o login, o cliente deve enviar o token nas chamadas administrativas.
-
-Exemplo:
-
-```http
-GET /api/integrations
-Authorization: Bearer eyJ...
-```
-
-Sem o token:
-
-```text
-401 Unauthorized
-```
-
-Com token inválido ou expirado:
-
-```text
-401 Unauthorized
-```
-
-Com token válido:
-
-```text
-requisição administrativa autorizada
-```
-
-A integração desse fluxo com o frontend é uma das etapas restantes da V1.
+O frontend centraliza as chamadas autenticadas através de `apiFetch`, que inclui automaticamente o Bearer token. `401 Unauthorized` remove a sessão local e retorna ao login. `403 Forbidden` preserva a sessão e informa que o usuário autenticado não possui permissão para a operação.
 
 ---
-
-# Configuração de segurança
-
-A configuração principal utiliza variáveis de ambiente.
-
-```yaml
-integration-hub:
-  security:
-    admin:
-      username: ${ADMIN_USERNAME}
-      password: ${ADMIN_PASSWORD}
-
-    jwt:
-      secret: ${JWT_SECRET}
-      expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
-```
-
-As variáveis utilizadas são:
-
-```text
-ADMIN_USERNAME
-ADMIN_PASSWORD
-JWT_SECRET
-JWT_EXPIRATION_MINUTES
-```
-
-`ADMIN_PASSWORD` deve conter o hash BCrypt da senha administrativa.
-
-`JWT_SECRET` contém o segredo utilizado para assinatura e validação dos tokens.
-
-O segredo JWT não é a senha do administrador e não deve ser confundido com o hash BCrypt.
-
-Nenhum desses valores reais deve ser versionado.
 
 ---
 
@@ -2203,78 +1960,27 @@ Na V1, o foco dos endpoints dinâmicos continua sendo consultas de leitura.
 
 # Perfis de acesso
 
-A arquitetura prevê dois perfis conceituais principais.
+A V1 possui três perfis efetivos de acesso:
+
+## Administrador
+
+Possui acesso completo às integrações, endpoints e gerenciamento de usuários, incluindo criação, edição, ativação/inativação e reset de senha.
 
 ## Criador
 
-Responsável pela configuração das integrações.
-
-Poderá:
-
-- cadastrar integrações;
-- atualizar integrações;
-- excluir integrações quando permitido;
-- cadastrar endpoints;
-- definir consultas SQL;
-- definir parâmetros;
-- testar consultas;
-- visualizar documentação;
-- ativar ou desativar integrações.
-
-As APIs administrativas necessárias para essas operações já exigem autenticação JWT.
-
-Na V1 existe uma única conta administrativa configurada externamente.
+Pode consultar e manter integrações e endpoints, definir SQL e parâmetros e testar endpoints dinâmicos. Não possui acesso à administração de usuários.
 
 ## Consumidor
 
-Responsável pelo consumo e validação das integrações disponibilizadas.
-
-Poderá:
-
-- consultar integrações disponibilizadas para consumo;
-- visualizar documentação;
-- visualizar os parâmetros necessários;
-- testar endpoints autorizados;
-- consumir as APIs publicadas.
-
-Os endpoints dinâmicos permanecem públicos na V1.
-
----
+Possui acesso somente de leitura às configurações permitidas e pode executar endpoints dinâmicos autenticados. No frontend, o perfil Consumidor opera em modo readonly, sem ações de criação, edição ou exclusão.
 
 # Autorização baseada em roles
 
-O JWT já contém:
+O RBAC está implementado na V1. O perfil do usuário é incluído no JWT e transformado em authority pelo `JwtAuthenticationFilter`. A configuração de segurança diferencia leitura, manutenção e administração de usuários.
 
-```text
-role = ADMIN
-```
+A ausência de autenticação válida produz `401 Unauthorized`; a tentativa de executar uma operação sem a role necessária produz `403 Forbidden`.
 
-O `JwtAuthenticationFilter` também cria a autenticação com:
-
-```text
-ROLE_ADMIN
-```
-
-Entretanto, a configuração atual utiliza:
-
-```text
-.authenticated()
-```
-
-para as APIs administrativas.
-
-Isso é suficiente para a V1, que possui uma única conta administrativa.
-
-Uma evolução futura poderá utilizar:
-
-```text
-hasRole(...)
-hasAuthority(...)
-```
-
-para implementar RBAC e múltiplos perfis de usuário.
-
-Esse recurso não é necessário para conclusão da V1.
+---
 
 ---
 
@@ -2304,6 +2010,11 @@ A primeira versão do Integration Hub possui foco em:
 - BCrypt;
 - geração e validação de JWT;
 - proteção das rotas administrativas;
+- usuários persistidos no Oracle;
+- perfis Administrador, Criador e Consumidor;
+- RBAC;
+- senha temporária, troca obrigatória e reset administrativo;
+- proteção JWT dos endpoints dinâmicos;
 - ambiente Oracle local para desenvolvimento;
 - testes automatizados;
 - validação por CI;
@@ -2324,7 +2035,6 @@ Não fazem parte da primeira implementação dos endpoints dinâmicos:
 - mensageria;
 - processamento assíncrono;
 - orquestração em Kubernetes;
-- RBAC com múltiplos usuários e perfis;
 - refresh token;
 - autenticação avançada de consumidores;
 - recursos avançados de escalabilidade distribuída.
@@ -2395,26 +2105,38 @@ Atualmente estão implementados e validados:
 
 - Spring Security;
 - `POST /api/auth/login`;
-- validação do usuário administrativo;
-- validação da senha administrativa;
+- usuários persistidos em `IH_USERS`;
+- validação de usuário e senha via Oracle;
+- perfis Administrador, Criador e Consumidor;
+- RBAC por operação;
+- senha temporária e troca obrigatória;
+- reset administrativo de senha;
 - BCrypt;
 - `PasswordEncoder`;
 - geração de JWT;
 - validação de JWT;
 - expiração configurável;
-- claim `role = ADMIN`;
+- claim de perfil no JWT;
 - `JwtAuthenticationFilter`;
 - sessão stateless;
-- `/api/auth/**` público;
+- login público;
 - `/api/health` público;
 - `/api/integrations/**` protegido;
 - `/api/endpoints/**` protegido;
-- retorno `401 Unauthorized` sem autenticação válida;
+- `401 Unauthorized` sem autenticação válida;
+- `403 Forbidden` para operação sem permissão;
+- endpoints dinâmicos protegidos por JWT;
 - testes da proteção das rotas administrativas.
 
 ## Frontend
 
 - React 19 com Vite;
+- interface adaptada ao perfil autenticado;
+- modo readonly para Consumidor;
+- gerenciamento de usuários para Administrador;
+- fluxo de senha temporária e troca obrigatória;
+- diálogo para apresentação de senha temporária;
+- execução autenticada de endpoints dinâmicos;
 - frontend executando na porta `5175`;
 - estrutura separada em `components`, `pages` e `services`;
 - layout principal com Sidebar e Header;
@@ -2495,16 +2217,15 @@ Estado atual:
 
 # Próximas etapas
 
-A sequência imediata prevista para conclusão da V1 é:
+A sequência imediata para conclusão da V1 está concentrada na publicação e validação em cloud:
 
-1. validar o fluxo completo frontend → autenticação → APIs administrativas em ambiente local;
-2. executar a suíte completa de testes;
-3. validar o GitHub Actions;
-4. preparar o ambiente cloud;
-5. migrar ou disponibilizar o Oracle em cloud;
-6. publicar o backend;
-7. publicar o frontend;
-8. executar validação final da V1 no ambiente cloud.
+1. concluir a preparação do ambiente cloud;
+2. disponibilizar o Oracle do ambiente cloud;
+3. publicar o backend;
+4. publicar o frontend;
+5. executar a validação integrada final da V1 no ambiente publicado.
+
+---
 
 ---
 
@@ -2573,6 +2294,12 @@ A V1 poderá ser considerada concluída quando:
 [x] frontend possuir tela de login
 [x] frontend enviar JWT nas chamadas administrativas
 [x] frontend tratar expiração/invalidação da sessão
+[x] usuários forem persistidos no Oracle
+[x] RBAC estiver aplicado aos perfis A/C/U
+[x] frontend respeitar permissões e modo readonly do Consumidor
+[x] senha temporária, troca obrigatória e reset estiverem implementados
+[x] endpoints dinâmicos exigirem JWT
+[x] testes automatizados, lint, build e CI estiverem validados
 [ ] aplicação estiver publicada em cloud
 [ ] Oracle estiver disponível para o ambiente cloud
 [ ] fluxo completo estiver validado no ambiente publicado
@@ -2588,9 +2315,9 @@ O CRUD administrativo de integrações e endpoints está funcional.
 
 O frontend React já permite administrar integrações e endpoints, gerar parâmetros automaticamente a partir do SQL e testar endpoints diretamente pela interface.
 
-O backend possui autenticação administrativa baseada em JWT, senha protegida com BCrypt e bloqueio das APIs administrativas sem autenticação válida. O frontend está integrado a esse fluxo, com login, envio automático do token e encerramento da sessão após `401 Unauthorized`.
+O backend possui autenticação baseada em usuários do Oracle, BCrypt, JWT e RBAC para os perfis Administrador, Criador e Consumidor. O frontend aplica essas permissões, incluindo modo readonly para Consumidor, gerenciamento de usuários para Administrador, senha temporária, troca obrigatória e reset de senha. Os endpoints dinâmicos também exigem autenticação JWT.
 
-Com isso, o trabalho restante da aplicação antes da publicação está concentrado na validação integrada e na preparação do ambiente cloud.
+Com isso, o núcleo funcional e de segurança da V1 está implementado. O trabalho restante está concentrado na publicação e validação final em cloud.
 
 Após essa etapa, a última grande fase da V1 será a publicação do banco, backend e frontend em ambiente cloud.
 
