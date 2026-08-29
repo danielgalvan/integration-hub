@@ -23,6 +23,7 @@ O projeto utiliza uma arquitetura dividida entre backend, frontend e banco de da
              │
              │ HTTP
              │ Authorization: Bearer JWT
+             │ (APIs administrativas)
              ▼
 ┌─────────────────────────┐
 │         Backend         │
@@ -36,6 +37,16 @@ O projeto utiliza uma arquitetura dividida entre backend, frontend e banco de da
 │      Oracle Database    │
 │       Free 23ai         │
 └─────────────────────────┘
+```
+
+O acesso administrativo utiliza JWT. O consumo dos endpoints dinâmicos é independente da sessão administrativa e segue a política definida em cada integração:
+
+```text
+AUTH_TYPE = NONE
+    → endpoint dinâmico sem API Key
+
+AUTH_TYPE = API_KEY
+    → header X-API-Key obrigatório
 ```
 
 ### Backend
@@ -74,7 +85,7 @@ http://localhost:8081
 
 O frontend fornece a interface administrativa do Integration Hub.
 
-A implementação atual já possui a estrutura visual principal da aplicação, gerenciamento de integrações e endpoints conectado ao backend, operações de cadastro, edição e exclusão, geração automática de parâmetros a partir do SQL e componentes reutilizáveis para confirmação e apresentação de mensagens.
+A implementação atual já possui a estrutura visual principal da aplicação, gerenciamento de integrações e endpoints conectado ao backend, operações de cadastro, edição e exclusão, geração automática de parâmetros a partir do SQL, gerenciamento de usuários, configuração da autenticação por integração e geração/regeneração de API Keys com exibição única da chave.
 
 A autenticação está implementada de ponta a ponta com usuários persistidos no Oracle. O frontend oferece tela de login, armazena o JWT da sessão, aplica permissões conforme o perfil, suporta troca obrigatória de senha e envia o token nas chamadas protegidas. Respostas `401 Unauthorized` encerram a sessão; respostas `403 Forbidden` indicam ausência de permissão para a operação.
 
@@ -125,6 +136,8 @@ integration-hub/
 │   │   │   │       ├── auth/
 │   │   │   │       │   ├── AuthController.java
 │   │   │   │       │   ├── AuthService.java
+│   │   │   │       │   ├── AuthenticatedUserResponse.java
+│   │   │   │       │   ├── ChangePasswordRequest.java
 │   │   │   │       │   ├── LoginRequest.java
 │   │   │   │       │   └── LoginResponse.java
 │   │   │   │       │
@@ -142,6 +155,7 @@ integration-hub/
 │   │   │   │       │   └── GlobalExceptionHandler.java
 │   │   │   │       │
 │   │   │   │       ├── security/
+│   │   │   │       │   ├── ApiKeyService.java
 │   │   │   │       │   ├── JwtAuthenticationFilter.java
 │   │   │   │       │   └── JwtService.java
 │   │   │   │       │
@@ -155,6 +169,7 @@ integration-hub/
 │   │   │   │           │   └── IntegrationController.java
 │   │   │   │           │
 │   │   │   │           ├── model/
+│   │   │   │           │   ├── ApiKeyResponse.java
 │   │   │   │           │   ├── Endpoint.java
 │   │   │   │           │   ├── EndpointParameter.java
 │   │   │   │           │   └── Integration.java
@@ -202,6 +217,8 @@ integration-hub/
 │   │   │   │   └── EndpointList.jsx
 │   │   │   │
 │   │   │   ├── integrations/
+│   │   │   │   ├── ApiKeyDialog.css
+│   │   │   │   ├── ApiKeyDialog.jsx
 │   │   │   │   ├── IntegrationForm.css
 │   │   │   │   ├── IntegrationForm.jsx
 │   │   │   │   ├── IntegrationList.css
@@ -275,6 +292,8 @@ name
 description
 basePath
 active
+authType
+apiKeyCreatedAt
 createdBy
 createdAt
 updatedBy
@@ -284,12 +303,14 @@ updatedAt
 Exemplo:
 
 ```text
-id:          8
-name:        Pedidos
-description: Integração para consulta de pedidos
-basePath:    /api/pedidos
-active:      S
-createdBy:   SYSTEM
+id:              8
+name:            Pedidos
+description:     Integração para consulta de pedidos
+basePath:        /api/pedidos
+active:          S
+authType:        API_KEY
+apiKeyCreatedAt: 2026-08-29T16:40:00
+createdBy:       SYSTEM
 ```
 
 O campo `active` utiliza:
@@ -298,6 +319,17 @@ O campo `active` utiliza:
 S = ativo
 N = inativo
 ```
+
+O campo `authType` define a política de autenticação dos endpoints dinâmicos da integração:
+
+```text
+NONE    = consumo sem API Key
+API_KEY = exige o header X-API-Key
+```
+
+Quando `authType = API_KEY`, a chave é gerada pelo backend com valor aleatório, exibida ao administrador/criador somente no momento da geração ou regeneração e armazenada no Oracle apenas como hash BCrypt em `API_KEY_HASH`.
+
+O valor original da API Key não pode ser recuperado posteriormente. `apiKeyCreatedAt` informa quando a chave atual foi gerada ou regenerada.
 
 Na implementação atual, os campos de auditoria das configurações administrativas ainda utilizam o usuário técnico definido pela aplicação.
 
@@ -404,6 +436,16 @@ IH_INTEGRATION
       ▼
 IH_ENDPOINT
 ```
+
+A tabela `IH_INTEGRATION` inclui os campos de autenticação:
+
+```text
+AUTH_TYPE
+API_KEY_HASH
+API_KEY_CREATED_AT
+```
+
+`AUTH_TYPE` aceita `NONE` ou `API_KEY`. O hash da API Key não é exposto nas respostas JSON da API administrativa.
 
 Os scripts de instalação ficam em:
 
@@ -598,6 +640,10 @@ IntegrationRepository
 findBestMatchByRequestPath
         │
         ▼
+validação da autenticação
+NONE / X-API-Key
+        │
+        ▼
 EndpointService
         │
         ▼
@@ -746,7 +792,7 @@ Esse modelo reduz riscos de SQL Injection e permite que o Oracle reutilize plano
 
 # Autenticação e usuários
 
-A autenticação da V1 utiliza usuários persistidos no Oracle, senha protegida com BCrypt e JWT stateless.
+A autenticação administrativa da V1 utiliza usuários persistidos no Oracle, senha protegida com BCrypt e JWT stateless.
 
 ```text
 Usuário
@@ -782,7 +828,7 @@ A = ativo
 I = inativo
 ```
 
-A autenticação é stateless. Cada requisição protegida deve fornecer:
+A autenticação administrativa é stateless. Cada requisição administrativa protegida deve fornecer:
 
 ```http
 Authorization: Bearer <token>
@@ -800,6 +846,27 @@ Quando o usuário está autenticado, mas seu perfil não permite determinada ope
 
 O JWT contém a identidade do usuário e seu perfil, que é convertido pelo filtro de autenticação para a authority correspondente.
 
+## Usuário autenticado
+
+```http
+GET /api/auth/me
+Authorization: Bearer <token>
+```
+
+A rota retorna os dados do usuário associado à sessão:
+
+```json
+{
+  "id": 1,
+  "username": "admin",
+  "name": "Administrador",
+  "email": null,
+  "role": "A"
+}
+```
+
+O frontend utiliza essa informação para apresentar dinamicamente o nome e o perfil do usuário autenticado no Header.
+
 # Senhas
 
 As senhas são armazenadas somente como hash BCrypt em `IH_USERS`.
@@ -816,6 +883,101 @@ A administração também possui reset de senha:
 POST /api/users/{id}/reset-password
 ```
 
+# Autenticação dos endpoints dinâmicos
+
+A autenticação administrativa e a autenticação de consumo são responsabilidades separadas.
+
+As APIs administrativas continuam utilizando JWT:
+
+```http
+Authorization: Bearer <token>
+```
+
+Os endpoints dinâmicos seguem a configuração `authType` da `Integration`.
+
+## Sem autenticação
+
+Quando:
+
+```text
+authType = NONE
+```
+
+o endpoint dinâmico pode ser consumido sem `X-API-Key`.
+
+Exemplo:
+
+```http
+GET /api/pedidos/listar?status=ABERTO
+```
+
+## API Key
+
+Quando:
+
+```text
+authType = API_KEY
+```
+
+todas as operações dinâmicas pertencentes à integração exigem a mesma API Key:
+
+```http
+GET /api/pedidos/listar?status=ABERTO
+X-API-Key: ihub_xxxxxxxxxxxxxxxxx
+```
+
+A chave é configurada no nível da integração. Portanto, a mesma chave protege todos os endpoints associados ao respectivo `basePath`.
+
+Exemplo:
+
+```text
+Integration: Pedidos
+basePath: /api/pedidos
+authType: API_KEY
+
+/api/pedidos/listar
+/api/pedidos/buscar
+/api/pedidos/itens
+        │
+        └── mesma X-API-Key
+```
+
+A geração e regeneração são operações administrativas protegidas por JWT:
+
+```http
+POST /api/integrations/{id}/api-key
+Authorization: Bearer <token>
+```
+
+Resposta:
+
+```json
+{
+  "apiKey": "ihub_xxxxxxxxxxxxxxxxx"
+}
+```
+
+A API Key em texto é retornada somente nessa operação. O banco armazena apenas seu hash BCrypt.
+
+Ao regenerar a chave:
+
+```text
+chave anterior → deixa de funcionar
+nova chave     → passa a ser válida
+```
+
+Para uma integração protegida por API Key:
+
+```text
+chave válida   → 200 OK
+sem chave      → 401 Unauthorized
+chave inválida → 401 Unauthorized
+```
+
+A validação ocorre no `DynamicEndpointController` depois que a integração correspondente ao caminho solicitado é resolvida.
+
+---
+
 # Controle de acesso e RBAC
 
 A V1 implementa autorização por perfil.
@@ -825,7 +987,7 @@ A V1 implementa autorização por perfil.
 | Consultar integrações/endpoints | ✓ | ✓ | ✓ |
 | Criar/editar/excluir integrações | ✓ | ✓ | — |
 | Criar/editar/excluir endpoints | ✓ | ✓ | — |
-| Executar endpoints dinâmicos GET | ✓ | ✓ | ✓ |
+| Testar endpoints pela interface | ✓ | ✓ | ✓ |
 | Administrar usuários | ✓ | — | — |
 
 Em termos de API:
@@ -835,10 +997,10 @@ GET /api/integrations/**  → A, C, U
 GET /api/endpoints/**     → A, C, U
 POST/PUT/DELETE           → A, C
 /api/users/**             → A
-endpoints dinâmicos GET   → A, C, U
+gerar/regenerar API Key   → A, C
 ```
 
-O `/api/health` e o login permanecem públicos. Os endpoints dinâmicos não são mais públicos: exigem JWT válido.
+O `/api/health` e o login permanecem públicos. O consumo de endpoints dinâmicos não depende da role do usuário administrativo: ele segue `authType = NONE` ou `API_KEY` configurado na integração.
 
 # API de usuários
 
@@ -921,11 +1083,14 @@ Para endpoints dinâmicos são documentadas as respostas:
 ```text
 200 → consulta executada com sucesso
 400 → parâmetro inválido ou obrigatório não informado
+401 → API Key ausente ou inválida quando exigida
 404 → integração ou endpoint não encontrado
 500 → erro durante a execução da consulta
 ```
 
-Os endpoints dinâmicos podem ser executados diretamente pelo recurso **Try it out** do Swagger UI.
+Endpoints com `authType = NONE` podem ser executados diretamente pelo recurso **Try it out** do Swagger UI.
+
+Para integrações com `authType = API_KEY`, o consumo exige o header `X-API-Key`; a validação funcional pode ser realizada por Postman, PowerShell, curl ou outro cliente HTTP que permita informar o header.
 
 ---
 
@@ -1575,7 +1740,7 @@ Credenciais inválidas resultam em:
 
 # API de Integrações
 
-A API administrativa de integrações possui atualmente operações de consulta, cadastro, atualização e exclusão.
+A API administrativa de integrações possui operações de consulta, cadastro, atualização e exclusão, além da geração/regeneração de API Key.
 
 Todas as rotas:
 
@@ -1610,7 +1775,8 @@ Exemplo:
   "name": "Clientes",
   "description": "Integração para consulta de clientes",
   "basePath": "/api/clientes",
-  "active": "S"
+  "active": "S",
+  "authType": "NONE"
 }
 ```
 
@@ -1629,9 +1795,34 @@ Exemplo:
   "name": "Itens do Pedido",
   "description": "Itens vinculados aos pedidos",
   "basePath": "/api/itens",
-  "active": "S"
+  "active": "S",
+  "authType": "API_KEY"
 }
 ```
+
+## Gerar ou regenerar API Key
+
+```http
+POST /api/integrations/{id}/api-key
+```
+
+A operação é permitida para Administrador e Criador e exige que a integração esteja configurada com:
+
+```text
+authType = API_KEY
+```
+
+A resposta contém a chave original uma única vez:
+
+```json
+{
+  "apiKey": "ihub_xxxxxxxxxxxxxxxxx"
+}
+```
+
+O hash é persistido em `IH_INTEGRATION.API_KEY_HASH` e a data da geração em `API_KEY_CREATED_AT`.
+
+Regenerar a chave substitui o hash anterior e invalida imediatamente a chave antiga.
 
 ## Excluir integração
 
@@ -1788,13 +1979,24 @@ Os testes cobrem componentes importantes da execução e das regras de negócio,
 - geração, validação, expiração e adulteração de JWT;
 - comportamento do filtro JWT para requisições sem token, token válido e token inválido;
 - validação de campos obrigatórios no login;
-- acesso público ao login e ao health check.
+- acesso público ao login e ao health check;
+- consulta de `/api/auth/me` com usuário autenticado;
+- geração segura de API Key;
+- hash e validação de API Key;
+- geração/regeneração de API Key por integração;
+- rejeição da geração quando `authType` não é `API_KEY`;
+- persistência de `authType`, `apiKeyHash` e `apiKeyCreatedAt`;
+- acesso a endpoint dinâmico com API Key válida;
+- `401 Unauthorized` sem API Key em integração protegida;
+- `401 Unauthorized` com API Key inválida;
+- acesso sem API Key quando `authType = NONE`.
 
 O `IntegrationServiceTest` utiliza mocks de:
 
 ```text
 IntegrationRepository
 EndpointRepository
+ApiKeyService
 ```
 
 Isso permite testar as regras da camada de serviço sem necessidade de conexão real com o Oracle.
@@ -1813,6 +2015,9 @@ AuthControllerTest
 JwtServiceTest
 JwtAuthenticationFilterTest
 SecurityConfigTest
+ApiKeyServiceTest
+DynamicEndpointControllerTest
+IntegrationControllerTest
 ```
 
 Os cenários cobertos incluem:
@@ -1833,7 +2038,7 @@ Os cenários cobertos incluem:
 ✓ login e health check públicos
 ```
 
-No frontend, a cobertura contempla o login, persistência e remoção da sessão, inclusão do Bearer token, tratamento de `401`, logout e os fluxos principais da aplicação autenticada.
+No frontend, a cobertura contempla login, persistência e remoção da sessão, inclusão do Bearer token, tratamento de `401`, logout, seleção de `NONE/API_KEY`, geração/regeneração de chave, `ApiKeyDialog`, cópia da chave e os fluxos principais da aplicação autenticada.
 
 ---
 
@@ -1940,9 +2145,13 @@ Entre os princípios e mecanismos atualmente utilizados estão:
 - proibição de concatenação direta de parâmetros no SQL;
 - validação dos parâmetros antes da execução;
 - separação entre configuração e consumo das integrações;
-- autenticação das APIs administrativas;
-- JWT;
+- autenticação JWT das APIs administrativas;
 - sessão stateless;
+- autenticação por API Key opcional no nível da integração;
+- geração aleatória de API Key;
+- armazenamento somente do hash BCrypt da API Key;
+- exibição da chave original apenas na geração/regeneração;
+- invalidação da chave anterior após regeneração;
 - senha administrativa protegida por BCrypt;
 - armazenamento externo das credenciais;
 - armazenamento externo do segredo JWT;
@@ -1972,7 +2181,7 @@ Pode consultar e manter integrações e endpoints, definir SQL e parâmetros e t
 
 ## Consumidor
 
-Possui acesso somente de leitura às configurações permitidas e pode executar endpoints dinâmicos autenticados. No frontend, o perfil Consumidor opera em modo readonly, sem ações de criação, edição ou exclusão.
+Possui acesso somente de leitura às configurações permitidas e pode testar endpoints conforme as regras disponíveis na interface. No frontend, o perfil Consumidor opera em modo readonly, sem ações de criação, edição, exclusão ou geração de API Key. O consumo externo dos endpoints dinâmicos segue a política `NONE/API_KEY` da integração, e não a role do usuário administrativo.
 
 # Autorização baseada em roles
 
@@ -2014,7 +2223,8 @@ A primeira versão do Integration Hub possui foco em:
 - perfis Administrador, Criador e Consumidor;
 - RBAC;
 - senha temporária, troca obrigatória e reset administrativo;
-- proteção JWT dos endpoints dinâmicos;
+- autenticação `NONE/API_KEY` por integração para endpoints dinâmicos;
+- geração e regeneração segura de API Key;
 - ambiente Oracle local para desenvolvimento;
 - testes automatizados;
 - validação por CI;
@@ -2036,7 +2246,7 @@ Não fazem parte da primeira implementação dos endpoints dinâmicos:
 - processamento assíncrono;
 - orquestração em Kubernetes;
 - refresh token;
-- autenticação avançada de consumidores;
+- OAuth2, Basic Auth e credenciais distintas por consumidor;
 - recursos avançados de escalabilidade distribuída.
 
 ---
@@ -2076,7 +2286,11 @@ Atualmente estão implementados e validados:
 - proteção contra exclusão de integração com endpoints vinculados;
 - resposta `409 Conflict` para conflitos de exclusão;
 - validação de `basePath`;
-- relacionamento `Integration 1:N Endpoint`.
+- relacionamento `Integration 1:N Endpoint`;
+- configuração `authType = NONE/API_KEY`;
+- geração e regeneração de API Key por integração;
+- armazenamento somente do hash da API Key;
+- data de geração da chave em `apiKeyCreatedAt`.
 
 ## Endpoints
 
@@ -2124,9 +2338,12 @@ Atualmente estão implementados e validados:
 - `/api/integrations/**` protegido;
 - `/api/endpoints/**` protegido;
 - `401 Unauthorized` sem autenticação válida;
-- `403 Forbidden` para operação sem permissão;
-- endpoints dinâmicos protegidos por JWT;
-- testes da proteção das rotas administrativas.
+- `403 Forbidden` para operação administrativa sem permissão;
+- endpoints dinâmicos com política `NONE/API_KEY`;
+- validação do header `X-API-Key`;
+- `401 Unauthorized` para API Key ausente ou inválida em integração protegida;
+- regeneração de chave invalidando a anterior;
+- testes da proteção das rotas administrativas e da autenticação dos endpoints dinâmicos.
 
 ## Frontend
 
@@ -2136,10 +2353,14 @@ Atualmente estão implementados e validados:
 - gerenciamento de usuários para Administrador;
 - fluxo de senha temporária e troca obrigatória;
 - diálogo para apresentação de senha temporária;
-- execução autenticada de endpoints dinâmicos;
+- seleção de autenticação `NONE/API_KEY` por integração;
+- geração/regeneração de API Key;
+- `ApiKeyDialog` com cópia e aviso de exibição única;
+- indicação visual do tipo de autenticação na lista de integrações;
 - frontend executando na porta `5175`;
 - estrutura separada em `components`, `pages` e `services`;
 - layout principal com Sidebar e Header;
+- Header exibindo nome e perfil do usuário autenticado através de `/api/auth/me`;
 - página de integrações;
 - `IntegrationForm`;
 - `IntegrationList`;
@@ -2177,6 +2398,7 @@ Atualmente estão implementados e validados:
 - testes da segurança;
 - build com `clean verify`;
 - testes do fluxo de autenticação no backend e frontend;
+- testes automatizados da geração, validação e interface de API Key;
 - validação automática do backend pelo GitHub Actions;
 - validação automática do frontend pelo GitHub Actions.
 
@@ -2211,6 +2433,14 @@ Estado atual:
 [x] envio do Bearer token pelo frontend
 [x] tratamento de 401 no frontend
 [x] tela de login
+[x] GET /api/auth/me
+[x] Header com nome e perfil do usuário autenticado
+[x] configuração NONE/API_KEY por integração
+[x] geração/regeneração de API Key
+[x] armazenamento somente do hash da API Key
+[x] validação de X-API-Key nos endpoints dinâmicos
+[x] 401 sem chave ou com chave inválida
+[x] invalidação da chave anterior após regeneração
 ```
 
 ---
@@ -2294,11 +2524,14 @@ A V1 poderá ser considerada concluída quando:
 [x] frontend possuir tela de login
 [x] frontend enviar JWT nas chamadas administrativas
 [x] frontend tratar expiração/invalidação da sessão
+[x] frontend exibir nome e perfil do usuário autenticado
 [x] usuários forem persistidos no Oracle
 [x] RBAC estiver aplicado aos perfis A/C/U
 [x] frontend respeitar permissões e modo readonly do Consumidor
 [x] senha temporária, troca obrigatória e reset estiverem implementados
-[x] endpoints dinâmicos exigirem JWT
+[x] endpoints dinâmicos suportarem NONE/API_KEY por integração
+[x] API Key for gerada/regenerada com armazenamento somente do hash
+[x] API Key válida permitir consumo e chave ausente/inválida retornar 401
 [x] testes automatizados, lint, build e CI estiverem validados
 [ ] aplicação estiver publicada em cloud
 [ ] Oracle estiver disponível para o ambiente cloud
@@ -2315,7 +2548,7 @@ O CRUD administrativo de integrações e endpoints está funcional.
 
 O frontend React já permite administrar integrações e endpoints, gerar parâmetros automaticamente a partir do SQL e testar endpoints diretamente pela interface.
 
-O backend possui autenticação baseada em usuários do Oracle, BCrypt, JWT e RBAC para os perfis Administrador, Criador e Consumidor. O frontend aplica essas permissões, incluindo modo readonly para Consumidor, gerenciamento de usuários para Administrador, senha temporária, troca obrigatória e reset de senha. Os endpoints dinâmicos também exigem autenticação JWT.
+O backend possui autenticação administrativa baseada em usuários do Oracle, BCrypt, JWT e RBAC para os perfis Administrador, Criador e Consumidor. O frontend aplica essas permissões, incluindo modo readonly para Consumidor, gerenciamento de usuários para Administrador, senha temporária, troca obrigatória e reset de senha. Para consumo externo, cada integração pode operar sem API Key (`NONE`) ou exigir `X-API-Key` (`API_KEY`). A chave é gerada/regenerada pela interface, exibida somente uma vez e armazenada no banco apenas como hash BCrypt.
 
 Com isso, o núcleo funcional e de segurança da V1 está implementado. O trabalho restante está concentrado na publicação e validação final em cloud.
 
