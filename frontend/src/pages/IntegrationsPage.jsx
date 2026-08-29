@@ -19,8 +19,14 @@ function IntegrationsPage({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showForm, setShowForm] = useState(false)
-  const [integrationToEdit, setIntegrationToEdit] = useState(null)
-  const [integrationToDelete, setIntegrationToDelete] = useState(null)
+  const [
+    integrationToEdit,
+    setIntegrationToEdit,
+  ] = useState(null)
+  const [
+    integrationToDelete,
+    setIntegrationToDelete,
+  ] = useState(null)
 
   const canEdit =
     role === 'A' || role === 'C'
@@ -31,6 +37,7 @@ function IntegrationsPage({
       setError(null)
 
       const data = await getIntegrations()
+
       setIntegrations(data)
     } catch (err) {
       setError(err.message)
@@ -40,7 +47,22 @@ function IntegrationsPage({
   }
 
   useEffect(() => {
-    loadIntegrations()
+    async function load() {
+      try {
+        setLoading(true)
+        setError(null)
+
+        const data = await getIntegrations()
+
+        setIntegrations(data)
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    load()
   }, [])
 
   function handleOpenForm() {
@@ -66,7 +88,9 @@ function IntegrationsPage({
     setError(null)
   }
 
-  async function handleSubmitIntegration(integration) {
+  async function handleSubmitIntegration(
+    integration,
+  ) {
     if (!canEdit) {
       return
     }
@@ -80,7 +104,9 @@ function IntegrationsPage({
           integration,
         )
       } else {
-        await createIntegration(integration)
+        await createIntegration(
+          integration,
+        )
       }
 
       setShowForm(false)
@@ -105,7 +131,10 @@ function IntegrationsPage({
   }
 
   async function handleConfirmDelete() {
-    if (!integrationToDelete || !canEdit) {
+    if (
+      !integrationToDelete ||
+      !canEdit
+    ) {
       return
     }
 

@@ -1,4 +1,8 @@
-import { useEffect, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from 'react'
 import './App.css'
 import Header from './components/layout/Header'
 import Sidebar from './components/layout/Sidebar'
@@ -22,8 +26,14 @@ import {
 } from './utils/authStorage'
 
 function App() {
-  const [token, setToken] = useState(() => getToken())
-  const [role, setRole] = useState(() => getRole())
+  const [token, setToken] = useState(
+    () => getToken(),
+  )
+
+  const [role, setRole] = useState(
+    () => getRole(),
+  )
+
   const [environment, setEnvironment] = useState(
     () => getEnvironment(),
   )
@@ -35,17 +45,32 @@ function App() {
     () => isPasswordChangeRequired(),
   )
 
-  const [currentPage, setCurrentPage] =
-    useState('integrations')
+  const [
+    currentPage,
+    setCurrentPage,
+  ] = useState('integrations')
 
   const [
     selectedIntegration,
     setSelectedIntegration,
   ] = useState(null)
 
+  const clearSession = useCallback(() => {
+    clearAuth()
+
+    setToken(null)
+    setRole(null)
+    setEnvironment(null)
+
+    setPasswordChangeRequiredState(false)
+
+    setSelectedIntegration(null)
+    setCurrentPage('integrations')
+  }, [])
+
   useEffect(() => {
     function handleUnauthorized() {
-      handleSessionExpired()
+      clearSession()
     }
 
     window.addEventListener(
@@ -59,7 +84,7 @@ function App() {
         handleUnauthorized,
       )
     }
-  }, [])
+  }, [clearSession])
 
   async function handleLogin(credentials) {
     const response = await login(
@@ -91,7 +116,9 @@ function App() {
     setCurrentPage('integrations')
   }
 
-  async function handleChangePassword(newPassword) {
+  async function handleChangePassword(
+    newPassword,
+  ) {
     await changePassword(
       token,
       newPassword,
@@ -125,23 +152,6 @@ function App() {
     clearSession()
   }
 
-  function handleSessionExpired() {
-    clearSession()
-  }
-
-  function clearSession() {
-    clearAuth()
-
-    setToken(null)
-    setRole(null)
-    setEnvironment(null)
-
-    setPasswordChangeRequiredState(false)
-
-    setSelectedIntegration(null)
-    setCurrentPage('integrations')
-  }
-
   if (!token) {
     return (
       <LoginPage
@@ -153,7 +163,9 @@ function App() {
   if (passwordChangeRequired) {
     return (
       <ChangePasswordPage
-        onChangePassword={handleChangePassword}
+        onChangePassword={
+          handleChangePassword
+        }
         onLogout={handleLogout}
       />
     )
@@ -164,7 +176,9 @@ function App() {
       <Sidebar
         role={role}
         environment={environment}
-        onOpenIntegrations={handleBackToIntegrations}
+        onOpenIntegrations={
+          handleBackToIntegrations
+        }
         onOpenUsers={handleOpenUsers}
       />
 
@@ -177,15 +191,21 @@ function App() {
           {currentPage === 'integrations' && (
             <IntegrationsPage
               role={role}
-              onOpenEndpoints={handleOpenEndpoints}
+              onOpenEndpoints={
+                handleOpenEndpoints
+              }
             />
           )}
 
           {currentPage === 'endpoints' && (
             <EndpointsPage
               role={role}
-              integration={selectedIntegration}
-              onBack={handleBackToIntegrations}
+              integration={
+                selectedIntegration
+              }
+              onBack={
+                handleBackToIntegrations
+              }
             />
           )}
 
@@ -201,11 +221,13 @@ function App() {
 
 function getRoleFromToken(token) {
   try {
-    const payload = token.split('.')[1]
+    const payload =
+      token.split('.')[1]
 
-    const normalizedPayload = payload
-      .replace(/-/g, '+')
-      .replace(/_/g, '/')
+    const normalizedPayload =
+      payload
+        .replace(/-/g, '+')
+        .replace(/_/g, '/')
 
     const decodedPayload =
       decodeURIComponent(
@@ -221,7 +243,9 @@ function getRoleFromToken(token) {
           .join(''),
       )
 
-    return JSON.parse(decodedPayload).role
+    return JSON.parse(
+      decodedPayload,
+    ).role
   } catch {
     return null
   }

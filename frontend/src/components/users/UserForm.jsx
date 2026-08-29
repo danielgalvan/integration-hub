@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import './UserForm.css'
 
 function UserForm({
@@ -7,40 +7,15 @@ function UserForm({
   onSave,
   onCancel,
 }) {
-  const [form, setForm] = useState({
-    username: '',
-    name: '',
-    email: '',
-    status: 'A',
-    type: 'U',
-  })
+  const [form, setForm] = useState(() => ({
+    username: user?.username || '',
+    name: user?.name || '',
+    email: user?.email || '',
+    status: user?.status || 'A',
+    type: user?.type || 'U',
+  }))
 
   const [error, setError] = useState(null)
-
-  useEffect(() => {
-    if (user) {
-      setForm({
-        username: user.username || '',
-        name: user.name || '',
-        email: user.email || '',
-        status: user.status || 'A',
-        type: user.type || 'U',
-      })
-
-      setError(null)
-      return
-    }
-
-    setForm({
-      username: '',
-      name: '',
-      email: '',
-      status: 'A',
-      type: 'U',
-    })
-
-    setError(null)
-  }, [user])
 
   function handleChange(event) {
     const { name, value } = event.target

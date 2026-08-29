@@ -21,9 +21,18 @@ function EndpointsPage({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showForm, setShowForm] = useState(false)
-  const [endpointToEdit, setEndpointToEdit] = useState(null)
-  const [endpointToDelete, setEndpointToDelete] = useState(null)
-  const [endpointToTest, setEndpointToTest] = useState(null)
+  const [
+    endpointToEdit,
+    setEndpointToEdit,
+  ] = useState(null)
+  const [
+    endpointToDelete,
+    setEndpointToDelete,
+  ] = useState(null)
+  const [
+    endpointToTest,
+    setEndpointToTest,
+  ] = useState(null)
 
   const canEdit =
     role === 'A' || role === 'C'
@@ -39,9 +48,10 @@ function EndpointsPage({
       setLoading(true)
       setError(null)
 
-      const data = await getEndpointsByIntegration(
-        integration.id,
-      )
+      const data =
+        await getEndpointsByIntegration(
+          integration.id,
+        )
 
       setEndpoints(data)
     } catch (err) {
@@ -52,7 +62,31 @@ function EndpointsPage({
   }
 
   useEffect(() => {
-    loadEndpoints()
+    async function load() {
+      if (!integration) {
+        setEndpoints([])
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        setError(null)
+
+        const data =
+          await getEndpointsByIntegration(
+            integration.id,
+          )
+
+        setEndpoints(data)
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    load()
   }, [integration])
 
   function handleOpenForm() {
@@ -78,7 +112,9 @@ function EndpointsPage({
     setError(null)
   }
 
-  async function handleSubmitEndpoint(endpoint) {
+  async function handleSubmitEndpoint(
+    endpoint,
+  ) {
     if (!canEdit) {
       return
     }
@@ -125,7 +161,10 @@ function EndpointsPage({
   }
 
   async function handleConfirmDelete() {
-    if (!endpointToDelete || !canEdit) {
+    if (
+      !endpointToDelete ||
+      !canEdit
+    ) {
       return
     }
 
