@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react'
 import './IntegrationsPage.css'
 import ConfirmDialog from '../components/common/ConfirmDialog'
 import MessageDialog from '../components/common/MessageDialog'
+import ApiKeyDialog from '../components/integrations/ApiKeyDialog'
 import IntegrationForm from '../components/integrations/IntegrationForm'
 import IntegrationList from '../components/integrations/IntegrationList'
 import {
   createIntegration,
   deleteIntegration,
+  generateIntegrationApiKey,
   getIntegrations,
   updateIntegration,
 } from '../services/integrationService'
@@ -19,13 +21,25 @@ function IntegrationsPage({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showForm, setShowForm] = useState(false)
+
   const [
     integrationToEdit,
     setIntegrationToEdit,
   ] = useState(null)
+
   const [
     integrationToDelete,
     setIntegrationToDelete,
+  ] = useState(null)
+
+  const [
+    integrationToGenerateApiKey,
+    setIntegrationToGenerateApiKey,
+  ] = useState(null)
+
+  const [
+    generatedApiKey,
+    setGeneratedApiKey,
   ] = useState(null)
 
   const canEdit =
@@ -118,6 +132,57 @@ function IntegrationsPage({
     }
   }
 
+  function handleGenerateApiKey(integration) {
+    if (!canEdit) {
+      return
+    }
+
+    setIntegrationToGenerateApiKey(
+      integration,
+    )
+  }
+
+  function handleCancelGenerateApiKey() {
+    setIntegrationToGenerateApiKey(null)
+  }
+
+  async function handleConfirmGenerateApiKey() {
+    if (
+      !integrationToGenerateApiKey ||
+      !canEdit
+    ) {
+      return
+    }
+
+    try {
+      setError(null)
+
+      const response =
+        await generateIntegrationApiKey(
+          integrationToGenerateApiKey.id,
+        )
+
+      setGeneratedApiKey(
+        response.apiKey,
+      )
+
+      setIntegrationToGenerateApiKey(null)
+
+      await loadIntegrations()
+    } catch (err) {
+      setIntegrationToGenerateApiKey(null)
+
+      setError(
+        err?.message ||
+          'Não foi possível gerar a API Key.',
+      )
+    }
+  }
+
+  function handleCloseApiKeyDialog() {
+    setGeneratedApiKey(null)
+  }
+
   function handleDeleteIntegration(integration) {
     if (!canEdit) {
       return
@@ -159,6 +224,9 @@ function IntegrationsPage({
 
   const isReadOnly =
     !canEdit && isEditing
+
+  const isRegeneratingApiKey =
+    integrationToGenerateApiKey?.apiKeyCreatedAt != null
 
   return (
     <section className="integrations-page">
@@ -221,11 +289,40 @@ function IntegrationsPage({
                 onOpenEndpoints={onOpenEndpoints}
                 onEdit={handleEditIntegration}
                 onDelete={handleDeleteIntegration}
+                onGenerateApiKey={
+                  handleGenerateApiKey
+                }
               />
             )}
           </>
         )}
       </div>
+
+      <ConfirmDialog
+        open={
+          integrationToGenerateApiKey !== null
+        }
+        title={
+          isRegeneratingApiKey
+            ? 'Regenerar API Key?'
+            : 'Gerar API Key?'
+        }
+        message={
+          integrationToGenerateApiKey
+            ? isRegeneratingApiKey
+              ? `Uma nova API Key será gerada para a integração "${integrationToGenerateApiKey.name}". A chave atual deixará de funcionar imediatamente.`
+              : `Uma API Key será gerada para a integração "${integrationToGenerateApiKey.name}".`
+            : ''
+        }
+        confirmLabel={
+          isRegeneratingApiKey
+            ? 'Regenerar API Key'
+            : 'Gerar API Key'
+        }
+        cancelLabel="Cancelar"
+        onConfirm={handleConfirmGenerateApiKey}
+        onCancel={handleCancelGenerateApiKey}
+      />
 
       <ConfirmDialog
         open={
@@ -243,6 +340,13 @@ function IntegrationsPage({
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
       />
+
+      {generatedApiKey && (
+        <ApiKeyDialog
+          apiKey={generatedApiKey}
+          onClose={handleCloseApiKeyDialog}
+        />
+      )}
 
       <MessageDialog
         open={error !== null}

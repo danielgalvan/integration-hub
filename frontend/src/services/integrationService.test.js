@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createIntegration, deleteIntegration } from './integrationService'
+import {
+  createIntegration,
+  deleteIntegration,
+  generateIntegrationApiKey,
+} from './integrationService'
 
 function response(body, options = {}) {
   return {
@@ -32,6 +36,33 @@ describe('integrationService', () => {
 
     await expect(deleteIntegration(8)).rejects.toThrow(
       'A integração possui endpoints vinculados',
+    )
+  })
+
+  it('gera API Key para a integração informada', async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      response({ apiKey: 'ihub_chave_teste' }),
+    )
+    vi.stubGlobal('fetch', fetch)
+
+    await expect(generateIntegrationApiKey(8)).resolves.toEqual({
+      apiKey: 'ihub_chave_teste',
+    })
+
+    expect(fetch).toHaveBeenCalledWith(
+      'http://localhost:8081/api/integrations/8/api-key',
+      expect.objectContaining({ method: 'POST' }),
+    )
+  })
+
+  it('usa a mensagem retornada pela API quando a geração falha', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response(
+      { message: 'A integração não está configurada para utilizar API Key' },
+      { ok: false },
+    )))
+
+    await expect(generateIntegrationApiKey(8)).rejects.toThrow(
+      'A integração não está configurada para utilizar API Key',
     )
   })
 })

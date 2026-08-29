@@ -24,6 +24,7 @@ describe('IntegrationForm', () => {
       description: '',
       basePath: '/api/clientes',
       active: 'N',
+      authType: 'NONE',
     })
   })
 
@@ -42,8 +43,35 @@ describe('IntegrationForm', () => {
     )
 
     expect(screen.getByLabelText('Ativa')).toBeDisabled()
+    expect(screen.getByLabelText('Autenticação')).toBeDisabled()
     expect(screen.queryByRole('button', {
       name: 'Salvar alterações',
     })).not.toBeInTheDocument()
+  })
+
+  it('envia API Key como tipo de autenticação selecionado', () => {
+    const onSubmit = vi.fn()
+
+    render(<IntegrationForm onCancel={vi.fn()} onSubmit={onSubmit} />)
+
+    fireEvent.change(screen.getByLabelText('Nome'), {
+      target: { value: 'Pedidos' },
+    })
+    fireEvent.change(screen.getByLabelText('Base Path'), {
+      target: { value: '/api/pedidos' },
+    })
+    fireEvent.change(screen.getByLabelText('Autenticação'), {
+      target: { value: 'API_KEY' },
+    })
+    fireEvent.click(screen.getByRole('button', {
+      name: 'Salvar integração',
+    }))
+
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+      authType: 'API_KEY',
+    }))
+    expect(screen.getByText(
+      'Todos os endpoints desta integração exigirão o header X-API-Key.',
+    )).toBeInTheDocument()
   })
 })

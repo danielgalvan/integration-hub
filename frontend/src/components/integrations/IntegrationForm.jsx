@@ -23,6 +23,10 @@ function IntegrationForm({
     integration?.active || 'S',
   )
 
+  const [authType, setAuthType] = useState(
+    integration?.authType || 'NONE',
+  )
+
   const isEditing = integration !== null
 
   function handleSubmit(event) {
@@ -37,6 +41,7 @@ function IntegrationForm({
       description,
       basePath,
       active,
+      authType,
     })
   }
 
@@ -101,6 +106,36 @@ function IntegrationForm({
           required
           readOnly={readOnly}
         />
+      </div>
+
+      <div className="integration-form__field">
+        <label htmlFor="authType">
+          Autenticação
+        </label>
+
+        <select
+          id="authType"
+          name="authType"
+          value={authType}
+          onChange={(event) =>
+            setAuthType(event.target.value)
+          }
+          disabled={readOnly}
+        >
+          <option value="NONE">
+            Sem autenticação
+          </option>
+
+          <option value="API_KEY">
+            API Key
+          </option>
+        </select>
+
+        <p className="integration-form__help">
+          {authType === 'API_KEY'
+            ? 'Todos os endpoints desta integração exigirão o header X-API-Key.'
+            : 'Os endpoints desta integração poderão ser consumidos sem API Key.'}
+        </p>
       </div>
 
       <div className="integration-form__field">

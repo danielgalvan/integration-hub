@@ -1,10 +1,17 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import IntegrationsPage from './IntegrationsPage'
 
 const integrationService = vi.hoisted(() => ({
   createIntegration: vi.fn(),
   deleteIntegration: vi.fn(),
+  generateIntegrationApiKey: vi.fn(),
   getIntegrations: vi.fn(),
   updateIntegration: vi.fn(),
 }))
@@ -17,6 +24,7 @@ const integration = {
   description: 'Consulta de clientes',
   basePath: '/clientes',
   active: 'S',
+  authType: 'NONE',
 }
 
 function renderPage(props = {}) {
@@ -52,6 +60,9 @@ describe('IntegrationsPage', () => {
     integrationService.createIntegration.mockResolvedValue(integration)
     integrationService.updateIntegration.mockResolvedValue(integration)
     integrationService.deleteIntegration.mockResolvedValue()
+    integrationService.generateIntegrationApiKey.mockResolvedValue({
+      apiKey: 'ihub_chave_teste',
+    })
   })
 
   it('carrega as integrações da API', async () => {
@@ -91,6 +102,7 @@ describe('IntegrationsPage', () => {
         description: 'Consulta de pedidos',
         basePath: '/pedidos',
         active: 'S',
+        authType: 'NONE',
       })
     })
     expect(integrationService.getIntegrations).toHaveBeenCalledTimes(2)
@@ -112,6 +124,7 @@ describe('IntegrationsPage', () => {
         description: 'Consulta de pedidos',
         basePath: '/pedidos',
         active: 'S',
+        authType: 'NONE',
       })
     })
   })
@@ -155,5 +168,33 @@ describe('IntegrationsPage', () => {
     expect(screen.getByLabelText('Nome')).toHaveAttribute(
       'readonly',
     )
+  })
+
+  it('gera API Key após confirmação e a exibe uma única vez', async () => {
+    integrationService.getIntegrations.mockResolvedValue([{
+      ...integration,
+      authType: 'API_KEY',
+    }])
+
+    renderPage()
+    await screen.findByText('Clientes')
+
+    fireEvent.click(screen.getByRole('button', {
+      name: 'Gerar API Key',
+    }))
+    expect(screen.getByRole('dialog')).toHaveTextContent(
+      'Uma API Key será gerada',
+    )
+    fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {
+        name: 'Gerar API Key',
+      }),
+    )
+
+    await waitFor(() => expect(
+      integrationService.generateIntegrationApiKey,
+    ).toHaveBeenCalledWith(1))
+    expect(await screen.findByText('ihub_chave_teste')).toBeInTheDocument()
+    expect(integrationService.getIntegrations).toHaveBeenCalledTimes(2)
   })
 })

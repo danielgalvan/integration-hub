@@ -124,3 +124,10 @@
 .integration-form__checkbox:has(input:disabled) {
   cursor: default;
 }
+
+.integration-form__help {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.4;
+}
