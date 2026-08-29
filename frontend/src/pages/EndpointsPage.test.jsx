@@ -27,6 +27,7 @@ const endpoint = {
 function renderPage(props = {}) {
   render(
     <EndpointsPage
+      role="A"
       integration={integration}
       onBack={vi.fn()}
       {...props}
@@ -153,5 +154,31 @@ describe('EndpointsPage', () => {
     await waitFor(() => {
       expect(endpointService.deleteEndpoint).toHaveBeenCalledWith(10)
     })
+  })
+
+  it('permite ao consumidor apenas visualizar endpoint', async () => {
+    renderPage({ role: 'U' })
+    await screen.findByText('Buscar cliente')
+
+    expect(
+      screen.queryByRole('button', { name: '+ Novo endpoint' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Excluir' }),
+    ).not.toBeInTheDocument()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Visualizar' }),
+    )
+
+    expect(
+      screen.getByRole('button', { name: 'Voltar' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Salvar alterações' }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByLabelText('SQL')).toHaveAttribute(
+      'readonly',
+    )
   })
 })

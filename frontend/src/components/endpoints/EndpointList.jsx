@@ -2,6 +2,7 @@ import './EndpointList.css'
 
 function EndpointList({
   endpoints = [],
+  canEdit,
   onTest,
   onEdit,
   onDelete,
@@ -55,7 +56,9 @@ function EndpointList({
                   : 'endpoint-list__status--inactive'
               }`}
             >
-              {endpoint.active === 'S' ? 'Ativo' : 'Inativo'}
+              {endpoint.active === 'S'
+                ? 'Ativo'
+                : 'Inativo'}
             </span>
 
             <div className="endpoint-list__actions">
@@ -63,7 +66,9 @@ function EndpointList({
                 type="button"
                 className="endpoint-list__test"
                 disabled={endpoint.active !== 'S'}
-                onClick={() => onTest(endpoint)}
+                onClick={() =>
+                  onTest(endpoint)
+                }
               >
                 Testar
               </button>
@@ -71,18 +76,26 @@ function EndpointList({
               <button
                 type="button"
                 className="endpoint-list__edit"
-                onClick={() => onEdit(endpoint)}
+                onClick={() =>
+                  onEdit(endpoint)
+                }
               >
-                Editar
+                {canEdit
+                  ? 'Editar'
+                  : 'Visualizar'}
               </button>
 
-              <button
-                type="button"
-                className="endpoint-list__delete"
-                onClick={() => onDelete(endpoint)}
-              >
-                Excluir
-              </button>
+              {canEdit && (
+                <button
+                  type="button"
+                  className="endpoint-list__delete"
+                  onClick={() =>
+                    onDelete(endpoint)
+                  }
+                >
+                  Excluir
+                </button>
+              )}
             </div>
           </div>
         </div>

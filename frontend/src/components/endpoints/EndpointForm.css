@@ -172,3 +172,24 @@
   border-color: #1d4ed8;
   background: #1d4ed8;
 }
+
+.endpoint-form__field input[readonly],
+.endpoint-form__field textarea[readonly],
+.endpoint-form__field select:disabled {
+  background: #f8fafc;
+  color: #475569;
+  cursor: default;
+}
+
+.endpoint-form__field select:disabled {
+  opacity: 1;
+}
+
+.endpoint-form__required input:disabled {
+  cursor: default;
+}
+
+.endpoint-form__required:has(input:disabled) {
+  color: #64748b;
+  cursor: default;
+}

@@ -342,6 +342,50 @@ class AuthServiceTest {
         );
     }
 
+    @Test
+    void deveAlterarSenhaDoUsuarioAutenticado() {
+
+        User user = createUser(
+                "admin",
+                "A",
+                "A",
+                "S"
+        );
+
+        when(userService.findByUsername("admin"))
+                .thenReturn(Optional.of(user));
+
+        authService.changePassword(
+                "admin",
+                "novaSenha"
+        );
+
+        verify(userService).changePassword(
+                1L,
+                "novaSenha"
+        );
+    }
+
+    @Test
+    void deveRetornarNotFoundAoAlterarSenhaDeUsuarioInexistente() {
+
+        when(userService.findByUsername("inexistente"))
+                .thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> authService.changePassword(
+                        "inexistente",
+                        "novaSenha"
+                )
+        );
+
+        assertEquals(
+                404,
+                exception.getStatusCode().value()
+        );
+    }
+
     private User createUser(
             String username,
             String status,

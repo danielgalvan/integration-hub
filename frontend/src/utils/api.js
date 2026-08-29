@@ -1,6 +1,6 @@
 import {
+  clearAuth,
   getToken,
-  removeToken,
 } from './authStorage'
 
 const API_URL = 'http://localhost:8081'
@@ -22,7 +22,7 @@ export async function apiFetch(path, options = {}) {
   })
 
   if (response.status === 401) {
-    removeToken()
+    clearAuth()
 
     window.dispatchEvent(
       new Event('ihub:unauthorized'),

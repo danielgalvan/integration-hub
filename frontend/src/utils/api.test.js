@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { saveToken } from './authStorage'
+import { saveAuth } from './authStorage'
 import { apiFetch } from './api'
 
 describe('apiFetch', () => {
@@ -9,7 +9,12 @@ describe('apiFetch', () => {
   })
 
   it('envia o token JWT no cabeçalho Authorization', async () => {
-    saveToken('jwt-token')
+    saveAuth({
+      token: 'jwt-token',
+      role: 'A',
+      environment: 'DEVELOPMENT',
+      passwordChangeRequired: false,
+    })
     const fetch = vi.fn().mockResolvedValue({ status: 200 })
     vi.stubGlobal('fetch', fetch)
 
@@ -24,7 +29,12 @@ describe('apiFetch', () => {
   })
 
   it('remove o token e notifica a aplicação quando recebe 401', async () => {
-    saveToken('jwt-token')
+    saveAuth({
+      token: 'jwt-token',
+      role: 'A',
+      environment: 'DEVELOPMENT',
+      passwordChangeRequired: true,
+    })
     const unauthorized = vi.fn()
     window.addEventListener('ihub:unauthorized', unauthorized)
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ status: 401 }))
@@ -32,6 +42,11 @@ describe('apiFetch', () => {
     await apiFetch('/api/integrations')
 
     expect(sessionStorage.getItem('ihub_token')).toBeNull()
+    expect(sessionStorage.getItem('ihub_role')).toBeNull()
+    expect(sessionStorage.getItem('ihub_environment')).toBeNull()
+    expect(
+      sessionStorage.getItem('ihub_password_change_required'),
+    ).toBeNull()
     expect(unauthorized).toHaveBeenCalledOnce()
     window.removeEventListener('ihub:unauthorized', unauthorized)
   })

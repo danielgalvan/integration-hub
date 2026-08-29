@@ -11,13 +11,19 @@ import {
   updateIntegration,
 } from '../services/integrationService'
 
-function IntegrationsPage({ onOpenEndpoints }) {
+function IntegrationsPage({
+  role,
+  onOpenEndpoints,
+}) {
   const [integrations, setIntegrations] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const [integrationToEdit, setIntegrationToEdit] = useState(null)
   const [integrationToDelete, setIntegrationToDelete] = useState(null)
+
+  const canEdit =
+    role === 'A' || role === 'C'
 
   async function loadIntegrations() {
     try {
@@ -34,21 +40,14 @@ function IntegrationsPage({ onOpenEndpoints }) {
   }
 
   useEffect(() => {
-    async function load() {
-      try {
-        const data = await getIntegrations()
-        setIntegrations(data)
-      } catch (err) {
-        setError(err.message)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    load()
+    loadIntegrations()
   }, [])
 
   function handleOpenForm() {
+    if (!canEdit) {
+      return
+    }
+
     setIntegrationToEdit(null)
     setShowForm(true)
   }
@@ -68,6 +67,10 @@ function IntegrationsPage({ onOpenEndpoints }) {
   }
 
   async function handleSubmitIntegration(integration) {
+    if (!canEdit) {
+      return
+    }
+
     try {
       setError(null)
 
@@ -90,6 +93,10 @@ function IntegrationsPage({ onOpenEndpoints }) {
   }
 
   function handleDeleteIntegration(integration) {
+    if (!canEdit) {
+      return
+    }
+
     setIntegrationToDelete(integration)
   }
 
@@ -98,14 +105,16 @@ function IntegrationsPage({ onOpenEndpoints }) {
   }
 
   async function handleConfirmDelete() {
-    if (!integrationToDelete) {
+    if (!integrationToDelete || !canEdit) {
       return
     }
 
     try {
       setError(null)
 
-      await deleteIntegration(integrationToDelete.id)
+      await deleteIntegration(
+        integrationToDelete.id,
+      )
 
       setIntegrationToDelete(null)
 
@@ -116,7 +125,11 @@ function IntegrationsPage({ onOpenEndpoints }) {
     }
   }
 
-  const isEditing = integrationToEdit !== null
+  const isEditing =
+    integrationToEdit !== null
+
+  const isReadOnly =
+    !canEdit && isEditing
 
   return (
     <section className="integrations-page">
@@ -124,22 +137,28 @@ function IntegrationsPage({ onOpenEndpoints }) {
         <div>
           <h2 className="integrations-page__title">
             {showForm
-              ? isEditing
-                ? 'Editar integração'
-                : 'Nova integração'
+              ? isReadOnly
+                ? 'Visualizar integração'
+                : isEditing
+                  ? 'Editar integração'
+                  : 'Nova integração'
               : 'Integrações'}
           </h2>
 
           <p className="integrations-page__description">
             {showForm
-              ? isEditing
-                ? 'Atualize os dados da integração selecionada.'
-                : 'Cadastre uma nova integração no Integration Hub.'
-              : 'Gerencie as integrações disponíveis no Integration Hub.'}
+              ? isReadOnly
+                ? 'Consulte os dados da integração selecionada.'
+                : isEditing
+                  ? 'Atualize os dados da integração selecionada.'
+                  : 'Cadastre uma nova integração no Integration Hub.'
+              : canEdit
+                ? 'Gerencie as integrações disponíveis no Integration Hub.'
+                : 'Consulte as integrações disponíveis no Integration Hub.'}
           </p>
         </div>
 
-        {!showForm && (
+        {!showForm && canEdit && (
           <button
             type="button"
             className="integrations-page__new"
@@ -154,6 +173,7 @@ function IntegrationsPage({ onOpenEndpoints }) {
         {showForm ? (
           <IntegrationForm
             integration={integrationToEdit}
+            readOnly={!canEdit}
             onCancel={handleCloseForm}
             onSubmit={handleSubmitIntegration}
           />
@@ -168,6 +188,7 @@ function IntegrationsPage({ onOpenEndpoints }) {
             {!loading && (
               <IntegrationList
                 integrations={integrations}
+                canEdit={canEdit}
                 onOpenEndpoints={onOpenEndpoints}
                 onEdit={handleEditIntegration}
                 onDelete={handleDeleteIntegration}
@@ -178,7 +199,10 @@ function IntegrationsPage({ onOpenEndpoints }) {
       </div>
 
       <ConfirmDialog
-        open={integrationToDelete !== null}
+        open={
+          canEdit &&
+          integrationToDelete !== null
+        }
         title="Excluir integração?"
         message={
           integrationToDelete

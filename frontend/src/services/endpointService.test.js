@@ -41,9 +41,10 @@ describe('endpointService', () => {
       { nome: 'Ana Maria', codigo: '10' },
     )
 
-    expect(fetch).toHaveBeenCalledWith(expect.objectContaining({
-      href: 'http://localhost:8081/api/clientes/buscar?nome=Ana+Maria&codigo=10',
-    }))
+    expect(fetch).toHaveBeenCalledWith(
+      'http://localhost:8081/api/clientes/buscar?nome=Ana+Maria&codigo=10',
+      expect.objectContaining({ method: 'GET' }),
+    )
     expect(result).toEqual(expect.objectContaining({
       success: true,
       status: 200,

@@ -5,7 +5,9 @@ import br.com.integrationhub.auth.AuthService;
 import br.com.integrationhub.auth.LoginResponse;
 import br.com.integrationhub.controller.HealthController;
 import br.com.integrationhub.integration.controller.EndpointController;
+import br.com.integrationhub.integration.controller.DynamicEndpointController;
 import br.com.integrationhub.integration.controller.IntegrationController;
+import br.com.integrationhub.integration.service.DynamicEndpointService;
 import br.com.integrationhub.integration.service.EndpointService;
 import br.com.integrationhub.integration.service.IntegrationService;
 import br.com.integrationhub.security.JwtService;
@@ -20,6 +22,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.Optional;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -31,6 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest({
         IntegrationController.class,
         EndpointController.class,
+        DynamicEndpointController.class,
         HealthController.class,
         AuthController.class,
         UserController.class
@@ -46,6 +51,9 @@ class SecurityConfigTest {
 
     @MockitoBean
     private EndpointService endpointService;
+
+    @MockitoBean
+    private DynamicEndpointService dynamicEndpointService;
 
     @MockitoBean
     private JwtService jwtService;
@@ -594,6 +602,114 @@ class SecurityConfigTest {
                 .andExpect(
                         status().isUnauthorized()
                 );
+    }
+
+    @Test
+    void devePermitirAdministradorECriadorCriarIntegration()
+            throws Exception {
+
+        mockToken("token-admin", "admin", "A");
+        mockToken("token-criador", "criador", "C");
+
+        mockMvc.perform(
+                        post("/api/integrations")
+                                .header("Authorization", "Bearer token-admin")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        { "name": "Clientes", "basePath": "/api/clientes" }
+                                        """)
+                )
+                .andExpect(status().isOk());
+
+        mockMvc.perform(
+                        post("/api/integrations")
+                                .header("Authorization", "Bearer token-criador")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        { "name": "Pedidos", "basePath": "/api/pedidos" }
+                                        """)
+                )
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void deveBloquearConsumidorAoCriarIntegration()
+            throws Exception {
+
+        mockToken("token-consumidor", "consumidor", "U");
+
+        mockMvc.perform(
+                        post("/api/integrations")
+                                .header("Authorization", "Bearer token-consumidor")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{}")
+                )
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void devePermitirCriadorAtualizarEndpointEConsumidorNao()
+            throws Exception {
+
+        mockToken("token-criador", "criador", "C");
+        mockToken("token-consumidor", "consumidor", "U");
+
+        String endpoint = """
+                {
+                  "integrationId": 1,
+                  "name": "Buscar cliente",
+                  "path": "/buscar",
+                  "method": "GET",
+                  "sqlText": "select id from cliente"
+                }
+                """;
+
+        mockMvc.perform(
+                        put("/api/endpoints/1")
+                                .header("Authorization", "Bearer token-criador")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(endpoint)
+                )
+                .andExpect(status().isOk());
+
+        mockMvc.perform(
+                        put("/api/endpoints/1")
+                                .header("Authorization", "Bearer token-consumidor")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(endpoint)
+                )
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void deveExigirTokenParaEndpointDinamico()
+            throws Exception {
+
+        mockMvc.perform(get("/api/clientes/buscar"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void devePermitirTodosOsPerfisNoEndpointDinamico()
+            throws Exception {
+
+        mockToken("token-admin", "admin", "A");
+        mockToken("token-criador", "criador", "C");
+        mockToken("token-consumidor", "consumidor", "U");
+
+        when(
+                integrationService.findBestMatchByRequestPath(any())
+        ).thenReturn(Optional.empty());
+
+        for (String token : new String[]{
+                "token-admin", "token-criador", "token-consumidor"
+        }) {
+            mockMvc.perform(
+                            get("/api/clientes/buscar")
+                                    .header("Authorization", "Bearer " + token)
+                    )
+                    .andExpect(status().isNotFound());
+        }
     }
 
     private void mockToken(

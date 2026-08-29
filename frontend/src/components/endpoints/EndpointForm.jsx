@@ -4,6 +4,7 @@ import './EndpointForm.css'
 function EndpointForm({
   integrationId,
   endpoint = null,
+  readOnly = false,
   onCancel,
   onSubmit,
   onValidationError,
@@ -57,42 +58,59 @@ function EndpointForm({
   }
 
   function handleGenerateParameters() {
-    const parameterNames = extractParameterNames(sqlText)
+    if (readOnly) {
+      return
+    }
 
-    const generatedParameters = parameterNames.map(
-      (parameterName) => {
-        const existingParameter = parameters.find(
-          (parameter) =>
-            parameter.name === parameterName,
-        )
+    const parameterNames =
+      extractParameterNames(sqlText)
 
-        if (existingParameter) {
-          return existingParameter
-        }
+    const generatedParameters =
+      parameterNames.map(
+        (parameterName) => {
+          const existingParameter =
+            parameters.find(
+              (parameter) =>
+                parameter.name === parameterName,
+            )
 
-        return {
-          name: parameterName,
-          type: 'VARCHAR2',
-          required: false,
-        }
-      },
-    )
+          if (existingParameter) {
+            return existingParameter
+          }
+
+          return {
+            name: parameterName,
+            type: 'VARCHAR2',
+            required: false,
+          }
+        },
+      )
 
     setParameters(generatedParameters)
   }
 
-  function handleParameterChange(index, field, value) {
-    setParameters(
-      parameters.map((parameter, parameterIndex) => {
-        if (parameterIndex !== index) {
-          return parameter
-        }
+  function handleParameterChange(
+    index,
+    field,
+    value,
+  ) {
+    if (readOnly) {
+      return
+    }
 
-        return {
-          ...parameter,
-          [field]: value,
-        }
-      }),
+    setParameters(
+      parameters.map(
+        (parameter, parameterIndex) => {
+          if (parameterIndex !== index) {
+            return parameter
+          }
+
+          return {
+            ...parameter,
+            [field]: value,
+          }
+        },
+      ),
     )
   }
 
@@ -106,8 +124,8 @@ function EndpointForm({
       )
 
     if (
-      sqlParameterNames.length
-      !== configuredParameterNames.length
+      sqlParameterNames.length !==
+      configuredParameterNames.length
     ) {
       return false
     }
@@ -122,6 +140,10 @@ function EndpointForm({
 
   function handleSubmit(event) {
     event.preventDefault()
+
+    if (readOnly) {
+      return
+    }
 
     if (!parametersAreSynchronized()) {
       onValidationError(
@@ -149,107 +171,152 @@ function EndpointForm({
       onSubmit={handleSubmit}
     >
       <div className="endpoint-form__field">
-        <label htmlFor="name">Nome</label>
+        <label htmlFor="name">
+          Nome
+        </label>
 
         <input
           id="name"
           name="name"
           type="text"
           value={name}
-          onChange={(event) => setName(event.target.value)}
+          onChange={(event) =>
+            setName(event.target.value)
+          }
           placeholder="Ex: Buscar pedido"
           required
+          readOnly={readOnly}
         />
       </div>
 
       <div className="endpoint-form__field">
-        <label htmlFor="description">Descrição</label>
+        <label htmlFor="description">
+          Descrição
+        </label>
 
         <textarea
           id="description"
           name="description"
           rows="3"
           value={description}
-          onChange={(event) => setDescription(event.target.value)}
+          onChange={(event) =>
+            setDescription(
+              event.target.value,
+            )
+          }
           placeholder="Descreva o objetivo do endpoint"
+          readOnly={readOnly}
         />
       </div>
 
       <div className="endpoint-form__row">
         <div className="endpoint-form__field">
-          <label htmlFor="path">Path</label>
+          <label htmlFor="path">
+            Path
+          </label>
 
           <input
             id="path"
             name="path"
             type="text"
             value={path}
-            onChange={(event) => setPath(event.target.value)}
+            onChange={(event) =>
+              setPath(event.target.value)
+            }
             placeholder="/buscar"
             required
+            readOnly={readOnly}
           />
         </div>
 
         <div className="endpoint-form__field">
-          <label htmlFor="method">Método</label>
+          <label htmlFor="method">
+            Método
+          </label>
 
           <select
             id="method"
             name="method"
             value={method}
-            onChange={(event) => setMethod(event.target.value)}
+            onChange={(event) =>
+              setMethod(event.target.value)
+            }
+            disabled={readOnly}
           >
-            <option value="GET">GET</option>
+            <option value="GET">
+              GET
+            </option>
           </select>
         </div>
 
         <div className="endpoint-form__field">
-          <label htmlFor="active">Status</label>
+          <label htmlFor="active">
+            Status
+          </label>
 
           <select
             id="active"
             name="active"
             value={active}
-            onChange={(event) => setActive(event.target.value)}
+            onChange={(event) =>
+              setActive(event.target.value)
+            }
+            disabled={readOnly}
           >
-            <option value="S">Ativo</option>
-            <option value="N">Inativo</option>
+            <option value="S">
+              Ativo
+            </option>
+
+            <option value="N">
+              Inativo
+            </option>
           </select>
         </div>
       </div>
 
       <div className="endpoint-form__field">
-        <label htmlFor="sqlText">SQL</label>
+        <label htmlFor="sqlText">
+          SQL
+        </label>
 
         <textarea
           id="sqlText"
           name="sqlText"
           rows="8"
           value={sqlText}
-          onChange={(event) => setSqlText(event.target.value)}
+          onChange={(event) =>
+            setSqlText(event.target.value)
+          }
           placeholder="select id, nome from cliente where id = :id"
           className="endpoint-form__sql"
           required
+          readOnly={readOnly}
         />
       </div>
 
       <div className="endpoint-form__parameters">
         <div className="endpoint-form__parameters-header">
           <div>
-            <h3>Parâmetros</h3>
+            <h3>
+              Parâmetros
+            </h3>
 
             <p>
-              Gere automaticamente os parâmetros utilizados no SQL.
+              {readOnly
+                ? 'Parâmetros configurados para este endpoint.'
+                : 'Gere automaticamente os parâmetros utilizados no SQL.'}
             </p>
           </div>
 
-          <button
-            type="button"
-            className="endpoint-form__generate-parameters"
-            onClick={handleGenerateParameters}
-          >
-            Gerar parâmetros
-          </button>
+          {!readOnly && (
+            <button
+              type="button"
+              className="endpoint-form__generate-parameters"
+              onClick={handleGenerateParameters}
+            >
+              Gerar parâmetros
+            </button>
+          )}
         </div>
 
         {parameters.length === 0 && (
@@ -264,7 +331,9 @@ function EndpointForm({
             className="endpoint-form__parameter"
           >
             <div className="endpoint-form__field">
-              <label htmlFor={`parameter-name-${index}`}>
+              <label
+                htmlFor={`parameter-name-${index}`}
+              >
                 Nome
               </label>
 
@@ -277,7 +346,9 @@ function EndpointForm({
             </div>
 
             <div className="endpoint-form__field">
-              <label htmlFor={`parameter-type-${index}`}>
+              <label
+                htmlFor={`parameter-type-${index}`}
+              >
                 Tipo
               </label>
 
@@ -291,11 +362,23 @@ function EndpointForm({
                     event.target.value,
                   )
                 }
+                disabled={readOnly}
               >
-                <option value="VARCHAR2">VARCHAR2</option>
-                <option value="NUMBER">NUMBER</option>
-                <option value="DATE">DATE</option>
-                <option value="TIMESTAMP">TIMESTAMP</option>
+                <option value="VARCHAR2">
+                  VARCHAR2
+                </option>
+
+                <option value="NUMBER">
+                  NUMBER
+                </option>
+
+                <option value="DATE">
+                  DATE
+                </option>
+
+                <option value="TIMESTAMP">
+                  TIMESTAMP
+                </option>
               </select>
             </div>
 
@@ -310,6 +393,7 @@ function EndpointForm({
                     event.target.checked,
                   )
                 }
+                disabled={readOnly}
               />
 
               Obrigatório
@@ -324,17 +408,19 @@ function EndpointForm({
           className="endpoint-form__cancel"
           onClick={onCancel}
         >
-          Cancelar
+          {readOnly ? 'Voltar' : 'Cancelar'}
         </button>
 
-        <button
-          type="submit"
-          className="endpoint-form__submit"
-        >
-          {isEditing
-            ? 'Salvar alterações'
-            : 'Salvar endpoint'}
-        </button>
+        {!readOnly && (
+          <button
+            type="submit"
+            className="endpoint-form__submit"
+          >
+            {isEditing
+              ? 'Salvar alterações'
+              : 'Salvar endpoint'}
+          </button>
+        )}
       </div>
     </form>
   )

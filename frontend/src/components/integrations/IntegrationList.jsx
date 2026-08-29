@@ -2,6 +2,7 @@ import './IntegrationList.css'
 
 function IntegrationList({
   integrations = [],
+  canEdit,
   onOpenEndpoints,
   onEdit,
   onDelete,
@@ -49,14 +50,18 @@ function IntegrationList({
                   : 'integration-list__status--inactive'
               }`}
             >
-              {integration.active === 'S' ? 'Ativa' : 'Inativa'}
+              {integration.active === 'S'
+                ? 'Ativa'
+                : 'Inativa'}
             </span>
 
             <div className="integration-list__actions">
               <button
                 type="button"
                 className="integration-list__endpoints"
-                onClick={() => onOpenEndpoints(integration)}
+                onClick={() =>
+                  onOpenEndpoints(integration)
+                }
               >
                 Endpoints
               </button>
@@ -64,18 +69,26 @@ function IntegrationList({
               <button
                 type="button"
                 className="integration-list__edit"
-                onClick={() => onEdit(integration)}
+                onClick={() =>
+                  onEdit(integration)
+                }
               >
-                Editar
+                {canEdit
+                  ? 'Editar'
+                  : 'Visualizar'}
               </button>
 
-              <button
-                type="button"
-                className="integration-list__delete"
-                onClick={() => onDelete(integration)}
-              >
-                Excluir
-              </button>
+              {canEdit && (
+                <button
+                  type="button"
+                  className="integration-list__delete"
+                  onClick={() =>
+                    onDelete(integration)
+                  }
+                >
+                  Excluir
+                </button>
+              )}
             </div>
           </div>
         </div>

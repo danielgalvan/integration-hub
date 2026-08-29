@@ -3,18 +3,22 @@ import './IntegrationForm.css'
 
 function IntegrationForm({
   integration = null,
+  readOnly = false,
   onCancel,
   onSubmit,
 }) {
   const [name, setName] = useState(
     integration?.name || '',
   )
+
   const [description, setDescription] = useState(
     integration?.description || '',
   )
+
   const [basePath, setBasePath] = useState(
     integration?.basePath || '',
   )
+
   const [active, setActive] = useState(
     integration?.active || 'S',
   )
@@ -23,6 +27,10 @@ function IntegrationForm({
 
   function handleSubmit(event) {
     event.preventDefault()
+
+    if (readOnly) {
+      return
+    }
 
     onSubmit({
       name,
@@ -38,57 +46,84 @@ function IntegrationForm({
       onSubmit={handleSubmit}
     >
       <div className="integration-form__field">
-        <label htmlFor="name">Nome</label>
+        <label htmlFor="name">
+          Nome
+        </label>
 
         <input
           id="name"
           name="name"
           type="text"
           value={name}
-          onChange={(event) => setName(event.target.value)}
+          onChange={(event) =>
+            setName(event.target.value)
+          }
           placeholder="Ex: Pedidos"
           required
+          readOnly={readOnly}
         />
       </div>
 
       <div className="integration-form__field">
-        <label htmlFor="description">Descrição</label>
+        <label htmlFor="description">
+          Descrição
+        </label>
 
         <textarea
           id="description"
           name="description"
           rows="3"
           value={description}
-          onChange={(event) => setDescription(event.target.value)}
+          onChange={(event) =>
+            setDescription(
+              event.target.value,
+            )
+          }
           placeholder="Descreva o objetivo da integração"
+          readOnly={readOnly}
         />
       </div>
 
       <div className="integration-form__field">
-        <label htmlFor="basePath">Base Path</label>
+        <label htmlFor="basePath">
+          Base Path
+        </label>
 
         <input
           id="basePath"
           name="basePath"
           type="text"
           value={basePath}
-          onChange={(event) => setBasePath(event.target.value)}
+          onChange={(event) =>
+            setBasePath(event.target.value)
+          }
           placeholder="/api/pedidos"
           required
+          readOnly={readOnly}
         />
       </div>
 
       <div className="integration-form__field">
-        <label htmlFor="active">Status</label>
+        <label htmlFor="active">
+          Status
+        </label>
 
         <select
           id="active"
           name="active"
           value={active}
-          onChange={(event) => setActive(event.target.value)}
+          onChange={(event) =>
+            setActive(event.target.value)
+          }
+          disabled={readOnly}
         >
-          <option value="S">Ativa</option>
-          <option value="N">Inativa</option>
+          <option value="S">
+            Ativa
+          </option>
+
+          <option value="N">
+            Inativa
+          </option>
         </select>
       </div>
 
@@ -98,17 +133,19 @@ function IntegrationForm({
           className="integration-form__cancel"
           onClick={onCancel}
         >
-          Cancelar
+          {readOnly ? 'Voltar' : 'Cancelar'}
         </button>
 
-        <button
-          type="submit"
-          className="integration-form__submit"
-        >
-          {isEditing
-            ? 'Salvar alterações'
-            : 'Salvar integração'}
-        </button>
+        {!readOnly && (
+          <button
+            type="submit"
+            className="integration-form__submit"
+          >
+            {isEditing
+              ? 'Salvar alterações'
+              : 'Salvar integração'}
+          </button>
+        )}
       </div>
     </form>
   )

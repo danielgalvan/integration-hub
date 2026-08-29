@@ -13,6 +13,7 @@ import {
 } from '../services/endpointService'
 
 function EndpointsPage({
+  role,
   integration,
   onBack,
 }) {
@@ -23,6 +24,9 @@ function EndpointsPage({
   const [endpointToEdit, setEndpointToEdit] = useState(null)
   const [endpointToDelete, setEndpointToDelete] = useState(null)
   const [endpointToTest, setEndpointToTest] = useState(null)
+
+  const canEdit =
+    role === 'A' || role === 'C'
 
   async function loadEndpoints() {
     if (!integration) {
@@ -48,33 +52,14 @@ function EndpointsPage({
   }
 
   useEffect(() => {
-    async function load() {
-      if (!integration) {
-        setEndpoints([])
-        setLoading(false)
-        return
-      }
-
-      try {
-        setLoading(true)
-        setError(null)
-
-        const data = await getEndpointsByIntegration(
-          integration.id,
-        )
-
-        setEndpoints(data)
-      } catch (err) {
-        setError(err.message)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    load()
+    loadEndpoints()
   }, [integration])
 
   function handleOpenForm() {
+    if (!canEdit) {
+      return
+    }
+
     setEndpointToEdit(null)
     setShowForm(true)
   }
@@ -94,6 +79,10 @@ function EndpointsPage({
   }
 
   async function handleSubmitEndpoint(endpoint) {
+    if (!canEdit) {
+      return
+    }
+
     try {
       setError(null)
 
@@ -124,6 +113,10 @@ function EndpointsPage({
   }
 
   function handleDeleteEndpoint(endpoint) {
+    if (!canEdit) {
+      return
+    }
+
     setEndpointToDelete(endpoint)
   }
 
@@ -132,14 +125,16 @@ function EndpointsPage({
   }
 
   async function handleConfirmDelete() {
-    if (!endpointToDelete) {
+    if (!endpointToDelete || !canEdit) {
       return
     }
 
     try {
       setError(null)
 
-      await deleteEndpoint(endpointToDelete.id)
+      await deleteEndpoint(
+        endpointToDelete.id,
+      )
 
       setEndpointToDelete(null)
 
@@ -149,6 +144,12 @@ function EndpointsPage({
       setError(err.message)
     }
   }
+
+  const isEditing =
+    endpointToEdit !== null
+
+  const isReadOnly =
+    !canEdit && isEditing
 
   if (!integration) {
     return (
@@ -182,30 +183,36 @@ function EndpointsPage({
         <div>
           <h2 className="endpoints-page__title">
             {showForm
-              ? endpointToEdit
-                ? 'Editar endpoint'
-                : 'Novo endpoint'
+              ? isReadOnly
+                ? 'Visualizar endpoint'
+                : isEditing
+                  ? 'Editar endpoint'
+                  : 'Novo endpoint'
               : 'Endpoints'}
           </h2>
 
           <p className="endpoints-page__description">
             {showForm
-              ? endpointToEdit
-                ? `Edite o endpoint da integração ${integration.name}.`
-                : `Cadastre um novo endpoint para a integração ${integration.name}.`
+              ? isReadOnly
+                ? `Consulte os dados do endpoint da integração ${integration.name}.`
+                : isEditing
+                  ? `Edite o endpoint da integração ${integration.name}.`
+                  : `Cadastre um novo endpoint para a integração ${integration.name}.`
               : `Integração: ${integration.name}`}
           </p>
         </div>
 
         {!showForm && (
           <div className="endpoints-page__header-actions">
-            <button
-              type="button"
-              className="endpoints-page__new"
-              onClick={handleOpenForm}
-            >
-              + Novo endpoint
-            </button>
+            {canEdit && (
+              <button
+                type="button"
+                className="endpoints-page__new"
+                onClick={handleOpenForm}
+              >
+                + Novo endpoint
+              </button>
+            )}
 
             <button
               type="button"
@@ -223,6 +230,7 @@ function EndpointsPage({
           <EndpointForm
             integrationId={integration.id}
             endpoint={endpointToEdit}
+            readOnly={!canEdit}
             onCancel={handleCloseForm}
             onSubmit={handleSubmitEndpoint}
             onValidationError={setError}
@@ -238,6 +246,7 @@ function EndpointsPage({
             {!loading && (
               <EndpointList
                 endpoints={endpoints}
+                canEdit={canEdit}
                 onTest={handleTestEndpoint}
                 onEdit={handleEditEndpoint}
                 onDelete={handleDeleteEndpoint}
@@ -258,7 +267,10 @@ function EndpointsPage({
       )}
 
       <ConfirmDialog
-        open={endpointToDelete !== null}
+        open={
+          canEdit &&
+          endpointToDelete !== null
+        }
         title="Excluir endpoint?"
         message={
           endpointToDelete

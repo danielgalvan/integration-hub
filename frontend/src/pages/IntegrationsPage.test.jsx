@@ -19,8 +19,14 @@ const integration = {
   active: 'S',
 }
 
-function renderPage() {
-  render(<IntegrationsPage onOpenEndpoints={vi.fn()} />)
+function renderPage(props = {}) {
+  render(
+    <IntegrationsPage
+      role="A"
+      onOpenEndpoints={vi.fn()}
+      {...props}
+    />,
+  )
 }
 
 function fillIntegrationForm({
@@ -123,5 +129,31 @@ describe('IntegrationsPage', () => {
       expect(integrationService.deleteIntegration).toHaveBeenCalledWith(1)
     })
     expect(integrationService.getIntegrations).toHaveBeenCalledTimes(2)
+  })
+
+  it('permite ao consumidor apenas visualizar a integração', async () => {
+    renderPage({ role: 'U' })
+    await screen.findByText('Clientes')
+
+    expect(
+      screen.queryByRole('button', { name: '+ Nova integração' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Excluir' }),
+    ).not.toBeInTheDocument()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Visualizar' }),
+    )
+
+    expect(
+      screen.getByRole('button', { name: 'Voltar' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Salvar alterações' }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Nome')).toHaveAttribute(
+      'readonly',
+    )
   })
 })

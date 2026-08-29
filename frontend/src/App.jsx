@@ -2,27 +2,50 @@ import { useEffect, useState } from 'react'
 import './App.css'
 import Header from './components/layout/Header'
 import Sidebar from './components/layout/Sidebar'
+import ChangePasswordPage from './pages/ChangePasswordPage'
 import EndpointsPage from './pages/EndpointsPage'
 import IntegrationsPage from './pages/IntegrationsPage'
 import LoginPage from './pages/LoginPage'
-import { login } from './services/authService'
+import UsersPage from './pages/UsersPage'
 import {
+  changePassword,
+  login,
+} from './services/authService'
+import {
+  clearAuth,
+  getEnvironment,
+  getRole,
   getToken,
-  removeToken,
-  saveToken,
+  isPasswordChangeRequired,
+  saveAuth,
+  setPasswordChangeRequired,
 } from './utils/authStorage'
 
 function App() {
   const [token, setToken] = useState(() => getToken())
-  const [currentPage, setCurrentPage] = useState('integrations')
-  const [selectedIntegration, setSelectedIntegration] = useState(null)
+  const [role, setRole] = useState(() => getRole())
+  const [environment, setEnvironment] = useState(
+    () => getEnvironment(),
+  )
+
+  const [
+    passwordChangeRequired,
+    setPasswordChangeRequiredState,
+  ] = useState(
+    () => isPasswordChangeRequired(),
+  )
+
+  const [currentPage, setCurrentPage] =
+    useState('integrations')
+
+  const [
+    selectedIntegration,
+    setSelectedIntegration,
+  ] = useState(null)
 
   useEffect(() => {
     function handleUnauthorized() {
-      removeToken()
-      setToken(null)
-      setSelectedIntegration(null)
-      setCurrentPage('integrations')
+      handleSessionExpired()
     }
 
     window.addEventListener(
@@ -45,8 +68,38 @@ function App() {
       credentials.environment,
     )
 
-    saveToken(response.token)
+    const tokenRole =
+      getRoleFromToken(response.token)
+
+    saveAuth({
+      token: response.token,
+      role: tokenRole,
+      environment: credentials.environment,
+      passwordChangeRequired:
+        response.passwordChangeRequired,
+    })
+
     setToken(response.token)
+    setRole(tokenRole)
+    setEnvironment(credentials.environment)
+
+    setPasswordChangeRequiredState(
+      response.passwordChangeRequired,
+    )
+
+    setSelectedIntegration(null)
+    setCurrentPage('integrations')
+  }
+
+  async function handleChangePassword(newPassword) {
+    await changePassword(
+      token,
+      newPassword,
+    )
+
+    setPasswordChangeRequired(false)
+
+    setPasswordChangeRequiredState(false)
   }
 
   function handleOpenEndpoints(integration) {
@@ -59,9 +112,32 @@ function App() {
     setCurrentPage('integrations')
   }
 
+  function handleOpenUsers() {
+    if (role !== 'A') {
+      return
+    }
+
+    setSelectedIntegration(null)
+    setCurrentPage('users')
+  }
+
   function handleLogout() {
-    removeToken()
+    clearSession()
+  }
+
+  function handleSessionExpired() {
+    clearSession()
+  }
+
+  function clearSession() {
+    clearAuth()
+
     setToken(null)
+    setRole(null)
+    setEnvironment(null)
+
+    setPasswordChangeRequiredState(false)
+
     setSelectedIntegration(null)
     setCurrentPage('integrations')
   }
@@ -74,10 +150,22 @@ function App() {
     )
   }
 
+  if (passwordChangeRequired) {
+    return (
+      <ChangePasswordPage
+        onChangePassword={handleChangePassword}
+        onLogout={handleLogout}
+      />
+    )
+  }
+
   return (
     <div className="app">
       <Sidebar
+        role={role}
+        environment={environment}
         onOpenIntegrations={handleBackToIntegrations}
+        onOpenUsers={handleOpenUsers}
       />
 
       <div className="app__content">
@@ -88,20 +176,55 @@ function App() {
         <main className="app__main">
           {currentPage === 'integrations' && (
             <IntegrationsPage
+              role={role}
               onOpenEndpoints={handleOpenEndpoints}
             />
           )}
 
           {currentPage === 'endpoints' && (
             <EndpointsPage
+              role={role}
               integration={selectedIntegration}
               onBack={handleBackToIntegrations}
             />
           )}
+
+          {currentPage === 'users' &&
+            role === 'A' && (
+              <UsersPage />
+            )}
         </main>
       </div>
     </div>
   )
+}
+
+function getRoleFromToken(token) {
+  try {
+    const payload = token.split('.')[1]
+
+    const normalizedPayload = payload
+      .replace(/-/g, '+')
+      .replace(/_/g, '/')
+
+    const decodedPayload =
+      decodeURIComponent(
+        atob(normalizedPayload)
+          .split('')
+          .map(
+            (character) =>
+              `%${character
+                .charCodeAt(0)
+                .toString(16)
+                .padStart(2, '0')}`,
+          )
+          .join(''),
+      )
+
+    return JSON.parse(decodedPayload).role
+  } catch {
+    return null
+  }
 }
 
 export default App

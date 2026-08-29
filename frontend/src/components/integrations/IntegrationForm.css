@@ -80,3 +80,15 @@
 .integration-form__submit:hover {
   background: #1d4ed8;
 }
+
+.integration-form__field input[readonly],
+.integration-form__field textarea[readonly],
+.integration-form__field select:disabled {
+  background: #f8fafc;
+  color: #475569;
+  cursor: default;
+}
+
+.integration-form__field select:disabled {
+  opacity: 1;
+}

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { login } from './authService'
+import { changePassword, login } from './authService'
 
 function response(body, options = {}) {
   return {
@@ -87,5 +87,37 @@ describe('authService', () => {
     ).rejects.toThrow(
       'Usuário ou senha inválidos.',
     )
+  })
+
+  it('envia a nova senha com o token da sessão', async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      response(null, { status: 204 }),
+    )
+    vi.stubGlobal('fetch', fetch)
+
+    await expect(
+      changePassword('jwt-token', 'nova-senha'),
+    ).resolves.toBeUndefined()
+
+    expect(fetch).toHaveBeenCalledWith(
+      'http://localhost:8081/api/auth/password',
+      expect.objectContaining({
+        method: 'PUT',
+        headers: expect.objectContaining({
+          Authorization: 'Bearer jwt-token',
+        }),
+        body: JSON.stringify({ newPassword: 'nova-senha' }),
+      }),
+    )
+  })
+
+  it('informa expiração de sessão ao trocar senha sem autorização', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      response(null, { ok: false, status: 401 }),
+    ))
+
+    await expect(
+      changePassword('jwt-token', 'nova-senha'),
+    ).rejects.toThrow('Sua sessão expirou. Faça login novamente.')
   })
 })

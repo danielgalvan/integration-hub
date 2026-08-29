@@ -1,14 +1,38 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { getToken, removeToken, saveToken } from './authStorage'
+import {
+  clearAuth,
+  getEnvironment,
+  getRole,
+  getToken,
+  isAuthenticated,
+  isPasswordChangeRequired,
+  saveAuth,
+  setPasswordChangeRequired,
+} from './authStorage'
 
 describe('authStorage', () => {
   afterEach(() => sessionStorage.clear())
 
-  it('salva, recupera e remove o token da sessão', () => {
-    saveToken('jwt-token')
-    expect(getToken()).toBe('jwt-token')
+  it('salva e recupera todos os dados da sessão', () => {
+    saveAuth({
+      token: 'jwt-token', role: 'A', environment: 'HOMOLOGATION', passwordChangeRequired: true,
+    })
 
-    removeToken()
-    expect(getToken()).toBeNull()
+    expect(getToken()).toBe('jwt-token')
+    expect(getRole()).toBe('A')
+    expect(getEnvironment()).toBe('HOMOLOGATION')
+    expect(isPasswordChangeRequired()).toBe(true)
+    expect(isAuthenticated()).toBe(true)
+  })
+
+  it('altera e limpa o estado de troca obrigatória junto com a sessão', () => {
+    saveAuth({ token: 'jwt-token', role: 'U', environment: 'DEVELOPMENT', passwordChangeRequired: true })
+    setPasswordChangeRequired(false)
+    expect(isPasswordChangeRequired()).toBe(false)
+
+    clearAuth()
+    expect(isAuthenticated()).toBe(false)
+    expect(getRole()).toBeNull()
+    expect(getEnvironment()).toBeNull()
   })
 })
