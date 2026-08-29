@@ -1,3 +1,5 @@
+import { apiFetch } from '../utils/api'
+
 const API_URL = 'http://localhost:8081'
 
 export async function login(
@@ -34,6 +36,20 @@ export async function login(
     throw new Error(
       error?.message ||
         'Não foi possível realizar o login.',
+    )
+  }
+
+  return response.json()
+}
+
+export async function getAuthenticatedUser() {
+  const response = await apiFetch(
+    '/api/auth/me',
+  )
+
+  if (!response.ok) {
+    throw new Error(
+      'Não foi possível carregar os dados do usuário.',
     )
   }
 

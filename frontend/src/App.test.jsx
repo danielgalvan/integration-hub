@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 
 const authService = vi.hoisted(() => ({
-  changePassword: vi.fn(), login: vi.fn(),
+  changePassword: vi.fn(), getAuthenticatedUser: vi.fn(), login: vi.fn(),
 }))
 const authStorage = vi.hoisted(() => ({
   clearAuth: vi.fn(), getEnvironment: vi.fn(), getRole: vi.fn(), getToken: vi.fn(),
@@ -35,6 +35,10 @@ describe('App', () => {
     authStorage.getRole.mockReturnValue(null)
     authStorage.getEnvironment.mockReturnValue(null)
     authStorage.isPasswordChangeRequired.mockReturnValue(false)
+    authService.getAuthenticatedUser.mockResolvedValue({
+      name: 'Administrador',
+      role: 'A',
+    })
   })
 
   it('armazena sessão e libera a área administrativa após login', async () => {
@@ -81,5 +85,19 @@ describe('App', () => {
     window.dispatchEvent(new Event('ihub:unauthorized'))
     expect(await screen.findByRole('button', { name: 'Fazer login' })).toBeInTheDocument()
     expect(authStorage.clearAuth).toHaveBeenCalledOnce()
+  })
+
+  it('carrega os dados do usuário autenticado após restaurar a sessão', async () => {
+    authStorage.getToken.mockReturnValue('jwt-token')
+    authService.getAuthenticatedUser.mockResolvedValue({
+      name: 'Daniel Galvan',
+      role: 'A',
+    })
+
+    render(<App />)
+
+    await waitFor(() => expect(
+      authService.getAuthenticatedUser,
+    ).toHaveBeenCalledOnce())
   })
 })

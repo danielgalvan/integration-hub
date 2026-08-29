@@ -193,3 +193,35 @@
   color: #64748b;
   cursor: default;
 }
+
+.endpoint-form__label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.endpoint-form__checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  cursor: pointer;
+}
+
+.endpoint-form__checkbox input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.endpoint-form__checkbox span {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.endpoint-form__checkbox input:disabled,
+.endpoint-form__checkbox:has(input:disabled) {
+  cursor: default;
+}

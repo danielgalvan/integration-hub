@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import UserForm from '../components/users/UserForm'
+import ConfirmDialog from '../components/common/ConfirmDialog'
 import TemporaryPasswordDialog from '../components/users/TemporaryPasswordDialog'
+import UserForm from '../components/users/UserForm'
 import {
   createUser,
   deleteUser,
@@ -24,8 +25,36 @@ function UsersPage() {
     setTemporaryPassword,
   ] = useState(null)
 
+  const [
+    userToResetPassword,
+    setUserToResetPassword,
+  ] = useState(null)
+
+  const [
+    userToDelete,
+    setUserToDelete,
+  ] = useState(null)
+
   useEffect(() => {
-    loadUsers()
+    async function load() {
+      try {
+        setLoading(true)
+        setError(null)
+
+        const data = await getUsers()
+
+        setUsers(data)
+      } catch (err) {
+        setError(
+          err?.message ||
+            'Não foi possível carregar os usuários.',
+        )
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    load()
   }, [])
 
   async function loadUsers() {
@@ -94,12 +123,16 @@ function UsersPage() {
     }
   }
 
-  async function handleResetPassword(user) {
-    const confirmed = window.confirm(
-      `Deseja realmente resetar a senha de "${user.username}"?`,
-    )
+  function handleResetPassword(user) {
+    setUserToResetPassword(user)
+  }
 
-    if (!confirmed) {
+  function handleCancelResetPassword() {
+    setUserToResetPassword(null)
+  }
+
+  async function handleConfirmResetPassword() {
+    if (!userToResetPassword) {
       return
     }
 
@@ -107,7 +140,11 @@ function UsersPage() {
       setError(null)
 
       const response =
-        await resetUserPassword(user.id)
+        await resetUserPassword(
+          userToResetPassword.id,
+        )
+
+      setUserToResetPassword(null)
 
       setTemporaryPassword(
         response.temporaryPassword,
@@ -115,6 +152,8 @@ function UsersPage() {
 
       await loadUsers()
     } catch (err) {
+      setUserToResetPassword(null)
+
       setError(
         err?.message ||
           'Não foi possível resetar a senha.',
@@ -122,22 +161,30 @@ function UsersPage() {
     }
   }
 
-  async function handleDeleteUser(user) {
-    const confirmed = window.confirm(
-      `Deseja realmente excluir o usuário "${user.username}"?`,
-    )
+  function handleDeleteUser(user) {
+    setUserToDelete(user)
+  }
 
-    if (!confirmed) {
+  function handleCancelDeleteUser() {
+    setUserToDelete(null)
+  }
+
+  async function handleConfirmDeleteUser() {
+    if (!userToDelete) {
       return
     }
 
     try {
       setError(null)
 
-      await deleteUser(user.id)
+      await deleteUser(userToDelete.id)
+
+      setUserToDelete(null)
 
       await loadUsers()
     } catch (err) {
+      setUserToDelete(null)
+
       setError(
         err?.message ||
           'Não foi possível excluir o usuário.',
@@ -183,6 +230,7 @@ function UsersPage() {
 
       {showForm && (
         <UserForm
+          key={selectedUser?.id ?? 'new'}
           user={selectedUser}
           saving={saving}
           onSave={handleSaveUser}
@@ -273,9 +321,7 @@ function UsersPage() {
                         <button
                           type="button"
                           onClick={() =>
-                            handleResetPassword(
-                              user,
-                            )
+                            handleResetPassword(user)
                           }
                         >
                           Resetar senha
@@ -299,6 +345,34 @@ function UsersPage() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={userToResetPassword !== null}
+        title="Resetar senha?"
+        message={
+          userToResetPassword
+            ? `A senha do usuário "${userToResetPassword.username}" será resetada e uma nova senha temporária será gerada.`
+            : ''
+        }
+        confirmLabel="Resetar senha"
+        cancelLabel="Cancelar"
+        onConfirm={handleConfirmResetPassword}
+        onCancel={handleCancelResetPassword}
+      />
+
+      <ConfirmDialog
+        open={userToDelete !== null}
+        title="Excluir usuário?"
+        message={
+          userToDelete
+            ? `O usuário "${userToDelete.username}" será removido permanentemente. Essa ação não pode ser desfeita.`
+            : ''
+        }
+        confirmLabel="Excluir"
+        cancelLabel="Cancelar"
+        onConfirm={handleConfirmDeleteUser}
+        onCancel={handleCancelDeleteUser}
+      />
 
       {temporaryPassword && (
         <TemporaryPasswordDialog

@@ -18,9 +18,7 @@ public class AuthService {
     public AuthService(
             JwtService jwtService,
             UserService userService,
-            @Value("${integration-hub.security.jwt.expiration-minutes}")
-            long expirationMinutes
-    ) {
+            @Value("${integration-hub.security.jwt.expiration-minutes}") long expirationMinutes) {
         this.jwtService = jwtService;
         this.userService = userService;
         this.expirationMinutes = expirationMinutes;
@@ -29,65 +27,69 @@ public class AuthService {
     public LoginResponse login(LoginRequest request) {
 
         User user = userService.findByUsername(
-                        request.username()
-                )
+                request.username())
                 .orElseThrow(
                         () -> new ResponseStatusException(
                                 HttpStatus.UNAUTHORIZED,
-                                "Usuário ou senha inválidos"
-                        )
-                );
+                                "Usuário ou senha inválidos"));
 
         if (!"A".equals(user.status())) {
             throw new ResponseStatusException(
                     HttpStatus.UNAUTHORIZED,
-                    "Usuário ou senha inválidos"
-            );
+                    "Usuário ou senha inválidos");
         }
 
-        boolean validPassword =
-                userService.passwordMatches(
-                        request.password(),
-                        user
-                );
+        boolean validPassword = userService.passwordMatches(
+                request.password(),
+                user);
 
         if (!validPassword) {
             throw new ResponseStatusException(
                     HttpStatus.UNAUTHORIZED,
-                    "Usuário ou senha inválidos"
-            );
+                    "Usuário ou senha inválidos");
         }
 
         String token = jwtService.generateToken(
                 user.username(),
                 request.environment(),
-                user.type()
-        );
+                user.type());
 
         return new LoginResponse(
                 token,
                 "Bearer",
                 expirationMinutes * 60,
-                "S".equals(user.passwordChangeRequired())
-        );
+                "S".equals(user.passwordChangeRequired()));
     }
 
     public void changePassword(
             String username,
-            String newPassword
-    ) {
+            String newPassword) {
 
         User user = userService.findByUsername(username)
                 .orElseThrow(
                         () -> new ResponseStatusException(
                                 HttpStatus.NOT_FOUND,
-                                "Usuário não encontrado"
-                        )
-                );
+                                "Usuário não encontrado"));
 
         userService.changePassword(
                 user.id(),
-                newPassword
-        );
+                newPassword);
+    }
+
+    public AuthenticatedUserResponse getAuthenticatedUser(
+            String username) {
+
+        User user = userService.findByUsername(username)
+                .orElseThrow(
+                        () -> new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Usuário não encontrado"));
+
+        return new AuthenticatedUserResponse(
+                user.id(),
+                user.username(),
+                user.name(),
+                user.email(),
+                user.type());
     }
 }

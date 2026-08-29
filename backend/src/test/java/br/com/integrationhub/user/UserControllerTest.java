@@ -215,6 +215,33 @@ class UserControllerTest {
     }
 
     @Test
+    void deveRejeitarCriacaoComEmailETipoInvalidos()
+            throws Exception {
+
+        mockAdminToken();
+
+        mockMvc.perform(
+                        post("/api/users")
+                                .header(
+                                        "Authorization",
+                                        "Bearer token-admin"
+                                )
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content("""
+                                        {
+                                          "username": "joao",
+                                          "name": "João",
+                                          "email": "email-invalido",
+                                          "type": "X"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void deveAtualizarUsuario() throws Exception {
 
         when(
@@ -266,6 +293,34 @@ class UserControllerTest {
                         jsonPath("$.type")
                                 .value("C")
                 );
+    }
+
+    @Test
+    void deveRejeitarAtualizacaoComSituacaoOuTipoInvalidos()
+            throws Exception {
+
+        mockAdminToken();
+
+        mockMvc.perform(
+                        put("/api/users/1")
+                                .header(
+                                        "Authorization",
+                                        "Bearer token-admin"
+                                )
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content("""
+                                        {
+                                          "username": "joao",
+                                          "name": "João",
+                                          "email": "joao@email.com",
+                                          "status": "X",
+                                          "type": "X"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isBadRequest());
     }
 
     @Test

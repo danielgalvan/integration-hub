@@ -386,6 +386,43 @@ class AuthServiceTest {
         );
     }
 
+    @Test
+    void deveRetornarDadosDoUsuarioAutenticado() {
+
+        User user = createUser(
+                "criador",
+                "A",
+                "C",
+                "N"
+        );
+
+        when(userService.findByUsername("criador"))
+                .thenReturn(Optional.of(user));
+
+        AuthenticatedUserResponse response =
+                authService.getAuthenticatedUser("criador");
+
+        assertEquals(1L, response.id());
+        assertEquals("criador", response.username());
+        assertEquals("Usuário Teste", response.name());
+        assertEquals("teste@email.com", response.email());
+        assertEquals("C", response.role());
+    }
+
+    @Test
+    void deveRetornarNotFoundAoBuscarUsuarioAutenticadoInexistente() {
+
+        when(userService.findByUsername("inexistente"))
+                .thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> authService.getAuthenticatedUser("inexistente")
+        );
+
+        assertEquals(404, exception.getStatusCode().value());
+    }
+
     private User createUser(
             String username,
             String status,

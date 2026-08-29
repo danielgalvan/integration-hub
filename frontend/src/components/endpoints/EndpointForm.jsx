@@ -250,27 +250,28 @@ function EndpointForm({
         </div>
 
         <div className="endpoint-form__field">
-          <label htmlFor="active">
+          <span className="endpoint-form__label">
             Status
+          </span>
+
+          <label className="endpoint-form__checkbox">
+            <input
+              id="active"
+              name="active"
+              type="checkbox"
+              checked={active === 'S'}
+              onChange={(event) =>
+                setActive(
+                  event.target.checked
+                    ? 'S'
+                    : 'N',
+                )
+              }
+              disabled={readOnly}
+            />
+
+            <span>Ativo</span>
           </label>
-
-          <select
-            id="active"
-            name="active"
-            value={active}
-            onChange={(event) =>
-              setActive(event.target.value)
-            }
-            disabled={readOnly}
-          >
-            <option value="S">
-              Ativo
-            </option>
-
-            <option value="N">
-              Inativo
-            </option>
-          </select>
         </div>
       </div>
 

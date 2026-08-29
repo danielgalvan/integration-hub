@@ -17,6 +17,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -278,6 +279,53 @@ class AuthControllerTest {
                 .andExpect(
                         status().isUnauthorized()
                 );
+    }
+
+    @Test
+    void deveRetornarDadosDoUsuarioAutenticado()
+            throws Exception {
+
+        when(jwtService.isTokenValid("token-valido"))
+                .thenReturn(true);
+
+        when(jwtService.getUsername("token-valido"))
+                .thenReturn("criador");
+
+        when(jwtService.getRole("token-valido"))
+                .thenReturn("C");
+
+        when(authService.getAuthenticatedUser("criador"))
+                .thenReturn(new AuthenticatedUserResponse(
+                        1L,
+                        "criador",
+                        "Criador Teste",
+                        "criador@example.com",
+                        "C"
+                ));
+
+        mockMvc.perform(
+                        get("/api/auth/me")
+                                .header(
+                                        "Authorization",
+                                        "Bearer token-valido"
+                                )
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.username").value("criador"))
+                .andExpect(jsonPath("$.name").value("Criador Teste"))
+                .andExpect(jsonPath("$.email").value("criador@example.com"))
+                .andExpect(jsonPath("$.role").value("C"));
+
+        verify(authService).getAuthenticatedUser("criador");
+    }
+
+    @Test
+    void deveRejeitarConsultaDoUsuarioAtualSemToken()
+            throws Exception {
+
+        mockMvc.perform(get("/api/auth/me"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

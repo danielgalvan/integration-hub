@@ -27,7 +27,8 @@ function LoginPage({ onLogin }) {
       })
     } catch (err) {
       setError(
-        err?.message || 'Não foi possível realizar o login.',
+        err?.message ||
+          'Não foi possível realizar o login.',
       )
     } finally {
       setLoading(false)
@@ -66,6 +67,7 @@ function LoginPage({ onLogin }) {
           <form
             className="login-page__form"
             onSubmit={handleSubmit}
+            autoComplete="off"
           >
             <div className="login-page__field">
               <label htmlFor="username">
@@ -74,9 +76,9 @@ function LoginPage({ onLogin }) {
 
               <input
                 id="username"
-                name="username"
+                name="ihub-username"
                 type="text"
-                autoComplete="username"
+                autoComplete="off"
                 value={username}
                 onChange={(event) =>
                   setUsername(event.target.value)
@@ -94,9 +96,9 @@ function LoginPage({ onLogin }) {
 
               <input
                 id="password"
-                name="password"
+                name="ihub-password"
                 type="password"
-                autoComplete="current-password"
+                autoComplete="new-password"
                 value={password}
                 onChange={(event) =>
                   setPassword(event.target.value)

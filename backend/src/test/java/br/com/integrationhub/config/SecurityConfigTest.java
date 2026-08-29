@@ -605,6 +605,30 @@ class SecurityConfigTest {
     }
 
     @Test
+    void deveExigirTokenParaConsultarUsuarioAtual()
+            throws Exception {
+
+        mockMvc.perform(get("/api/auth/me"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void devePermitirPerfilConsumidorConsultarUsuarioAtual()
+            throws Exception {
+
+        mockToken("token-consumidor", "consumidor", "U");
+
+        mockMvc.perform(
+                        get("/api/auth/me")
+                                .header(
+                                        "Authorization",
+                                        "Bearer token-consumidor"
+                                )
+                )
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void devePermitirAdministradorECriadorCriarIntegration()
             throws Exception {
 

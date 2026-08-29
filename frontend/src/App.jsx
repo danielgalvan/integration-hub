@@ -13,6 +13,7 @@ import LoginPage from './pages/LoginPage'
 import UsersPage from './pages/UsersPage'
 import {
   changePassword,
+  getAuthenticatedUser,
   login,
 } from './services/authService'
 import {
@@ -38,6 +39,8 @@ function App() {
     () => getEnvironment(),
   )
 
+  const [user, setUser] = useState(null)
+
   const [
     passwordChangeRequired,
     setPasswordChangeRequiredState,
@@ -61,6 +64,7 @@ function App() {
     setToken(null)
     setRole(null)
     setEnvironment(null)
+    setUser(null)
 
     setPasswordChangeRequiredState(false)
 
@@ -85,6 +89,28 @@ function App() {
       )
     }
   }, [clearSession])
+
+  useEffect(() => {
+    if (!token || passwordChangeRequired) {
+      return
+    }
+
+    async function loadAuthenticatedUser() {
+      try {
+        const authenticatedUser =
+          await getAuthenticatedUser()
+
+        setUser(authenticatedUser)
+      } catch {
+        setUser(null)
+      }
+    }
+
+    loadAuthenticatedUser()
+  }, [
+    token,
+    passwordChangeRequired,
+  ])
 
   async function handleLogin(credentials) {
     const response = await login(
@@ -112,6 +138,7 @@ function App() {
       response.passwordChangeRequired,
     )
 
+    setUser(null)
     setSelectedIntegration(null)
     setCurrentPage('integrations')
   }
@@ -184,6 +211,7 @@ function App() {
 
       <div className="app__content">
         <Header
+          user={user}
           onLogout={handleLogout}
         />
 

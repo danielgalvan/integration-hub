@@ -70,4 +70,20 @@ describe('EndpointForm', () => {
       parameters: [{ name: 'id', type: 'NUMBER', required: true }],
     }))
   })
+
+  it('envia endpoint inativo quando o status é desmarcado', () => {
+    const onSubmit = vi.fn()
+
+    render(<EndpointForm integrationId={7} onCancel={vi.fn()} onSubmit={onSubmit} />)
+    fillRequiredFields()
+    fireEvent.change(screen.getByLabelText('SQL'), {
+      target: { value: 'select id from cliente' },
+    })
+    fireEvent.click(screen.getByLabelText('Ativo'))
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar endpoint' }))
+
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+      active: 'N',
+    }))
+  })
 })

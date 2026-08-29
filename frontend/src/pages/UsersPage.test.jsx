@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import UsersPage from './UsersPage'
 
@@ -42,7 +42,6 @@ describe('UsersPage', () => {
   })
 
   it('reseta a senha e apresenta a nova senha temporária', async () => {
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
     userService.getUsers.mockResolvedValue([
       {
         id: 1,
@@ -64,17 +63,23 @@ describe('UsersPage', () => {
       screen.getByRole('button', { name: 'Resetar senha' }),
     )
 
+    const dialog = screen.getByRole('dialog')
+    expect(dialog).toHaveTextContent('resetada')
+    fireEvent.click(
+      within(dialog).getByRole('button', {
+        name: 'Resetar senha',
+      }),
+    )
+
     await waitFor(() => expect(
       userService.resetUserPassword,
     ).toHaveBeenCalledWith(1))
     expect(
       await screen.findByText('Senha: NovaSenha123'),
     ).toBeInTheDocument()
-    confirm.mockRestore()
   })
 
   it('exclui o usuário após confirmação', async () => {
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
     userService.getUsers.mockResolvedValue([
       {
         id: 1,
@@ -94,9 +99,42 @@ describe('UsersPage', () => {
       screen.getByRole('button', { name: 'Excluir' }),
     )
 
+    const dialog = screen.getByRole('dialog')
+    expect(dialog).toHaveTextContent('removido permanentemente')
+    fireEvent.click(
+      within(dialog).getByRole('button', {
+        name: 'Excluir',
+      }),
+    )
+
     await waitFor(() => expect(
       userService.deleteUser,
     ).toHaveBeenCalledWith(1))
-    confirm.mockRestore()
+  })
+
+  it('não executa a exclusão ao cancelar a confirmação', async () => {
+    userService.getUsers.mockResolvedValue([
+      {
+        id: 1,
+        username: 'admin',
+        name: 'Admin',
+        email: null,
+        type: 'A',
+        status: 'A',
+        passwordChangeRequired: false,
+      },
+    ])
+
+    render(<UsersPage />)
+    await screen.findByText('admin')
+    fireEvent.click(screen.getByRole('button', { name: 'Excluir' }))
+    fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {
+        name: 'Cancelar',
+      }),
+    )
+
+    expect(userService.deleteUser).not.toHaveBeenCalled()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })

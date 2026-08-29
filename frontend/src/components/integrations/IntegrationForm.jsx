@@ -104,27 +104,28 @@ function IntegrationForm({
       </div>
 
       <div className="integration-form__field">
-        <label htmlFor="active">
+        <span className="integration-form__label">
           Status
+        </span>
+
+        <label className="integration-form__checkbox">
+          <input
+            id="active"
+            name="active"
+            type="checkbox"
+            checked={active === 'S'}
+            onChange={(event) =>
+              setActive(
+                event.target.checked
+                  ? 'S'
+                  : 'N',
+              )
+            }
+            disabled={readOnly}
+          />
+
+          <span>Ativa</span>
         </label>
-
-        <select
-          id="active"
-          name="active"
-          value={active}
-          onChange={(event) =>
-            setActive(event.target.value)
-          }
-          disabled={readOnly}
-        >
-          <option value="S">
-            Ativa
-          </option>
-
-          <option value="N">
-            Inativa
-          </option>
-        </select>
       </div>
 
       <div className="integration-form__actions">

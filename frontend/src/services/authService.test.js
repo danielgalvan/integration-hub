@@ -1,5 +1,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { changePassword, login } from './authService'
+
+const api = vi.hoisted(() => ({
+  apiFetch: vi.fn(),
+}))
+
+vi.mock('../utils/api', () => api)
+
+import {
+  changePassword,
+  getAuthenticatedUser,
+  login,
+} from './authService'
 
 function response(body, options = {}) {
   return {
@@ -119,5 +130,26 @@ describe('authService', () => {
     await expect(
       changePassword('jwt-token', 'nova-senha'),
     ).rejects.toThrow('Sua sessão expirou. Faça login novamente.')
+  })
+
+  it('consulta os dados do usuário autenticado', async () => {
+    api.apiFetch.mockResolvedValue(
+      response({ username: 'criador', role: 'C' }),
+    )
+
+    await expect(getAuthenticatedUser()).resolves.toEqual({
+      username: 'criador',
+      role: 'C',
+    })
+
+    expect(api.apiFetch).toHaveBeenCalledWith('/api/auth/me')
+  })
+
+  it('informa erro quando não consegue consultar o usuário autenticado', async () => {
+    api.apiFetch.mockResolvedValue(response(null, { ok: false }))
+
+    await expect(getAuthenticatedUser()).rejects.toThrow(
+      'Não foi possível carregar os dados do usuário.',
+    )
   })
 })

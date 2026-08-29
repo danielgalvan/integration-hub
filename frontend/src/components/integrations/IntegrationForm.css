@@ -92,3 +92,35 @@
 .integration-form__field select:disabled {
   opacity: 1;
 }
+
+.integration-form__label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.integration-form__checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  cursor: pointer;
+}
+
+.integration-form__checkbox input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.integration-form__checkbox span {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.integration-form__checkbox input:disabled,
+.integration-form__checkbox:has(input:disabled) {
+  cursor: default;
+}
