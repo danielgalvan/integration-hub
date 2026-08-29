@@ -18,203 +18,210 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 public class SecurityConfig {
 
-        private final JwtService jwtService;
+    private final JwtService jwtService;
 
-        public SecurityConfig(JwtService jwtService) {
-                this.jwtService = jwtService;
-        }
+    public SecurityConfig(JwtService jwtService) {
+        this.jwtService = jwtService;
+    }
 
-        @Bean
-        public PasswordEncoder passwordEncoder() {
-                return new BCryptPasswordEncoder();
-        }
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 
-        @Bean
-        SecurityFilterChain securityFilterChain(
-                        HttpSecurity http) throws Exception {
+    @Bean
+    SecurityFilterChain securityFilterChain(
+            HttpSecurity http) throws Exception {
 
-                JwtAuthenticationFilter jwtAuthenticationFilter = new JwtAuthenticationFilter(jwtService);
+        JwtAuthenticationFilter jwtAuthenticationFilter = new JwtAuthenticationFilter(jwtService);
 
-                return http
-                                .csrf(csrf -> csrf.disable())
+        return http
+                .csrf(csrf -> csrf.disable())
 
-                                .sessionManagement(session -> session.sessionCreationPolicy(
-                                                SessionCreationPolicy.STATELESS))
+                .sessionManagement(session -> session.sessionCreationPolicy(
+                        SessionCreationPolicy.STATELESS))
 
-                                .exceptionHandling(exception -> exception
+                .exceptionHandling(exception -> exception
 
-                                                .authenticationEntryPoint(
-                                                                (request, response, authException) -> response
-                                                                                .setStatus(
-                                                                                                HttpServletResponse.SC_UNAUTHORIZED))
+                        .authenticationEntryPoint(
+                                (request, response, authException) -> response.setStatus(
+                                        HttpServletResponse.SC_UNAUTHORIZED))
 
-                                                .accessDeniedHandler(
-                                                                (request, response, accessDeniedException) -> response
-                                                                                .setStatus(
-                                                                                                HttpServletResponse.SC_FORBIDDEN)))
+                        .accessDeniedHandler(
+                                (request, response, accessDeniedException) -> response.setStatus(
+                                        HttpServletResponse.SC_FORBIDDEN)))
 
-                                .authorizeHttpRequests(authorize -> authorize
+                .authorizeHttpRequests(authorize -> authorize
 
-                                                /*
-                                                 * CORS / preflight
-                                                 */
-                                                .requestMatchers(
-                                                                HttpMethod.OPTIONS,
-                                                                "/**")
-                                                .permitAll()
+                        /*
+                         * CORS / preflight
+                         */
+                        .requestMatchers(
+                                HttpMethod.OPTIONS,
+                                "/**")
+                        .permitAll()
 
-                                                /*
-                                                 * Login público
-                                                 */
-                                                .requestMatchers(
-                                                                HttpMethod.POST,
-                                                                "/api/auth/login")
-                                                .permitAll()
+                        /*
+                         * Login público
+                         */
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/auth/login")
+                        .permitAll()
 
-                                                /*
-                                                 * Usuário autenticado atual
-                                                 *
-                                                 * Qualquer usuário autenticado.
-                                                 */
-                                                .requestMatchers(
-                                                                HttpMethod.GET,
-                                                                "/api/auth/me")
-                                                .authenticated()
+                        /*
+                         * Usuário autenticado atual
+                         *
+                         * Qualquer usuário autenticado.
+                         */
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/auth/me")
+                        .authenticated()
 
-                                                /*
-                                                 * Troca de senha
-                                                 *
-                                                 * Qualquer usuário autenticado.
-                                                 */
-                                                .requestMatchers(
-                                                                HttpMethod.PUT,
-                                                                "/api/auth/password")
-                                                .authenticated()
+                        /*
+                         * Troca de senha
+                         *
+                         * Qualquer usuário autenticado.
+                         */
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/auth/password")
+                        .authenticated()
 
-                                                /*
-                                                 * Health público
-                                                 */
-                                                .requestMatchers("/api/health")
-                                                .permitAll()
+                        /*
+                         * Health público
+                         */
+                        .requestMatchers(
+                                "/api/health")
+                        .permitAll()
 
-                                                /*
-                                                 * Documentação
-                                                 */
-                                                .requestMatchers(
-                                                                "/v3/api-docs/**",
-                                                                "/swagger-ui/**",
-                                                                "/swagger-ui.html")
-                                                .permitAll()
+                        /*
+                         * Documentação
+                         */
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html")
+                        .permitAll()
 
-                                                /*
-                                                 * Usuários
-                                                 *
-                                                 * Somente administrador.
-                                                 */
-                                                .requestMatchers("/api/users/**")
-                                                .hasRole("ADMIN")
+                        /*
+                         * Usuários
+                         *
+                         * Somente administrador.
+                         */
+                        .requestMatchers(
+                                "/api/users/**")
+                        .hasRole(
+                                "ADMIN")
 
-                                                /*
-                                                 * Integrações
-                                                 *
-                                                 * ADMIN / CREATOR:
-                                                 * CRUD completo
-                                                 *
-                                                 * CONSUMER:
-                                                 * somente leitura
-                                                 */
-                                                .requestMatchers(
-                                                                HttpMethod.GET,
-                                                                "/api/integrations/**")
-                                                .hasAnyRole(
-                                                                "ADMIN",
-                                                                "CREATOR",
-                                                                "CONSUMER")
+                        /*
+                         * Integrações
+                         *
+                         * ADMIN / CREATOR:
+                         * CRUD completo
+                         *
+                         * CONSUMER:
+                         * somente leitura
+                         */
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/integrations/**")
+                        .hasAnyRole(
+                                "ADMIN",
+                                "CREATOR",
+                                "CONSUMER")
 
-                                                .requestMatchers(
-                                                                HttpMethod.POST,
-                                                                "/api/integrations/**")
-                                                .hasAnyRole(
-                                                                "ADMIN",
-                                                                "CREATOR")
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/integrations/**")
+                        .hasAnyRole(
+                                "ADMIN",
+                                "CREATOR")
 
-                                                .requestMatchers(
-                                                                HttpMethod.PUT,
-                                                                "/api/integrations/**")
-                                                .hasAnyRole(
-                                                                "ADMIN",
-                                                                "CREATOR")
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/integrations/**")
+                        .hasAnyRole(
+                                "ADMIN",
+                                "CREATOR")
 
-                                                .requestMatchers(
-                                                                HttpMethod.DELETE,
-                                                                "/api/integrations/**")
-                                                .hasAnyRole(
-                                                                "ADMIN",
-                                                                "CREATOR")
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/api/integrations/**")
+                        .hasAnyRole(
+                                "ADMIN",
+                                "CREATOR")
 
-                                                /*
-                                                 * Endpoints
-                                                 *
-                                                 * ADMIN / CREATOR:
-                                                 * CRUD completo
-                                                 *
-                                                 * CONSUMER:
-                                                 * somente leitura
-                                                 */
-                                                .requestMatchers(
-                                                                HttpMethod.GET,
-                                                                "/api/endpoints/**")
-                                                .hasAnyRole(
-                                                                "ADMIN",
-                                                                "CREATOR",
-                                                                "CONSUMER")
+                        /*
+                         * Endpoints administrativos
+                         *
+                         * ADMIN / CREATOR:
+                         * CRUD completo
+                         *
+                         * CONSUMER:
+                         * somente leitura
+                         */
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/endpoints/**")
+                        .hasAnyRole(
+                                "ADMIN",
+                                "CREATOR",
+                                "CONSUMER")
 
-                                                .requestMatchers(
-                                                                HttpMethod.POST,
-                                                                "/api/endpoints/**")
-                                                .hasAnyRole(
-                                                                "ADMIN",
-                                                                "CREATOR")
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/endpoints/**")
+                        .hasAnyRole(
+                                "ADMIN",
+                                "CREATOR")
 
-                                                .requestMatchers(
-                                                                HttpMethod.PUT,
-                                                                "/api/endpoints/**")
-                                                .hasAnyRole(
-                                                                "ADMIN",
-                                                                "CREATOR")
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/endpoints/**")
+                        .hasAnyRole(
+                                "ADMIN",
+                                "CREATOR")
 
-                                                .requestMatchers(
-                                                                HttpMethod.DELETE,
-                                                                "/api/endpoints/**")
-                                                .hasAnyRole(
-                                                                "ADMIN",
-                                                                "CREATOR")
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/api/endpoints/**")
+                        .hasAnyRole(
+                                "ADMIN",
+                                "CREATOR")
 
-                                                /*
-                                                 * Endpoints dinâmicos.
-                                                 *
-                                                 * Todos os perfis autenticados
-                                                 * podem executar/testar.
-                                                 */
-                                                .requestMatchers(
-                                                                HttpMethod.GET,
-                                                                "/api/**")
-                                                .hasAnyRole(
-                                                                "ADMIN",
-                                                                "CREATOR",
-                                                                "CONSUMER")
+                        /*
+                         * Endpoints dinâmicos.
+                         *
+                         * A autenticação é definida
+                         * pela própria integração.
+                         *
+                         * NONE:
+                         * acesso sem autenticação.
+                         *
+                         * API_KEY:
+                         * exige X-API-Key.
+                         *
+                         * A validação da API Key é feita
+                         * no DynamicEndpointController.
+                         */
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/**")
+                        .permitAll()
 
-                                                /*
-                                                 * Qualquer outra rota exige
-                                                 * autenticação.
-                                                 */
-                                                .anyRequest()
-                                                .authenticated())
+                        /*
+                         * Qualquer outra rota
+                         * exige autenticação.
+                         */
+                        .anyRequest()
+                        .authenticated())
 
-                                .addFilterBefore(
-                                                jwtAuthenticationFilter,
-                                                UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(
+                        jwtAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class)
 
-                                .build();
-        }
+                .build();
+    }
 }

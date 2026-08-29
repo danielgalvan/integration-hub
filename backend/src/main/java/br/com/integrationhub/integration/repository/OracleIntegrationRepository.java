@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -33,6 +34,9 @@ public class OracleIntegrationRepository implements IntegrationRepository {
                     description,
                     base_path,
                     active,
+                    auth_type,
+                    api_key_hash,
+                    api_key_created_at,
                     created_by,
                     created_at,
                     updated_by,
@@ -44,8 +48,7 @@ public class OracleIntegrationRepository implements IntegrationRepository {
         return jdbcTemplate.query(
                 sql,
                 Map.of(),
-                (rs, rowNum) -> mapRow(rs)
-        );
+                (rs, rowNum) -> mapRow(rs));
     }
 
     @Override
@@ -58,6 +61,9 @@ public class OracleIntegrationRepository implements IntegrationRepository {
                     description,
                     base_path,
                     active,
+                    auth_type,
+                    api_key_hash,
+                    api_key_created_at,
                     created_by,
                     created_at,
                     updated_by,
@@ -69,14 +75,14 @@ public class OracleIntegrationRepository implements IntegrationRepository {
         List<Integration> results = jdbcTemplate.query(
                 sql,
                 Map.of("id", id),
-                (rs, rowNum) -> mapRow(rs)
-        );
+                (rs, rowNum) -> mapRow(rs));
 
         return results.stream().findFirst();
     }
 
     @Override
-    public Optional<Integration> findByBasePath(String basePath) {
+    public Optional<Integration> findByBasePath(
+            String basePath) {
 
         String sql = """
                 select
@@ -85,6 +91,9 @@ public class OracleIntegrationRepository implements IntegrationRepository {
                     description,
                     base_path,
                     active,
+                    auth_type,
+                    api_key_hash,
+                    api_key_created_at,
                     created_by,
                     created_at,
                     updated_by,
@@ -96,8 +105,7 @@ public class OracleIntegrationRepository implements IntegrationRepository {
         List<Integration> results = jdbcTemplate.query(
                 sql,
                 Map.of("basePath", basePath),
-                (rs, rowNum) -> mapRow(rs)
-        );
+                (rs, rowNum) -> mapRow(rs));
 
         return results.stream().findFirst();
     }
@@ -113,6 +121,9 @@ public class OracleIntegrationRepository implements IntegrationRepository {
                     description,
                     base_path,
                     active,
+                    auth_type,
+                    api_key_hash,
+                    api_key_created_at,
                     created_by,
                     created_at,
                     updated_by,
@@ -134,20 +145,19 @@ public class OracleIntegrationRepository implements IntegrationRepository {
         List<Integration> results = jdbcTemplate.query(
                 sql,
                 Map.of("requestPath", requestPath),
-                (rs, rowNum) -> mapRow(rs)
-        );
+                (rs, rowNum) -> mapRow(rs));
 
         return results.stream().findFirst();
     }
 
     @Override
-    public Integration save(Integration integration) {
+    public Integration save(
+            Integration integration) {
 
         Long id = jdbcTemplate.queryForObject(
                 "select ih_integration_seq.nextval from dual",
                 Map.of(),
-                Long.class
-        );
+                Long.class);
 
         String sql = """
                 insert into ih_integration (
@@ -156,6 +166,7 @@ public class OracleIntegrationRepository implements IntegrationRepository {
                     description,
                     base_path,
                     active,
+                    auth_type,
                     created_by
                 ) values (
                     :id,
@@ -163,35 +174,43 @@ public class OracleIntegrationRepository implements IntegrationRepository {
                     :description,
                     :basePath,
                     :active,
+                    :authType,
                     :createdBy
                 )
                 """;
 
         MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("id", id)
-                .addValue("name", integration.getName())
+                .addValue(
+                        "id",
+                        id)
+                .addValue(
+                        "name",
+                        integration.getName())
                 .addValue(
                         "description",
-                        integration.getDescription()
-                )
+                        integration.getDescription())
                 .addValue(
                         "basePath",
-                        integration.getBasePath()
-                )
+                        integration.getBasePath())
                 .addValue(
                         "active",
                         integration.getActive() == null
                                 ? "S"
-                                : integration.getActive()
-                )
+                                : integration.getActive())
+                .addValue(
+                        "authType",
+                        integration.getAuthType() == null
+                                ? "NONE"
+                                : integration.getAuthType())
                 .addValue(
                         "createdBy",
                         integration.getCreatedBy() == null
                                 ? "SYSTEM"
-                                : integration.getCreatedBy()
-                );
+                                : integration.getCreatedBy());
 
-        jdbcTemplate.update(sql, params);
+        jdbcTemplate.update(
+                sql,
+                params);
 
         integration.setId(id);
 
@@ -210,41 +229,48 @@ public class OracleIntegrationRepository implements IntegrationRepository {
                        description = :description,
                        base_path = :basePath,
                        active = :active,
+                       auth_type = :authType,
                        updated_by = :updatedBy,
                        updated_at = systimestamp
                  where id = :id
                 """;
 
         MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("id", id)
-                .addValue("name", integration.getName())
+                .addValue(
+                        "id",
+                        id)
+                .addValue(
+                        "name",
+                        integration.getName())
                 .addValue(
                         "description",
-                        integration.getDescription()
-                )
+                        integration.getDescription())
                 .addValue(
                         "basePath",
-                        integration.getBasePath()
-                )
+                        integration.getBasePath())
                 .addValue(
                         "active",
                         integration.getActive() == null
                                 ? "S"
-                                : integration.getActive()
-                )
+                                : integration.getActive())
+                .addValue(
+                        "authType",
+                        integration.getAuthType() == null
+                                ? "NONE"
+                                : integration.getAuthType())
                 .addValue(
                         "updatedBy",
                         integration.getUpdatedBy() == null
                                 ? "SYSTEM"
-                                : integration.getUpdatedBy()
-                );
+                                : integration.getUpdatedBy());
 
-        int rows = jdbcTemplate.update(sql, params);
+        int rows = jdbcTemplate.update(
+                sql,
+                params);
 
         if (rows == 0) {
             throw new IllegalArgumentException(
-                    "Integração não encontrada: " + id
-            );
+                    "Integração não encontrada: " + id);
         }
 
         return findById(id)
@@ -261,58 +287,113 @@ public class OracleIntegrationRepository implements IntegrationRepository {
 
         int rows = jdbcTemplate.update(
                 sql,
-                Map.of("id", id)
-        );
+                Map.of("id", id));
 
         if (rows == 0) {
             throw new IllegalArgumentException(
-                    "Integração não encontrada: " + id
-            );
+                    "Integração não encontrada: " + id);
         }
     }
 
-    private Integration mapRow(ResultSet rs)
-            throws SQLException {
+    private Integration mapRow(
+            ResultSet rs) throws SQLException {
 
         Integration integration = new Integration();
 
-        integration.setId(rs.getLong("id"));
-        integration.setName(rs.getString("name"));
-        integration.setDescription(
-                rs.getString("description")
-        );
-        integration.setBasePath(
-                rs.getString("base_path")
-        );
-        integration.setActive(
-                rs.getString("active")
-        );
-        integration.setCreatedBy(
-                rs.getString("created_by")
-        );
+        integration.setId(
+                rs.getLong("id"));
 
-        Timestamp createdAt =
-                rs.getTimestamp("created_at");
+        integration.setName(
+                rs.getString("name"));
+
+        integration.setDescription(
+                rs.getString("description"));
+
+        integration.setBasePath(
+                rs.getString("base_path"));
+
+        integration.setActive(
+                rs.getString("active"));
+
+        integration.setAuthType(
+                rs.getString("auth_type"));
+
+        integration.setApiKeyHash(
+                rs.getString("api_key_hash"));
+
+        Timestamp apiKeyCreatedAt = rs.getTimestamp(
+                "api_key_created_at");
+
+        if (apiKeyCreatedAt != null) {
+            integration.setApiKeyCreatedAt(
+                    apiKeyCreatedAt.toLocalDateTime());
+        }
+
+        integration.setCreatedBy(
+                rs.getString("created_by"));
+
+        Timestamp createdAt = rs.getTimestamp("created_at");
 
         if (createdAt != null) {
             integration.setCreatedAt(
-                    createdAt.toLocalDateTime()
-            );
+                    createdAt.toLocalDateTime());
         }
 
         integration.setUpdatedBy(
-                rs.getString("updated_by")
-        );
+                rs.getString("updated_by"));
 
-        Timestamp updatedAt =
-                rs.getTimestamp("updated_at");
+        Timestamp updatedAt = rs.getTimestamp("updated_at");
 
         if (updatedAt != null) {
             integration.setUpdatedAt(
-                    updatedAt.toLocalDateTime()
-            );
+                    updatedAt.toLocalDateTime());
         }
 
         return integration;
     }
+
+    @Override
+public Integration updateApiKey(
+        Long id,
+        String apiKeyHash,
+        LocalDateTime apiKeyCreatedAt
+) {
+
+    String sql = """
+            update ih_integration
+               set api_key_hash = :apiKeyHash,
+                   api_key_created_at = :apiKeyCreatedAt,
+                   updated_at = systimestamp
+             where id = :id
+            """;
+
+    MapSqlParameterSource params =
+            new MapSqlParameterSource()
+                    .addValue(
+                            "id",
+                            id
+                    )
+                    .addValue(
+                            "apiKeyHash",
+                            apiKeyHash
+                    )
+                    .addValue(
+                            "apiKeyCreatedAt",
+                            apiKeyCreatedAt
+                    );
+
+    int rows = jdbcTemplate.update(
+            sql,
+            params
+    );
+
+    if (rows == 0) {
+        throw new IllegalArgumentException(
+                "Integração não encontrada: " + id
+        );
+    }
+
+    return findById(id)
+            .orElseThrow();
+}
 }

@@ -4,6 +4,11 @@ create table ih_integration (
     description varchar2(500),
     base_path varchar2(200) not null,
     active char(1) default 'S' not null,
+
+    auth_type varchar2(20) default 'NONE' not null,
+    api_key_hash varchar2(100),
+    api_key_created_at timestamp,
+
     created_by varchar2(100) default 'SYSTEM' not null,
     created_at timestamp default current_timestamp not null,
     updated_by varchar2(100),
@@ -16,7 +21,10 @@ create table ih_integration (
         unique (base_path),
 
     constraint ck_ih_integration_active
-        check (active in ('S', 'N'))
+        check (active in ('S', 'N')),
+
+    constraint ck_ih_integration_auth_type
+        check (auth_type in ('NONE', 'API_KEY'))
 );
 
 create sequence ih_integration_seq

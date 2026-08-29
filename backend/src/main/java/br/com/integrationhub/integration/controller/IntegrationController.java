@@ -1,5 +1,6 @@
 package br.com.integrationhub.integration.controller;
 
+import br.com.integrationhub.integration.model.ApiKeyResponse;
 import br.com.integrationhub.integration.model.Integration;
 import br.com.integrationhub.integration.service.IntegrationService;
 import jakarta.validation.Valid;
@@ -38,8 +39,7 @@ public class IntegrationController {
     public ResponseEntity<Integration> save(
             @Valid @RequestBody Integration integration) {
 
-        Integration saved =
-                integrationService.save(integration);
+        Integration saved = integrationService.save(integration);
 
         return ResponseEntity.ok(saved);
     }
@@ -49,10 +49,20 @@ public class IntegrationController {
             @PathVariable("id") Long id,
             @Valid @RequestBody Integration integration) {
 
-        Integration updated =
-                integrationService.update(id, integration);
+        Integration updated = integrationService.update(
+                id,
+                integration);
 
         return ResponseEntity.ok(updated);
+    }
+
+    @PostMapping("/{id}/api-key")
+    public ResponseEntity<ApiKeyResponse> generateApiKey(
+            @PathVariable("id") Long id) {
+
+        ApiKeyResponse response = integrationService.generateApiKey(id);
+
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")

@@ -7,7 +7,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -165,7 +167,61 @@ class OracleIntegrationRepositoryTest {
                 normalizeSql(sql).contains(
                         "fetch first 1 row only"
                 )
+                );
+    }
+
+    @Test
+    void devePersistirHashEDataAoAtualizarApiKey() {
+
+        LocalDateTime createdAt = LocalDateTime.of(
+                2026,
+                8,
+                29,
+                16,
+                0
         );
+
+        Integration integration = createIntegration(
+                8L,
+                "Pedidos",
+                "/api/pedidos",
+                "S"
+        );
+
+        when(jdbcTemplate.update(
+                anyString(),
+                ArgumentMatchers.any(MapSqlParameterSource.class)
+        )).thenReturn(1);
+
+        when(jdbcTemplate.query(
+                anyString(),
+                ArgumentMatchers.<Map<String, ?>>any(),
+                ArgumentMatchers.<RowMapper<Integration>>any()
+        )).thenReturn(List.of(integration));
+
+        repository.updateApiKey(
+                8L,
+                "hash-da-chave",
+                createdAt
+        );
+
+        ArgumentCaptor<String> sqlCaptor =
+                ArgumentCaptor.forClass(String.class);
+
+        ArgumentCaptor<MapSqlParameterSource> paramsCaptor =
+                ArgumentCaptor.forClass(MapSqlParameterSource.class);
+
+        verify(jdbcTemplate).update(
+                sqlCaptor.capture(),
+                paramsCaptor.capture()
+        );
+
+        assertTrue(normalizeSql(sqlCaptor.getValue()).contains(
+                "set api_key_hash = :apikeyhash"
+        ));
+        assertEquals(8L, paramsCaptor.getValue().getValue("id"));
+        assertEquals("hash-da-chave", paramsCaptor.getValue().getValue("apiKeyHash"));
+        assertEquals(createdAt, paramsCaptor.getValue().getValue("apiKeyCreatedAt"));
     }
 
     private String captureSql(String requestPath) {

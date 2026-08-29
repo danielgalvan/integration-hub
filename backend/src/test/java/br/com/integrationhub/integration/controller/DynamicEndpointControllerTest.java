@@ -24,6 +24,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -440,6 +441,90 @@ class DynamicEndpointControllerTest {
                         jsonPath("$.message")
                                 .value("Método HTTP não suportado")
                 );
+    }
+
+    @Test
+    void deveExigirApiKeyQuandoIntegrationUsaEsseTipoDeAutenticacao()
+            throws Exception {
+
+        Integration integration = createIntegration();
+        integration.setAuthType("API_KEY");
+
+        when(integrationService.findBestMatchByRequestPath(
+                "/api/pedidos/buscar"
+        )).thenReturn(Optional.of(integration));
+
+        mockMvc.perform(get("/api/pedidos/buscar"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message")
+                        .value("API Key não informada"));
+
+        verify(endpointService, never())
+                .findByIntegrationIdAndPathAndMethod(
+                        org.mockito.ArgumentMatchers.anyLong(),
+                        ArgumentMatchers.anyString(),
+                        ArgumentMatchers.anyString());
+    }
+
+    @Test
+    void deveRejeitarApiKeyInvalida()
+            throws Exception {
+
+        Integration integration = createIntegration();
+        integration.setAuthType("API_KEY");
+
+        when(integrationService.findBestMatchByRequestPath(
+                "/api/pedidos/buscar"
+        )).thenReturn(Optional.of(integration));
+
+        when(integrationService.validateApiKey(
+                integration,
+                "chave-invalida"
+        )).thenReturn(false);
+
+        mockMvc.perform(
+                        get("/api/pedidos/buscar")
+                                .header("X-API-Key", "chave-invalida")
+                )
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message")
+                        .value("API Key inválida"));
+    }
+
+    @Test
+    void deveExecutarEndpointComApiKeyValida()
+            throws Exception {
+
+        Integration integration = createIntegration();
+        integration.setAuthType("API_KEY");
+        Endpoint endpoint = createEndpoint();
+
+        when(integrationService.findBestMatchByRequestPath(
+                "/api/pedidos/buscar"
+        )).thenReturn(Optional.of(integration));
+
+        when(integrationService.validateApiKey(
+                integration,
+                "ihub_chave_valida"
+        )).thenReturn(true);
+
+        when(endpointService.findByIntegrationIdAndPathAndMethod(
+                8L,
+                "/buscar",
+                "GET"
+        )).thenReturn(Optional.of(endpoint));
+
+        when(dynamicEndpointService.executeGet(
+                eq(endpoint),
+                ArgumentMatchers.<Map<String, String>>any()
+        )).thenReturn(List.of(Map.of("ID", 1)));
+
+        mockMvc.perform(
+                        get("/api/pedidos/buscar")
+                                .header("X-API-Key", "ihub_chave_valida")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].ID").value(1));
     }
 
     private Integration createIntegration() {

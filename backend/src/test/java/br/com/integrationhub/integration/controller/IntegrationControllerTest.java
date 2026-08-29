@@ -1,6 +1,7 @@
 package br.com.integrationhub.integration.controller;
 
 import br.com.integrationhub.integration.model.Integration;
+import br.com.integrationhub.integration.model.ApiKeyResponse;
 import br.com.integrationhub.integration.service.IntegrationService;
 import br.com.integrationhub.security.JwtService;
 import org.junit.jupiter.api.Test;
@@ -16,6 +17,7 @@ import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -127,5 +129,19 @@ class IntegrationControllerTest {
                                 )
                 )
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void deveGerarApiKeyDaIntegracao() throws Exception {
+
+        when(integrationService.generateApiKey(1L))
+                .thenReturn(new ApiKeyResponse("ihub_chave_teste"));
+
+        mockMvc.perform(post("/api/integrations/1/api-key"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.apiKey")
+                        .value("ihub_chave_teste"));
+
+        verify(integrationService).generateApiKey(1L);
     }
 }

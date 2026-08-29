@@ -706,11 +706,15 @@ class SecurityConfigTest {
     }
 
     @Test
-    void deveExigirTokenParaEndpointDinamico()
+    void devePermitirEndpointDinamicoSemToken()
             throws Exception {
 
+        when(
+                integrationService.findBestMatchByRequestPath(any())
+        ).thenReturn(Optional.empty());
+
         mockMvc.perform(get("/api/clientes/buscar"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isNotFound());
     }
 
     @Test
