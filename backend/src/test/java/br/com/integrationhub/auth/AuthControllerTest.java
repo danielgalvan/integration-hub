@@ -1,8 +1,10 @@
 package br.com.integrationhub.auth;
 
 import br.com.integrationhub.config.SecurityConfig;
+import br.com.integrationhub.config.DataSourceProperties;
 import br.com.integrationhub.security.JwtService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -33,6 +35,18 @@ class AuthControllerTest {
 
     @MockitoBean
     private JwtService jwtService;
+
+    @MockitoBean
+    private DataSourceProperties dataSourceProperties;
+
+    @BeforeEach
+    void setUp() {
+        when(dataSourceProperties.getConnection("dev"))
+                .thenReturn(
+                        new DataSourceProperties.ConnectionProperties());
+        when(jwtService.getEnvironment("token-valido"))
+                .thenReturn("dev");
+    }
 
     @Test
     void deveRealizarLoginSemTrocaObrigatoriaDeSenha()
@@ -279,6 +293,26 @@ class AuthControllerTest {
                 .andExpect(
                         status().isUnauthorized()
                 );
+    }
+
+    @Test
+    void deveRejeitarLoginComAmbienteNaoConfigurado()
+            throws Exception {
+
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "username": "admin",
+                                          "password": "admin",
+                                          "environment": "inexistente"
+                                        }
+                                        """)
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message")
+                        .value("Ambiente inválido"));
     }
 
     @Test

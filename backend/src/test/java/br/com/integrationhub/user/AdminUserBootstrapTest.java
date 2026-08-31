@@ -1,8 +1,11 @@
 package br.com.integrationhub.user;
 
+import br.com.integrationhub.config.DataSourceProperties;
 import br.com.integrationhub.user.bootstrap.AdminUserBootstrap;
 import br.com.integrationhub.user.service.UserService;
 import org.junit.jupiter.api.Test;
+
+import java.util.Map;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -51,8 +54,16 @@ class AdminUserBootstrapTest {
     private AdminUserBootstrap createBootstrap(
             UserService userService
     ) {
+        DataSourceProperties dataSourceProperties =
+                new DataSourceProperties();
+        dataSourceProperties.setConnections(Map.of(
+                "test",
+                new DataSourceProperties.ConnectionProperties()
+        ));
+
         return new AdminUserBootstrap(
                 userService,
+                dataSourceProperties,
                 "admin",
                 "Administrador",
                 "admin@example.com",

@@ -1,5 +1,7 @@
 package br.com.integrationhub.security;
 
+import br.com.integrationhub.config.DataSourceProperties;
+import br.com.integrationhub.config.EnvironmentContext;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -14,10 +16,12 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.mock;
 
 class JwtAuthenticationFilterTest {
 
     private JwtService jwtService;
+    private DataSourceProperties dataSourceProperties;
     private JwtAuthenticationFilter filter;
     private HttpServletRequest request;
     private HttpServletResponse response;
@@ -26,16 +30,21 @@ class JwtAuthenticationFilterTest {
     @BeforeEach
     void setUp() {
         jwtService = Mockito.mock(JwtService.class);
-        filter = new JwtAuthenticationFilter(jwtService);
+        dataSourceProperties = Mockito.mock(DataSourceProperties.class);
+        filter = new JwtAuthenticationFilter(
+                jwtService,
+                dataSourceProperties);
         request = Mockito.mock(HttpServletRequest.class);
         response = Mockito.mock(HttpServletResponse.class);
         filterChain = Mockito.mock(FilterChain.class);
         SecurityContextHolder.clearContext();
+        EnvironmentContext.clear();
     }
 
     @AfterEach
     void tearDown() {
         SecurityContextHolder.clearContext();
+        EnvironmentContext.clear();
     }
 
     @Test
@@ -68,6 +77,8 @@ class JwtAuthenticationFilterTest {
 
         when(jwtService.getRole("token-valido"))
                 .thenReturn("A");
+
+        mockConfiguredEnvironment();
 
         filter.doFilter(request, response, filterChain);
 
@@ -108,6 +119,8 @@ class JwtAuthenticationFilterTest {
         when(jwtService.getRole("token-valido"))
                 .thenReturn("C");
 
+        mockConfiguredEnvironment();
+
         filter.doFilter(request, response, filterChain);
 
         var authentication =
@@ -146,6 +159,8 @@ class JwtAuthenticationFilterTest {
 
         when(jwtService.getRole("token-valido"))
                 .thenReturn("U");
+
+        mockConfiguredEnvironment();
 
         filter.doFilter(request, response, filterChain);
 
@@ -225,6 +240,8 @@ class JwtAuthenticationFilterTest {
         when(jwtService.getRole("token-valido"))
                 .thenReturn("X");
 
+        mockConfiguredEnvironment();
+
         assertThrows(
                 IllegalArgumentException.class,
                 () -> filter.doFilter(
@@ -233,5 +250,30 @@ class JwtAuthenticationFilterTest {
                         filterChain
                 )
         );
+    }
+
+    @Test
+    void naoDeveAutenticarTokenDeAmbienteNaoConfigurado()
+            throws Exception {
+
+        when(request.getHeader("Authorization"))
+                .thenReturn("Bearer token-valido");
+        when(jwtService.isTokenValid("token-valido"))
+                .thenReturn(true);
+        when(jwtService.getEnvironment("token-valido"))
+                .thenReturn("inexistente");
+
+        filter.doFilter(request, response, filterChain);
+
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
+        assertNull(EnvironmentContext.get());
+        verify(filterChain).doFilter(request, response);
+    }
+
+    private void mockConfiguredEnvironment() {
+        when(jwtService.getEnvironment("token-valido"))
+                .thenReturn("dev");
+        when(dataSourceProperties.getConnection("dev"))
+                .thenReturn(mock(DataSourceProperties.ConnectionProperties.class));
     }
 }

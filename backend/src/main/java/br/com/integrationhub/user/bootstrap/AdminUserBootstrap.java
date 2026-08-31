@@ -1,5 +1,7 @@
 package br.com.integrationhub.user.bootstrap;
 
+import br.com.integrationhub.config.DataSourceProperties;
+import br.com.integrationhub.config.EnvironmentContext;
 import br.com.integrationhub.user.service.UserService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
@@ -14,6 +16,8 @@ import org.springframework.stereotype.Component;
 public class AdminUserBootstrap implements CommandLineRunner {
 
     private final UserService userService;
+    private final DataSourceProperties dataSourceProperties;
+
     private final String username;
     private final String name;
     private final String email;
@@ -21,6 +25,7 @@ public class AdminUserBootstrap implements CommandLineRunner {
 
     public AdminUserBootstrap(
             UserService userService,
+            DataSourceProperties dataSourceProperties,
 
             @Value("${integration-hub.bootstrap.admin.username}")
             String username,
@@ -35,6 +40,8 @@ public class AdminUserBootstrap implements CommandLineRunner {
             String password
     ) {
         this.userService = userService;
+        this.dataSourceProperties = dataSourceProperties;
+
         this.username = username;
         this.name = name;
         this.email = email;
@@ -44,17 +51,33 @@ public class AdminUserBootstrap implements CommandLineRunner {
     @Override
     public void run(String... args) {
 
-        if (userService.count() > 0) {
-            return;
-        }
+        dataSourceProperties
+                .getConnections()
+                .keySet()
+                .forEach(this::bootstrapEnvironment);
+    }
 
-        userService.create(
-                username,
-                name,
-                email,
-                password,
-                "A",
-                "A"
-        );
+    private void bootstrapEnvironment(
+            String environment) {
+
+        try {
+            EnvironmentContext.set(environment);
+
+            if (userService.count() > 0) {
+                return;
+            }
+
+            userService.create(
+                    username,
+                    name,
+                    email,
+                    password,
+                    "A",
+                    "A"
+            );
+
+        } finally {
+            EnvironmentContext.clear();
+        }
     }
 }

@@ -2,20 +2,6 @@ spring:
   application:
     name: integration-hub
 
-  datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
-    driver-class-name: oracle.jdbc.OracleDriver
-
-    hikari:
-      pool-name: IntegrationHubPool
-      minimum-idle: 1
-      maximum-pool-size: 5
-      connection-timeout: 30000
-      idle-timeout: 600000
-      max-lifetime: 1800000
-
 server:
   port: 8081
 
@@ -34,10 +20,14 @@ integration-hub:
     max-results: ${DYNAMIC_MAX_RESULTS:1000}
 
   security:
-    admin:
-      username: ${ADMIN_USERNAME}
-      password: ${ADMIN_PASSWORD}
-
     jwt:
       secret: ${JWT_SECRET}
       expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
+
+  bootstrap:
+    admin:
+      enabled: ${BOOTSTRAP_ADMIN_ENABLED:false}
+      username: ${BOOTSTRAP_ADMIN_USERNAME:admin}
+      name: ${BOOTSTRAP_ADMIN_NAME:Administrador}
+      email: ${BOOTSTRAP_ADMIN_EMAIL:}
+      password: ${BOOTSTRAP_ADMIN_PASSWORD:}

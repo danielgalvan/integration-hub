@@ -1,6 +1,7 @@
 package br.com.integrationhub.user;
 
 import br.com.integrationhub.config.SecurityConfig;
+import br.com.integrationhub.config.DataSourceProperties;
 import br.com.integrationhub.security.JwtService;
 import br.com.integrationhub.user.controller.UserController;
 import br.com.integrationhub.user.dto.UserCreateRequest;
@@ -45,6 +46,9 @@ class UserControllerTest {
 
     @MockitoBean
     private JwtService jwtService;
+
+    @MockitoBean
+    private DataSourceProperties dataSourceProperties;
 
     @Test
     void deveListarUsuarios() throws Exception {
@@ -378,6 +382,13 @@ class UserControllerTest {
 
         when(jwtService.getRole("token-admin"))
                 .thenReturn("A");
+
+        when(jwtService.getEnvironment("token-admin"))
+                .thenReturn("test");
+
+        when(dataSourceProperties.getConnection("test"))
+                .thenReturn(
+                        new DataSourceProperties.ConnectionProperties());
     }
 
     private User createUser() {

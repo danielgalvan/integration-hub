@@ -15,6 +15,7 @@ import br.com.integrationhub.service.DatabaseHealthService;
 import br.com.integrationhub.user.controller.UserController;
 import br.com.integrationhub.user.service.UserService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -37,6 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         EndpointController.class,
         DynamicEndpointController.class,
         HealthController.class,
+        EnvironmentController.class,
         AuthController.class,
         UserController.class
 })
@@ -59,6 +61,9 @@ class SecurityConfigTest {
     private JwtService jwtService;
 
     @MockitoBean
+    private DataSourceProperties dataSourceProperties;
+
+    @MockitoBean
     private DatabaseHealthService databaseHealthService;
 
     @MockitoBean
@@ -66,6 +71,13 @@ class SecurityConfigTest {
 
     @MockitoBean
     private UserService userService;
+
+    @BeforeEach
+    void setUp() {
+        when(dataSourceProperties.getConnection("dev"))
+                .thenReturn(
+                        new DataSourceProperties.ConnectionProperties());
+    }
 
     @Test
     void devePermitirHealthSemToken() throws Exception {
@@ -605,6 +617,14 @@ class SecurityConfigTest {
     }
 
     @Test
+    void devePermitirListagemDeAmbientesSemToken()
+            throws Exception {
+
+        mockMvc.perform(get("/api/environments"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void deveExigirTokenParaConsultarUsuarioAtual()
             throws Exception {
 
@@ -757,5 +777,12 @@ class SecurityConfigTest {
         when(
                 jwtService.getRole(token)
         ).thenReturn(role);
+
+        when(jwtService.getEnvironment(token))
+                .thenReturn("dev");
+
+        when(dataSourceProperties.getConnection("dev"))
+                .thenReturn(
+                        new DataSourceProperties.ConnectionProperties());
     }
 }
