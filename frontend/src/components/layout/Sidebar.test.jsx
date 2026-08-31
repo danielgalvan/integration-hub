@@ -56,4 +56,15 @@ describe('Sidebar', () => {
       screen.queryByRole('button', { name: /Users/ }),
     ).not.toBeInTheDocument()
   })
+
+  it('traduz os identificadores de ambiente retornados pela API', () => {
+    render(
+      <Sidebar
+        environment="cloud"
+        onOpenIntegrations={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('Oracle Cloud')).toBeInTheDocument()
+  })
 })

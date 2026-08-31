@@ -1,18 +1,50 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { getEnvironments } from '../services/environmentService'
 import './LoginPage.css'
 
 function LoginPage({ onLogin }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [environment, setEnvironment] = useState('DEVELOPMENT')
+  const [environment, setEnvironment] = useState('')
+  const [environments, setEnvironments] = useState([])
+  const [loadingEnvironments, setLoadingEnvironments] =
+    useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+
+  useEffect(() => {
+    async function loadEnvironments() {
+      try {
+        const data = await getEnvironments()
+
+        setEnvironments(data)
+
+        if (data.length > 0) {
+          setEnvironment(data[0].id)
+        }
+      } catch (err) {
+        setError(
+          err?.message ||
+            'Não foi possível carregar os ambientes.',
+        )
+      } finally {
+        setLoadingEnvironments(false)
+      }
+    }
+
+    loadEnvironments()
+  }, [])
 
   async function handleSubmit(event) {
     event.preventDefault()
 
     if (!username.trim() || !password) {
       setError('Informe usuário e senha.')
+      return
+    }
+
+    if (!environment) {
+      setError('Selecione um ambiente.')
       return
     }
 
@@ -34,6 +66,9 @@ function LoginPage({ onLogin }) {
       setLoading(false)
     }
   }
+
+  const formDisabled =
+    loading || loadingEnvironments
 
   return (
     <div className="login-page">
@@ -84,7 +119,7 @@ function LoginPage({ onLogin }) {
                   setUsername(event.target.value)
                 }
                 placeholder="Digite seu usuário"
-                disabled={loading}
+                disabled={formDisabled}
                 autoFocus
               />
             </div>
@@ -104,7 +139,7 @@ function LoginPage({ onLogin }) {
                   setPassword(event.target.value)
                 }
                 placeholder="Digite sua senha"
-                disabled={loading}
+                disabled={formDisabled}
               />
             </div>
 
@@ -120,15 +155,29 @@ function LoginPage({ onLogin }) {
                 onChange={(event) =>
                   setEnvironment(event.target.value)
                 }
-                disabled={loading}
+                disabled={formDisabled}
               >
-                <option value="DEVELOPMENT">
-                  Desenvolvimento
-                </option>
+                {loadingEnvironments && (
+                  <option value="">
+                    Carregando ambientes...
+                  </option>
+                )}
 
-                <option value="HOMOLOGATION">
-                  Homologação
-                </option>
+                {!loadingEnvironments &&
+                  environments.length === 0 && (
+                    <option value="">
+                      Nenhum ambiente disponível
+                    </option>
+                  )}
+
+                {environments.map((item) => (
+                  <option
+                    key={item.id}
+                    value={item.id}
+                  >
+                    {item.name}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -144,7 +193,9 @@ function LoginPage({ onLogin }) {
             <button
               className="login-page__button"
               type="submit"
-              disabled={loading}
+              disabled={
+                formDisabled || !environment
+              }
             >
               {loading
                 ? 'Entrando...'

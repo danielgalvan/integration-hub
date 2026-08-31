@@ -11,6 +11,7 @@ function Sidebar({
   function getEnvironmentLabel() {
     switch (environment) {
       case 'DEVELOPMENT':
+      case 'development':
         return 'Desenvolvimento'
 
       case 'HOMOLOGATION':
@@ -18,6 +19,9 @@ function Sidebar({
 
       case 'PRODUCTION':
         return 'Produção'
+
+      case 'cloud':
+        return 'Oracle Cloud'
 
       default:
         return environment || 'Ambiente'
