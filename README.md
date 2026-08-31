@@ -187,6 +187,7 @@ integration-hub/
 │   │   │   │
 │   │   │   └── resources/
 │   │   │       ├── application.yml
+│   │   │       ├── application-local.example.yml
 │   │   │       └── application-local.yml
 │   │   │
 │   │   └── test/
@@ -1211,135 +1212,143 @@ Esses valores poderão ser ajustados posteriormente conforme o volume de requisi
 
 ---
 
-# Configuração do banco
+# Configuração dos ambientes
 
-A aplicação suporta configurações diferentes conforme o ambiente de execução.
+O Integration Hub suporta múltiplas conexões Oracle configuradas no backend. Os ambientes disponíveis são carregados dinamicamente pela tela de login, portanto os identificadores e nomes das conexões não ficam fixos no frontend.
 
-## Configuração padrão
+A rota pública abaixo informa os ambientes configurados:
 
-As informações de conexão podem ser fornecidas através das seguintes variáveis de ambiente:
+```http
+GET /api/environments
+```
+
+Exemplo de resposta:
+
+```json
+[
+  {
+    "id": "development",
+    "name": "Desenvolvimento Local"
+  },
+  {
+    "id": "cloud",
+    "name": "Oracle Cloud"
+  }
+]
+```
+
+O campo `id` identifica internamente a conexão e o campo `name` é o nome apresentado ao usuário na tela de login e na Sidebar.
+
+Os nomes `development` e `cloud` são apenas exemplos. Outras instalações podem utilizar identificadores como `homologacao`, `producao` ou qualquer outra nomenclatura adequada ao ambiente.
+
+## Configuração local
+
+O repositório fornece:
 
 ```text
-DB_URL
-DB_USERNAME
-DB_PASSWORD
+backend/src/main/resources/application-local.example.yml
 ```
 
-Exemplo Linux:
+Copie-o para:
 
-```bash
-export DB_URL='jdbc:oracle:thin:@//HOST:1521/SERVICE'
-export DB_USERNAME='USUARIO'
-export DB_PASSWORD='SENHA'
+```text
+backend/src/main/resources/application-local.yml
 ```
 
-Exemplo PowerShell:
+No PowerShell:
 
 ```powershell
-$env:DB_URL="jdbc:oracle:thin:@//HOST:1521/SERVICE"
-$env:DB_USERNAME="USUARIO"
-$env:DB_PASSWORD="SENHA"
+Copy-Item backend/src/main/resources/application-local.example.yml backend/src/main/resources/application-local.yml
 ```
 
-Nenhuma credencial real deve ser adicionada ao repositório.
+O `application-local.yml` está no `.gitignore` e **não deve ser versionado**.
 
----
-
-## Configuração principal
-
-O arquivo:
-
-```text
-backend/src/main/resources/application.yml
-```
-
-centraliza as configurações compartilhadas da aplicação.
-
-Estrutura atual:
+Cada conexão é declarada em `integration-hub.datasource.connections`:
 
 ```yaml
-spring:
-  application:
-    name: integration-hub
-
-  datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
-    driver-class-name: oracle.jdbc.OracleDriver
-
-    hikari:
-      pool-name: IntegrationHubPool
-      minimum-idle: 1
-      maximum-pool-size: 5
-      connection-timeout: 30000
-      idle-timeout: 600000
-      max-lifetime: 1800000
-
-server:
-  port: 8081
-
 integration-hub:
-  dynamic:
-    max-results: ${DYNAMIC_MAX_RESULTS:1000}
+  datasource:
+    connections:
+      development:
+        name: Desenvolvimento Local
+        url: jdbc:oracle:thin:@//localhost:1521/freepdb1
+        username: seu_usuario
+        password: sua_senha
+
+      cloud:
+        name: Oracle Cloud
+        url: jdbc:oracle:thin:@ihub_high?TNS_ADMIN=C:/caminho/para/wallet
+        username: seu_usuario_cloud
+        password: sua_senha_cloud
 
   security:
-    admin:
-      username: ${ADMIN_USERNAME}
-      password: ${ADMIN_PASSWORD}
-
     jwt:
-      secret: ${JWT_SECRET}
-      expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
-```
-
-Dessa forma, configurações sensíveis podem ser fornecidas externamente em ambientes de execução.
-
----
-
-# Profile local
-
-Para desenvolvimento local pode ser utilizado:
-
-```text
-application-local.yml
-```
-
-Estrutura:
-
-```yaml
-spring:
-  datasource:
-    url: jdbc:oracle:thin:@//HOST:1521/SERVICE
-    username: USUARIO
-    password: SENHA
-
-integration-hub:
-  security:
-    admin:
-      username: admin
-      password: '$2a$10$HASH_BCRYPT'
-
-    jwt:
-      secret: SEGREDO_JWT
+      secret: SUA_CHAVE_JWT
       expiration-minutes: 60
+
+  bootstrap:
+    admin:
+      enabled: true
+      username: admin
+      name: Administrador
+      email: ''
+      password: altere_esta_senha
 ```
 
-O campo:
+Não adicione ao arquivo de exemplo credenciais reais, endereço privado da máquina de desenvolvimento, caminho pessoal da Wallet ou segredo JWT utilizado por uma instalação real.
+
+## Oracle Cloud e Wallet
+
+Uma conexão Oracle Autonomous Database pode utilizar Oracle Wallet:
+
+```yaml
+cloud:
+  name: Oracle Cloud
+  url: jdbc:oracle:thin:@ihub_high?TNS_ADMIN=C:/caminho/para/wallet
+  username: seu_usuario_cloud
+  password: sua_senha_cloud
+```
+
+O diretório informado em `TNS_ADMIN` deve apontar para a Wallet disponível na máquina que executa o backend.
+
+## Seleção da conexão no login
 
 ```text
-integration-hub.security.admin.password
+Tela de login
+    │
+    ├── usuário
+    ├── senha
+    └── ambiente
+         │
+         ▼
+POST /api/auth/login
+         │
+         ▼
+seleção do DataSource
+         │
+         ▼
+Oracle selecionado
+         │
+         ▼
+validação do usuário
+         │
+         ▼
+JWT
 ```
 
-deve conter o hash BCrypt, e não a senha em texto puro.
+Exemplo:
 
-O profile deve ser ativado através de `local`.
+```json
+{
+  "username": "admin",
+  "password": "senha",
+  "environment": "development"
+}
+```
 
-O arquivo local permite executar o projeto sem precisar definir manualmente as variáveis de ambiente a cada nova sessão do terminal.
+O ambiente selecionado é associado à sessão para que as chamadas autenticadas seguintes continuem utilizando a mesma conexão.
 
-O `application-local.yml` é ignorado pelo Git.
-
-Credenciais reais, hashes e informações específicas da máquina de desenvolvimento não devem ser versionadas.
+Isso permite que uma única instância do backend trabalhe, por exemplo, com uma VM Oracle e um Oracle Autonomous Database sem manter essa escolha fixa no frontend.
 
 ---
 
@@ -1708,7 +1717,8 @@ Requisição:
 ```json
 {
   "username": "admin",
-  "password": "senha"
+  "password": "senha",
+  "environment": "development"
 }
 ```
 
