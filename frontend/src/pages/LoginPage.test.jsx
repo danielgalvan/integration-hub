@@ -80,6 +80,7 @@ describe('LoginPage', () => {
       username: 'admin',
       password: 'senha',
       environment: 'development',
+      environmentName: 'Desenvolvimento Local',
     }))
   })
 
@@ -102,6 +103,7 @@ describe('LoginPage', () => {
       username: 'admin',
       password: 'senha',
       environment: 'cloud',
+      environmentName: 'Oracle Cloud',
     }))
   })
 

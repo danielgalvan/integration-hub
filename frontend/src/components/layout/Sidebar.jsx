@@ -1,32 +1,13 @@
+import packageJson from '../../../package.json'
 import './Sidebar.css'
 
 function Sidebar({
   role,
-  environment,
+  environmentName,
   onOpenIntegrations,
   onOpenUsers,
 }) {
   const isAdmin = role === 'A'
-
-  function getEnvironmentLabel() {
-    switch (environment) {
-      case 'DEVELOPMENT':
-      case 'development':
-        return 'Desenvolvimento'
-
-      case 'HOMOLOGATION':
-        return 'Homologação'
-
-      case 'PRODUCTION':
-        return 'Produção'
-
-      case 'cloud':
-        return 'Oracle Cloud'
-
-      default:
-        return environment || 'Ambiente'
-    }
-  }
 
   return (
     <aside className="sidebar">
@@ -71,11 +52,11 @@ function Sidebar({
 
         <div>
           <div className="sidebar__environment">
-            {getEnvironmentLabel()}
+            {environmentName || 'Ambiente'}
           </div>
 
           <div className="sidebar__version">
-            Integration Hub v1
+            Integration Hub v{packageJson.version}
           </div>
         </div>
       </div>

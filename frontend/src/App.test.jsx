@@ -6,14 +6,14 @@ const authService = vi.hoisted(() => ({
   changePassword: vi.fn(), getAuthenticatedUser: vi.fn(), login: vi.fn(),
 }))
 const authStorage = vi.hoisted(() => ({
-  clearAuth: vi.fn(), getEnvironment: vi.fn(), getRole: vi.fn(), getToken: vi.fn(),
+  clearAuth: vi.fn(), getEnvironment: vi.fn(), getEnvironmentName: vi.fn(), getRole: vi.fn(), getToken: vi.fn(),
   isPasswordChangeRequired: vi.fn(), saveAuth: vi.fn(), setPasswordChangeRequired: vi.fn(),
 }))
 
 vi.mock('./services/authService', () => authService)
 vi.mock('./utils/authStorage', () => authStorage)
 vi.mock('./pages/LoginPage', () => ({
-  default: ({ onLogin }) => <button type="button" onClick={() => onLogin({ username: 'admin', password: 'senha', environment: 'DEVELOPMENT' })}>Fazer login</button>,
+  default: ({ onLogin }) => <button type="button" onClick={() => onLogin({ username: 'admin', password: 'senha', environment: 'development', environmentName: 'Desenvolvimento Local' })}>Fazer login</button>,
 }))
 vi.mock('./pages/ChangePasswordPage', () => ({
   default: ({ onChangePassword }) => <button type="button" onClick={() => onChangePassword('nova-senha')}>Alterar senha obrigatória</button>,
@@ -22,7 +22,10 @@ vi.mock('./components/layout/Header', () => ({
   default: ({ onLogout }) => <button type="button" onClick={onLogout}>Sair</button>,
 }))
 vi.mock('./components/layout/Sidebar', () => ({
-  default: ({ onOpenUsers }) => <button type="button" onClick={onOpenUsers}>Usuários</button>,
+  default: ({ environmentName, onOpenUsers }) => <>
+    <span>{environmentName}</span>
+    <button type="button" onClick={onOpenUsers}>Usuários</button>
+  </>,
 }))
 vi.mock('./pages/IntegrationsPage', () => ({ default: () => <div>Integrações protegidas</div> }))
 vi.mock('./pages/EndpointsPage', () => ({ default: () => <div>Endpoints protegidos</div> }))
@@ -34,6 +37,7 @@ describe('App', () => {
     authStorage.getToken.mockReturnValue(null)
     authStorage.getRole.mockReturnValue(null)
     authStorage.getEnvironment.mockReturnValue(null)
+    authStorage.getEnvironmentName.mockReturnValue(null)
     authStorage.isPasswordChangeRequired.mockReturnValue(false)
     authService.getAuthenticatedUser.mockResolvedValue({
       name: 'Administrador',
@@ -47,9 +51,20 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Fazer login' }))
 
     await waitFor(() => expect(authStorage.saveAuth).toHaveBeenCalledWith({
-      token: 'header.eyJyb2xlIjoiQSJ9.signature', role: 'A', environment: 'DEVELOPMENT', passwordChangeRequired: false,
+      token: 'header.eyJyb2xlIjoiQSJ9.signature', role: 'A', environment: 'development', environmentName: 'Desenvolvimento Local', passwordChangeRequired: false,
     }))
     expect(await screen.findByText('Integrações protegidas')).toBeInTheDocument()
+    expect(screen.getByText('Desenvolvimento Local')).toBeInTheDocument()
+  })
+
+  it('restaura o nome do ambiente salvo na sessão', () => {
+    authStorage.getToken.mockReturnValue('jwt-token')
+    authStorage.getEnvironment.mockReturnValue('cloud')
+    authStorage.getEnvironmentName.mockReturnValue('Oracle Cloud')
+
+    render(<App />)
+
+    expect(screen.getByText('Oracle Cloud')).toBeInTheDocument()
   })
 
   it('exige a troca de senha quando indicada no login', async () => {

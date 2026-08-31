@@ -48,6 +48,16 @@ function LoginPage({ onLogin }) {
       return
     }
 
+    const selectedEnvironment =
+      environments.find(
+        (item) => item.id === environment,
+      )
+
+    if (!selectedEnvironment) {
+      setError('Ambiente inválido.')
+      return
+    }
+
     try {
       setLoading(true)
       setError(null)
@@ -55,7 +65,8 @@ function LoginPage({ onLogin }) {
       await onLogin({
         username: username.trim(),
         password,
-        environment,
+        environment: selectedEnvironment.id,
+        environmentName: selectedEnvironment.name,
       })
     } catch (err) {
       setError(

@@ -19,6 +19,7 @@ import {
 import {
   clearAuth,
   getEnvironment,
+  getEnvironmentName,
   getRole,
   getToken,
   isPasswordChangeRequired,
@@ -37,6 +38,13 @@ function App() {
 
   const [environment, setEnvironment] = useState(
     () => getEnvironment(),
+  )
+
+  const [
+    environmentName,
+    setEnvironmentName,
+  ] = useState(
+    () => getEnvironmentName(),
   )
 
   const [user, setUser] = useState(null)
@@ -64,6 +72,7 @@ function App() {
     setToken(null)
     setRole(null)
     setEnvironment(null)
+    setEnvironmentName(null)
     setUser(null)
 
     setPasswordChangeRequiredState(false)
@@ -126,6 +135,8 @@ function App() {
       token: response.token,
       role: tokenRole,
       environment: credentials.environment,
+      environmentName:
+        credentials.environmentName,
       passwordChangeRequired:
         response.passwordChangeRequired,
     })
@@ -133,6 +144,9 @@ function App() {
     setToken(response.token)
     setRole(tokenRole)
     setEnvironment(credentials.environment)
+    setEnvironmentName(
+      credentials.environmentName,
+    )
 
     setPasswordChangeRequiredState(
       response.passwordChangeRequired,
@@ -202,7 +216,7 @@ function App() {
     <div className="app">
       <Sidebar
         role={role}
-        environment={environment}
+        environmentName={environmentName}
         onOpenIntegrations={
           handleBackToIntegrations
         }

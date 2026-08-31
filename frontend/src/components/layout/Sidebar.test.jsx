@@ -6,20 +6,34 @@ describe('Sidebar', () => {
   it('abre a tela de integrações ao clicar em Integrações', () => {
     const onOpenIntegrations = vi.fn()
 
-    render(<Sidebar onOpenIntegrations={onOpenIntegrations} />)
-
-    fireEvent.click(
-      screen.getByRole('button', { name: /Integrações/ }),
+    render(
+      <Sidebar
+        onOpenIntegrations={onOpenIntegrations}
+      />,
     )
 
-    expect(onOpenIntegrations).toHaveBeenCalledOnce()
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Integrações/,
+      }),
+    )
+
+    expect(
+      onOpenIntegrations,
+    ).toHaveBeenCalledOnce()
   })
 
   it('não exibe um item de endpoints na navegação lateral', () => {
-    render(<Sidebar onOpenIntegrations={vi.fn()} />)
+    render(
+      <Sidebar
+        onOpenIntegrations={vi.fn()}
+      />,
+    )
 
     expect(
-      screen.queryByRole('button', { name: 'Endpoints' }),
+      screen.queryByRole('button', {
+        name: 'Endpoints',
+      }),
     ).not.toBeInTheDocument()
   })
 
@@ -29,18 +43,27 @@ describe('Sidebar', () => {
     render(
       <Sidebar
         role="A"
-        environment="HOMOLOGATION"
+        environmentName="Ambiente de Homologação"
         onOpenIntegrations={vi.fn()}
         onOpenUsers={onOpenUsers}
       />,
     )
 
     fireEvent.click(
-      screen.getByRole('button', { name: /Users/ }),
+      screen.getByRole('button', {
+        name: /Users/,
+      }),
     )
 
-    expect(onOpenUsers).toHaveBeenCalledOnce()
-    expect(screen.getByText('Homologação')).toBeInTheDocument()
+    expect(
+      onOpenUsers,
+    ).toHaveBeenCalledOnce()
+
+    expect(
+      screen.getByText(
+        'Ambiente de Homologação',
+      ),
+    ).toBeInTheDocument()
   })
 
   it('oculta a administração de usuários para consumidor', () => {
@@ -53,18 +76,22 @@ describe('Sidebar', () => {
     )
 
     expect(
-      screen.queryByRole('button', { name: /Users/ }),
+      screen.queryByRole('button', {
+        name: /Users/,
+      }),
     ).not.toBeInTheDocument()
   })
 
-  it('traduz os identificadores de ambiente retornados pela API', () => {
+  it('exibe diretamente o nome do ambiente recebido', () => {
     render(
       <Sidebar
-        environment="cloud"
+        environmentName="Oracle Cloud"
         onOpenIntegrations={vi.fn()}
       />,
     )
 
-    expect(screen.getByText('Oracle Cloud')).toBeInTheDocument()
+    expect(
+      screen.getByText('Oracle Cloud'),
+    ).toBeInTheDocument()
   })
 })
