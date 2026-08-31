@@ -1,0 +1,27 @@
+integration-hub:
+  datasource:
+    connections:
+      development:
+        name: Desenvolvimento Local
+        url: jdbc:oracle:thin:@//localhost:1521/freepdb1
+        username: seu_usuario
+        password: sua_senha
+
+      cloud:
+        name: Oracle Cloud
+        url: jdbc:oracle:thin:@ihub_high?TNS_ADMIN=C:/caminho/para/wallet
+        username: seu_usuario_cloud
+        password: sua_senha_cloud
+
+  security:
+    jwt:
+      secret: SUA_CHAVE_JWT
+      expiration-minutes: 60
+
+  bootstrap:
+    admin:
+      enabled: true
+      username: admin
+      name: Administrador
+      email: ''
+      password: altere_esta_senha

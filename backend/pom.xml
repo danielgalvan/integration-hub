@@ -14,7 +14,7 @@
 
 	<groupId>br.com.integrationhub</groupId>
 	<artifactId>backend</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0.0</version>
 	<name>Integration Hub</name>
 	<description>Integration Hub Backend</description>
 
