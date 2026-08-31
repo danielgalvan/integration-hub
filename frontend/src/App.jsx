@@ -18,7 +18,6 @@ import {
 } from './services/authService'
 import {
   clearAuth,
-  getEnvironment,
   getEnvironmentName,
   getRole,
   getToken,
@@ -34,10 +33,6 @@ function App() {
 
   const [role, setRole] = useState(
     () => getRole(),
-  )
-
-  const [environment, setEnvironment] = useState(
-    () => getEnvironment(),
   )
 
   const [
@@ -71,7 +66,6 @@ function App() {
 
     setToken(null)
     setRole(null)
-    setEnvironment(null)
     setEnvironmentName(null)
     setUser(null)
 
@@ -143,7 +137,6 @@ function App() {
 
     setToken(response.token)
     setRole(tokenRole)
-    setEnvironment(credentials.environment)
     setEnvironmentName(
       credentials.environmentName,
     )
