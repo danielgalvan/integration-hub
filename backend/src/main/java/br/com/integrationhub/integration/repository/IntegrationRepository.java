@@ -12,8 +12,6 @@ public interface IntegrationRepository {
 
     Optional<Integration> findById(Long id);
 
-    Optional<Integration> findByBasePath(String basePath);
-
     Optional<Integration> findBestMatchByRequestPath(
             String requestPath);
 

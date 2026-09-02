@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import './EndpointsPage.css'
 import ConfirmDialog from '../components/common/ConfirmDialog'
 import MessageDialog from '../components/common/MessageDialog'
@@ -37,7 +37,7 @@ function EndpointsPage({
   const canEdit =
     role === 'A' || role === 'C'
 
-  async function loadEndpoints() {
+  const loadEndpoints = useCallback(async () => {
     if (!integration) {
       setEndpoints([])
       setLoading(false)
@@ -59,35 +59,15 @@ function EndpointsPage({
     } finally {
       setLoading(false)
     }
-  }
+  }, [integration])
 
   useEffect(() => {
     async function load() {
-      if (!integration) {
-        setEndpoints([])
-        setLoading(false)
-        return
-      }
-
-      try {
-        setLoading(true)
-        setError(null)
-
-        const data =
-          await getEndpointsByIntegration(
-            integration.id,
-          )
-
-        setEndpoints(data)
-      } catch (err) {
-        setError(err.message)
-      } finally {
-        setLoading(false)
-      }
+      await loadEndpoints()
     }
 
     load()
-  }, [integration])
+  }, [loadEndpoints])
 
   function handleOpenForm() {
     if (!canEdit) {

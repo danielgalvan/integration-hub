@@ -1,36 +1,5 @@
 import { apiFetch } from '../utils/api'
 
-export async function getEndpoints() {
-  const response = await apiFetch('/api/endpoints')
-
-  if (!response.ok) {
-    throw new Error(
-      'Não foi possível carregar os endpoints.',
-    )
-  }
-
-  return response.json()
-}
-
-export async function getEndpointById(id) {
-  const response = await apiFetch(
-    `/api/endpoints/${id}`,
-  )
-
-  if (!response.ok) {
-    const error = await response
-      .json()
-      .catch(() => null)
-
-    throw new Error(
-      error?.message ||
-        'Não foi possível carregar o endpoint.',
-    )
-  }
-
-  return response.json()
-}
-
 export async function getEndpointsByIntegration(
   integrationId,
 ) {

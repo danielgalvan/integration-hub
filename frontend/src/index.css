@@ -1,3 +1,15 @@
+:root {
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-text: #0f172a;
+  --color-muted: #64748b;
+  --color-surface: #ffffff;
+  --color-page: #f8fafc;
+  --color-border: #e2e8f0;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -17,8 +29,8 @@ body {
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
-  background: #f8fafc;
-  color: #0f172a;
+  background: var(--color-page);
+  color: var(--color-text);
 }
 
 button,

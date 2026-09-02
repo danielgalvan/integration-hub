@@ -81,36 +81,6 @@ public class OracleIntegrationRepository implements IntegrationRepository {
     }
 
     @Override
-    public Optional<Integration> findByBasePath(
-            String basePath) {
-
-        String sql = """
-                select
-                    id,
-                    name,
-                    description,
-                    base_path,
-                    active,
-                    auth_type,
-                    api_key_hash,
-                    api_key_created_at,
-                    created_by,
-                    created_at,
-                    updated_by,
-                    updated_at
-                from ih_integration
-                where base_path = :basePath
-                """;
-
-        List<Integration> results = jdbcTemplate.query(
-                sql,
-                Map.of("basePath", basePath),
-                (rs, rowNum) -> mapRow(rs));
-
-        return results.stream().findFirst();
-    }
-
-    @Override
     public Optional<Integration> findBestMatchByRequestPath(
             String requestPath) {
 

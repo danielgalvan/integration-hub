@@ -56,18 +56,6 @@ export async function getUsers() {
   return handleResponse(response)
 }
 
-export async function getUser(id) {
-  const response = await fetch(
-    `${API_URL}/api/users/${id}`,
-    {
-      method: 'GET',
-      headers: getHeaders(),
-    },
-  )
-
-  return handleResponse(response)
-}
-
 export async function createUser(user) {
   const response = await fetch(
     `${API_URL}/api/users`,

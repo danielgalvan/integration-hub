@@ -36,13 +36,6 @@ public class IntegrationService {
         return integrationRepository.findById(id);
     }
 
-    public Optional<Integration> findByBasePath(
-            String basePath) {
-
-        return integrationRepository.findByBasePath(
-                basePath);
-    }
-
     public Optional<Integration> findBestMatchByRequestPath(
             String requestPath) {
 

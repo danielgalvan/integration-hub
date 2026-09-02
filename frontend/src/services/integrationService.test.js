@@ -3,6 +3,8 @@ import {
   createIntegration,
   deleteIntegration,
   generateIntegrationApiKey,
+  getIntegrations,
+  updateIntegration,
 } from './integrationService'
 
 function response(body, options = {}) {
@@ -25,6 +27,30 @@ describe('integrationService', () => {
     expect(fetch).toHaveBeenCalledWith(
       '/api/integrations',
       expect.objectContaining({ method: 'POST', body: JSON.stringify(integration) }),
+    )
+  })
+
+  it('lista e atualiza integrações', async () => {
+    const fetch = vi.fn()
+      .mockResolvedValueOnce(response([{ id: 8 }]))
+      .mockResolvedValueOnce(response({ id: 8 }))
+    vi.stubGlobal('fetch', fetch)
+
+    await expect(getIntegrations()).resolves.toEqual([{ id: 8 }])
+    await updateIntegration(8, { name: 'Pedidos' })
+
+    expect(fetch).toHaveBeenNthCalledWith(
+      1,
+      '/api/integrations',
+      expect.objectContaining({ headers: {} }),
+    )
+    expect(fetch).toHaveBeenNthCalledWith(
+      2,
+      '/api/integrations/8',
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({ name: 'Pedidos' }),
+      }),
     )
   })
 

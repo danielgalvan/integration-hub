@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import './IntegrationsPage.css'
 import ConfirmDialog from '../components/common/ConfirmDialog'
 import MessageDialog from '../components/common/MessageDialog'
@@ -45,7 +45,7 @@ function IntegrationsPage({
   const canEdit =
     role === 'A' || role === 'C'
 
-  async function loadIntegrations() {
+  const loadIntegrations = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -58,26 +58,15 @@ function IntegrationsPage({
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     async function load() {
-      try {
-        setLoading(true)
-        setError(null)
-
-        const data = await getIntegrations()
-
-        setIntegrations(data)
-      } catch (err) {
-        setError(err.message)
-      } finally {
-        setLoading(false)
-      }
+      await loadIntegrations()
     }
 
     load()
-  }, [])
+  }, [loadIntegrations])
 
   function handleOpenForm() {
     if (!canEdit) {
