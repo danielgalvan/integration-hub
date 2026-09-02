@@ -1,6 +1,6 @@
 import { apiFetch } from '../utils/api'
 
-const API_URL = 'http://localhost:8081'
+const API_URL = ''
 
 export async function login(
   username,

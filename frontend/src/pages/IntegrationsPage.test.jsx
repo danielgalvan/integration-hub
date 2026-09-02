@@ -198,3 +198,4 @@ describe('IntegrationsPage', () => {
     expect(integrationService.getIntegrations).toHaveBeenCalledTimes(2)
   })
 })
+

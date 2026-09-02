@@ -23,7 +23,7 @@ describe('integrationService', () => {
     await createIntegration(integration)
 
     expect(fetch).toHaveBeenCalledWith(
-      'http://localhost:8081/api/integrations',
+      '/api/integrations',
       expect.objectContaining({ method: 'POST', body: JSON.stringify(integration) }),
     )
   })
@@ -50,7 +50,7 @@ describe('integrationService', () => {
     })
 
     expect(fetch).toHaveBeenCalledWith(
-      'http://localhost:8081/api/integrations/8/api-key',
+      '/api/integrations/8/api-key',
       expect.objectContaining({ method: 'POST' }),
     )
   })
@@ -66,3 +66,4 @@ describe('integrationService', () => {
     )
   })
 })
+

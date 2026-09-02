@@ -13,6 +13,9 @@ integration-hub:
         username: seu_usuario_cloud
         password: sua_senha_cloud
 
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5175}
+
   security:
     jwt:
       secret: SUA_CHAVE_JWT

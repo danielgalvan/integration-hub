@@ -88,3 +88,4 @@ describe('IntegrationList', () => {
     })).not.toBeInTheDocument()
   })
 })
+

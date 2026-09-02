@@ -41,7 +41,7 @@ describe('authService', () => {
     })
 
     expect(fetch).toHaveBeenCalledWith(
-      'http://localhost:8081/api/auth/login',
+      '/api/auth/login',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({
@@ -67,7 +67,7 @@ describe('authService', () => {
     )
 
     expect(fetch).toHaveBeenCalledWith(
-      'http://localhost:8081/api/auth/login',
+      '/api/auth/login',
       expect.objectContaining({
         body: JSON.stringify({
           username: 'admin',
@@ -111,7 +111,7 @@ describe('authService', () => {
     ).resolves.toBeUndefined()
 
     expect(fetch).toHaveBeenCalledWith(
-      'http://localhost:8081/api/auth/password',
+      '/api/auth/password',
       expect.objectContaining({
         method: 'PUT',
         headers: expect.objectContaining({
@@ -153,3 +153,4 @@ describe('authService', () => {
     )
   })
 })
+

@@ -24,3 +24,4 @@ describe('ChangePasswordPage', () => {
     await waitFor(() => expect(onChangePassword).toHaveBeenCalledWith('nova-senha'))
   })
 })
+

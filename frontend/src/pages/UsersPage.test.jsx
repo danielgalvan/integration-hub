@@ -138,3 +138,4 @@ describe('UsersPage', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })
+

@@ -24,3 +24,4 @@ describe('TemporaryPasswordDialog', () => {
     expect(onClose).toHaveBeenCalledOnce()
   })
 })
+

@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:8081'
+const API_URL = ''
 
 export async function getEnvironments() {
   const response = await fetch(`${API_URL}/api/environments`)

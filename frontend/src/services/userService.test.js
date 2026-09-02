@@ -28,7 +28,7 @@ describe('userService', () => {
 
     await expect(getUsers()).resolves.toEqual([{ id: 1, username: 'admin' }])
     expect(fetch).toHaveBeenCalledWith(
-      'http://localhost:8081/api/users',
+      '/api/users',
       expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer jwt-token' }) }),
     )
   })
@@ -41,7 +41,7 @@ describe('userService', () => {
 
     await expect(createUser(user)).resolves.toEqual({ temporaryPassword: 'Senha123' })
     expect(fetch).toHaveBeenCalledWith(
-      'http://localhost:8081/api/users',
+      '/api/users',
       expect.objectContaining({ method: 'POST', body: JSON.stringify(user) }),
     )
   })
@@ -62,7 +62,7 @@ describe('userService', () => {
 
     expect(fetch).toHaveBeenNthCalledWith(
       1,
-      'http://localhost:8081/api/users/10',
+      '/api/users/10',
       expect.objectContaining({
         method: 'PUT',
         body: JSON.stringify({ name: 'Novo nome' }),
@@ -70,8 +70,9 @@ describe('userService', () => {
     )
     expect(fetch).toHaveBeenNthCalledWith(
       2,
-      'http://localhost:8081/api/users/10',
+      '/api/users/10',
       expect.objectContaining({ method: 'DELETE' }),
     )
   })
 })
+

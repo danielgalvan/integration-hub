@@ -21,7 +21,7 @@ describe('apiFetch', () => {
     await apiFetch('/api/integrations', { method: 'GET' })
 
     expect(fetch).toHaveBeenCalledWith(
-      'http://localhost:8081/api/integrations',
+      '/api/integrations',
       expect.objectContaining({
         headers: { Authorization: 'Bearer jwt-token' },
       }),
@@ -51,3 +51,4 @@ describe('apiFetch', () => {
     window.removeEventListener('ihub:unauthorized', unauthorized)
   })
 })
+

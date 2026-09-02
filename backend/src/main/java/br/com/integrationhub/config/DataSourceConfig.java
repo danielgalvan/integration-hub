@@ -57,10 +57,32 @@ public class DataSourceConfig {
         );
 
         /*
-         * Não existe datasource padrão.
+         * Quando existe apenas uma conexão configurada,
+         * ela é utilizada como datasource padrão.
          *
-         * Toda operação no banco deve ter
-         * um ambiente selecionado.
+         * Isso permite operações que não possuem
+         * ambiente explicitamente selecionado,
+         * como health checks e rotinas de bootstrap.
+         *
+         * Quando existem múltiplas conexões,
+         * o ambiente continua sendo obrigatório.
+         */
+        if (dataSources.size() == 1) {
+
+            DataSource defaultDataSource =
+                    (DataSource) dataSources
+                            .values()
+                            .iterator()
+                            .next();
+
+            routingDataSource.setDefaultTargetDataSource(
+                    defaultDataSource
+            );
+        }
+
+        /*
+         * Impede fallback silencioso quando uma chave
+         * de ambiente inválida for informada.
          */
         routingDataSource.setLenientFallback(false);
 

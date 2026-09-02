@@ -53,6 +53,7 @@ backend/.mvn/wrapper/maven-wrapper.jar
 
 # Local backend config
 backend/src/main/resources/application-local.yml
+backend/src/main/resources/application-cloud.yml
 
 # =========================
 # Frontend - React / Vite

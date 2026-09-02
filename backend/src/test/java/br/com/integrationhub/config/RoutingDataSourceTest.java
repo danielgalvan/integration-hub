@@ -24,22 +24,57 @@ class RoutingDataSourceTest {
     void deveUsarDatasourceDoAmbienteSelecionado() throws Exception {
         DataSource development = mock(DataSource.class);
         Connection connection = mock(Connection.class);
-        when(development.getConnection()).thenReturn(connection);
+
+        when(development.getConnection())
+                .thenReturn(connection);
 
         RoutingDataSource dataSource = createDataSource(
                 Map.of("development", development)
         );
+
         EnvironmentContext.set("development");
 
-        assertSame(connection, dataSource.getConnection());
+        assertSame(
+                connection,
+                dataSource.getConnection()
+        );
+
         verify(development).getConnection();
     }
 
     @Test
-    void deveRejeitarAcessoSemAmbienteSelecionado() {
+    void deveUsarDatasourcePadraoQuandoExisteApenasUmaConexao()
+            throws Exception {
+
+        DataSource cloud = mock(DataSource.class);
+        Connection connection = mock(Connection.class);
+
+        when(cloud.getConnection())
+                .thenReturn(connection);
+
         RoutingDataSource dataSource = createDataSource(
-                Map.of("development", mock(DataSource.class))
+                Map.of("cloud", cloud)
         );
+
+        assertSame(
+                connection,
+                dataSource.getConnection()
+        );
+
+        verify(cloud).getConnection();
+    }
+
+    @Test
+    void deveRejeitarAmbienteInexistente() {
+
+        RoutingDataSource dataSource = createDataSource(
+                Map.of(
+                        "cloud",
+                        mock(DataSource.class)
+                )
+        );
+
+        EnvironmentContext.set("inexistente");
 
         assertThrows(
                 IllegalStateException.class,
@@ -50,8 +85,21 @@ class RoutingDataSourceTest {
     private RoutingDataSource createDataSource(
             Map<Object, Object> dataSources) {
 
-        RoutingDataSource dataSource = new RoutingDataSource();
-        dataSource.setTargetDataSources(dataSources);
+        RoutingDataSource dataSource =
+                new RoutingDataSource();
+
+        dataSource.setTargetDataSources(
+                dataSources
+        );
+
+        if (dataSources.size() == 1) {
+            dataSource.setDefaultTargetDataSource(
+                    dataSources.values()
+                            .iterator()
+                            .next()
+            );
+        }
+
         dataSource.setLenientFallback(false);
         dataSource.afterPropertiesSet();
 

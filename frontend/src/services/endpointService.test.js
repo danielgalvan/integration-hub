@@ -23,7 +23,7 @@ describe('endpointService', () => {
     await createEndpoint(endpoint)
 
     expect(fetch).toHaveBeenCalledWith(
-      'http://localhost:8081/api/endpoints',
+      '/api/endpoints',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify(endpoint),
@@ -42,7 +42,7 @@ describe('endpointService', () => {
     )
 
     expect(fetch).toHaveBeenCalledWith(
-      'http://localhost:8081/api/clientes/buscar?nome=Ana+Maria&codigo=10',
+      '/api/clientes/buscar?nome=Ana+Maria&codigo=10',
       expect.objectContaining({ method: 'GET' }),
     )
     expect(result).toEqual(expect.objectContaining({
@@ -71,3 +71,4 @@ describe('endpointService', () => {
     }))
   })
 })
+

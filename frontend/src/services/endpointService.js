@@ -188,7 +188,7 @@ export async function executeEndpoint(
       success: response.ok,
       status: response.status,
       statusText: response.statusText,
-      url: `http://localhost:8081${path}`,
+      url: path,
       duration,
       data,
     }

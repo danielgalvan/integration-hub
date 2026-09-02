@@ -23,7 +23,7 @@ describe('EndpointTestModal', () => {
       success: true,
       status: 200,
       duration: 12,
-      url: 'http://localhost:8081/api/clientes/buscar?codigo=10',
+      url: '/api/clientes/buscar?codigo=10',
       data: [{ CODIGO: 10 }],
     })
 
@@ -118,7 +118,7 @@ describe('EndpointTestModal', () => {
       success: true,
       status: 200,
       duration: 1,
-      url: 'http://localhost:8081/api/clientes/buscar?codigo=10',
+      url: '/api/clientes/buscar?codigo=10',
       data: [],
     })
 
@@ -132,9 +132,10 @@ describe('EndpointTestModal', () => {
 
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith(
-        'http://localhost:8081/api/clientes/buscar?codigo=10',
+        '/api/clientes/buscar?codigo=10',
       )
     })
     expect(screen.getByRole('button', { name: 'Copiada!' })).toBeInTheDocument()
   })
 })
+

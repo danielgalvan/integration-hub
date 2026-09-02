@@ -47,3 +47,4 @@ describe('ApiKeyDialog', () => {
     expect(onClose).toHaveBeenCalledTimes(2)
   })
 })
+

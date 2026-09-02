@@ -37,3 +37,4 @@ describe('Header', () => {
     expect(onLogout).toHaveBeenCalledOnce()
   })
 })
+

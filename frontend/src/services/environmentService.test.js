@@ -21,7 +21,7 @@ describe('environmentService', () => {
       { id: 'development', name: 'Desenvolvimento Local' },
     ])
     expect(fetch).toHaveBeenCalledWith(
-      'http://localhost:8081/api/environments',
+      '/api/environments',
     )
   })
 
@@ -33,3 +33,4 @@ describe('environmentService', () => {
     )
   })
 })
+

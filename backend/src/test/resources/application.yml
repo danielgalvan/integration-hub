@@ -12,6 +12,9 @@ integration-hub:
         username: test
         password: test
 
+  cors:
+    allowed-origins: http://localhost:5175
+
   security:
     admin:
       username: admin

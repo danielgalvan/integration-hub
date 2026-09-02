@@ -3,7 +3,7 @@ import {
   getToken,
 } from './authStorage'
 
-const API_URL = 'http://localhost:8081'
+const API_URL = ''
 
 export async function apiFetch(path, options = {}) {
   const token = getToken()
