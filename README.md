@@ -1,271 +1,93 @@
 # Integration Hub
 
-O **Integration Hub** é uma plataforma para criação, gerenciamento e disponibilização de APIs de integração sobre bases de dados Oracle.
+O **Integration Hub** é uma plataforma para criar, gerenciar e disponibilizar APIs de integração sobre bases Oracle sem a necessidade de implementar um controller Java para cada consulta.
 
-O objetivo do projeto é simplificar e padronizar a criação de integrações, permitindo que consultas SQL sejam configuradas e disponibilizadas dinamicamente como endpoints HTTP de forma segura, documentada e controlada.
+A V1 é focada em **endpoints dinâmicos de leitura (`GET`)**, com SQL parametrizado, autenticação administrativa, RBAC, API Key por integração, documentação OpenAPI e interface web.
 
-O desenvolvimento está sendo realizado de forma incremental.
-
-A primeira versão possui foco em integrações de leitura utilizando `GET`, permitindo validar a arquitetura, o modelo de domínio, a persistência das configurações, a execução dinâmica das consultas, sua documentação, a interface administrativa e o controle de acesso antes da expansão para outros recursos.
+> **Ambiente online:** https://integrationhub.duckdns.org
 
 ---
 
 ## Arquitetura
 
-O projeto utiliza uma arquitetura dividida entre backend, frontend e banco de dados Oracle.
+### Produção
 
 ```text
-┌─────────────────────────┐
-│        Frontend         │
-│      React + Vite       │
-│    localhost:5175       │
-└────────────┬────────────┘
-             │
-             │ HTTP
-             │ Authorization: Bearer JWT
-             │ (APIs administrativas)
-             ▼
-┌─────────────────────────┐
-│         Backend         │
-│ Spring Boot + Java 21   │
-│    localhost:8081       │
-└────────────┬────────────┘
-             │
-             │ JDBC / HikariCP
-             ▼
-┌─────────────────────────┐
-│      Oracle Database    │
-│       Free 23ai         │
-└─────────────────────────┘
+Internet
+   │
+   │ HTTPS
+   ▼
+Nginx
+   ├── /           → React
+   └── /api/**     → Spring Boot :8081
+                          │
+                          │ JDBC / Wallet
+                          ▼
+                  Oracle Autonomous Database
 ```
 
-O acesso administrativo utiliza JWT. O consumo dos endpoints dinâmicos é independente da sessão administrativa e segue a política definida em cada integração:
+O ambiente publicado utiliza:
+
+- Oracle Cloud Infrastructure (OCI);
+- Oracle Linux 9;
+- Nginx como servidor web e reverse proxy;
+- Spring Boot executado como serviço `systemd`;
+- Oracle Autonomous Database;
+- DuckDNS para hostname;
+- Let's Encrypt + Certbot para HTTPS e renovação automática.
+
+### Desenvolvimento local
 
 ```text
-AUTH_TYPE = NONE
-    → endpoint dinâmico sem API Key
-
-AUTH_TYPE = API_KEY
-    → header X-API-Key obrigatório
+React + Vite :5175
+       │
+       │ proxy /api
+       ▼
+Spring Boot :8081
+       │
+       ▼
+Oracle
 ```
+
+O frontend utiliza URLs relativas (`/api/...`). Em desenvolvimento, o Vite encaminha `/api` para `http://localhost:8081`; em produção, o Nginx faz o mesmo encaminhamento para o backend.
+
+---
+
+## Stack
 
 ### Backend
 
 - Java 21
 - Spring Boot 4.0.7
-- Spring Web
+- Spring Web MVC
 - Spring Security
 - Spring JDBC
 - HikariCP
-- Oracle Database
-- Jackson 3
+- Oracle JDBC
+- Oracle Wallet / Autonomous Database
 - JJWT
 - BCrypt
+- OpenAPI 3.1 / Swagger UI
 - Maven
-- OpenAPI 3.1
-- Swagger UI
-- JUnit
-- Mockito
-
-O backend é responsável pela persistência das configurações, resolução das rotas dinâmicas, validação dos parâmetros, execução das consultas SQL, autenticação dos usuários, autorização baseada em perfis e disponibilização das APIs administrativas e dinâmicas.
-
-Durante o desenvolvimento local, o backend utiliza:
-
-```text
-http://localhost:8081
-```
+- JUnit / Mockito
 
 ### Frontend
 
 - React 19
-- Vite
+- Vite 8
 - JavaScript
+- Vitest
+- Testing Library
 - ESLint
 - npm
 
-O frontend fornece a interface administrativa do Integration Hub.
-
-A implementação atual já possui a estrutura visual principal da aplicação, gerenciamento de integrações e endpoints conectado ao backend, operações de cadastro, edição e exclusão, geração automática de parâmetros a partir do SQL, gerenciamento de usuários, configuração da autenticação por integração e geração/regeneração de API Keys com exibição única da chave.
-
-A autenticação está implementada de ponta a ponta com usuários persistidos no Oracle. O frontend oferece tela de login, armazena o JWT da sessão, aplica permissões conforme o perfil, suporta troca obrigatória de senha e envia o token nas chamadas protegidas. Respostas `401 Unauthorized` encerram a sessão; respostas `403 Forbidden` indicam ausência de permissão para a operação.
-
-Durante o desenvolvimento local, a aplicação é disponibilizada em:
-
-```text
-http://localhost:5175
-```
-
-O frontend está organizado separando:
-
-```text
-pages
-    ↓
-composição e orquestração das telas
-
-components
-    ↓
-componentes visuais reutilizáveis
-
-services
-    ↓
-comunicação HTTP com o backend
-```
-
 ---
 
-## Estrutura do projeto
+## Funcionalidades da V1
 
-```text
-integration-hub/
-├── .github/
-│   └── workflows/
-│       └── validate.yml
-│
-├── backend/
-│   ├── database/
-│   │   └── install/
-│   │       ├── 001_create_ih_integration.sql
-│   │       └── 002_create_ih_endpoint.sql
-│   │
-│   ├── src/
-│   │   ├── main/
-│   │   │   ├── java/
-│   │   │   │   └── br/com/integrationhub/
-│   │   │   │       ├── IntegrationHubApplication.java
-│   │   │   │       │
-│   │   │   │       ├── auth/
-│   │   │   │       │   ├── AuthController.java
-│   │   │   │       │   ├── AuthService.java
-│   │   │   │       │   ├── AuthenticatedUserResponse.java
-│   │   │   │       │   ├── ChangePasswordRequest.java
-│   │   │   │       │   ├── LoginRequest.java
-│   │   │   │       │   └── LoginResponse.java
-│   │   │   │       │
-│   │   │   │       ├── config/
-│   │   │   │       │   ├── DynamicOpenApiCustomizer.java
-│   │   │   │       │   ├── OpenApiConfig.java
-│   │   │   │       │   ├── SecurityConfig.java
-│   │   │   │       │   └── WebConfig.java
-│   │   │   │       │
-│   │   │   │       ├── controller/
-│   │   │   │       │   └── HealthController.java
-│   │   │   │       │
-│   │   │   │       ├── exception/
-│   │   │   │       │   ├── ApiError.java
-│   │   │   │       │   └── GlobalExceptionHandler.java
-│   │   │   │       │
-│   │   │   │       ├── security/
-│   │   │   │       │   ├── ApiKeyService.java
-│   │   │   │       │   ├── JwtAuthenticationFilter.java
-│   │   │   │       │   └── JwtService.java
-│   │   │   │       │
-│   │   │   │       ├── service/
-│   │   │   │       │   └── DatabaseHealthService.java
-│   │   │   │       │
-│   │   │   │       └── integration/
-│   │   │   │           ├── controller/
-│   │   │   │           │   ├── DynamicEndpointController.java
-│   │   │   │           │   ├── EndpointController.java
-│   │   │   │           │   └── IntegrationController.java
-│   │   │   │           │
-│   │   │   │           ├── model/
-│   │   │   │           │   ├── ApiKeyResponse.java
-│   │   │   │           │   ├── Endpoint.java
-│   │   │   │           │   ├── EndpointParameter.java
-│   │   │   │           │   └── Integration.java
-│   │   │   │           │
-│   │   │   │           ├── repository/
-│   │   │   │           │   ├── EndpointRepository.java
-│   │   │   │           │   ├── IntegrationRepository.java
-│   │   │   │           │   ├── OracleEndpointRepository.java
-│   │   │   │           │   └── OracleIntegrationRepository.java
-│   │   │   │           │
-│   │   │   │           └── service/
-│   │   │   │               ├── DynamicEndpointService.java
-│   │   │   │               ├── EndpointService.java
-│   │   │   │               └── IntegrationService.java
-│   │   │   │
-│   │   │   └── resources/
-│   │   │       ├── application.yml
-│   │   │       ├── application-local.example.yml
-│   │   │       └── application-local.yml
-│   │   │
-│   │   └── test/
-│   │
-│   ├── .mvn/
-│   ├── mvnw
-│   ├── mvnw.cmd
-│   └── pom.xml
-│
-├── frontend/
-│   ├── public/
-│   ├── src/
-│   │   ├── assets/
-│   │   │
-│   │   ├── components/
-│   │   │   ├── common/
-│   │   │   │   ├── Button.css
-│   │   │   │   ├── Button.jsx
-│   │   │   │   ├── ConfirmDialog.css
-│   │   │   │   ├── ConfirmDialog.jsx
-│   │   │   │   ├── MessageDialog.css
-│   │   │   │   └── MessageDialog.jsx
-│   │   │   │
-│   │   │   ├── endpoints/
-│   │   │   │   ├── EndpointForm.css
-│   │   │   │   ├── EndpointForm.jsx
-│   │   │   │   ├── EndpointList.css
-│   │   │   │   └── EndpointList.jsx
-│   │   │   │
-│   │   │   ├── integrations/
-│   │   │   │   ├── ApiKeyDialog.css
-│   │   │   │   ├── ApiKeyDialog.jsx
-│   │   │   │   ├── IntegrationForm.css
-│   │   │   │   ├── IntegrationForm.jsx
-│   │   │   │   ├── IntegrationList.css
-│   │   │   │   └── IntegrationList.jsx
-│   │   │   │
-│   │   │   └── layout/
-│   │   │       ├── Header.css
-│   │   │       ├── Header.jsx
-│   │   │       ├── Sidebar.css
-│   │   │       └── Sidebar.jsx
-│   │   │
-│   │   ├── pages/
-│   │   │   ├── EndpointsPage.css
-│   │   │   ├── EndpointsPage.jsx
-│   │   │   ├── IntegrationsPage.css
-│   │   │   └── IntegrationsPage.jsx
-│   │   │
-│   │   ├── services/
-│   │   │   ├── endpointService.js
-│   │   │   └── integrationService.js
-│   │   │
-│   │   ├── App.css
-│   │   ├── App.jsx
-│   │   ├── index.css
-│   │   └── main.jsx
-│   │
-│   ├── eslint.config.js
-│   ├── index.html
-│   ├── package.json
-│   ├── package-lock.json
-│   └── vite.config.js
-│
-├── .editorconfig
-├── .gitignore
-└── README.md
-```
+### Integrações
 
-O arquivo `application-local.yml` contém configurações específicas do ambiente local e é ignorado pelo Git.
-
-Credenciais, hashes de senha, segredos JWT e informações específicas da máquina de desenvolvimento não devem ser versionados.
-
----
-
-# Modelo de integração
-
-O Integration Hub separa uma integração em dois níveis:
+Uma `Integration` agrupa endpoints sob um `basePath`.
 
 ```text
 Integration
@@ -275,109 +97,28 @@ Integration
 Endpoint
 ```
 
-Uma `Integration` funciona como agrupador lógico e define o caminho base da API.
-
-Cada `Endpoint` representa uma operação pertencente à integração e contém as informações necessárias para executar uma consulta.
-
----
-
-## Integration
-
-Representa um agrupamento de endpoints relacionados.
-
-Principais propriedades:
-
-```text
-id
-name
-description
-basePath
-active
-authType
-apiKeyCreatedAt
-createdBy
-createdAt
-updatedBy
-updatedAt
-```
-
 Exemplo:
 
 ```text
-id:              8
-name:            Pedidos
-description:     Integração para consulta de pedidos
-basePath:        /api/pedidos
-active:          S
-authType:        API_KEY
-apiKeyCreatedAt: 2026-08-29T16:40:00
-createdBy:       SYSTEM
+name:      Pedidos
+basePath:  /api/pedidos
+active:    S
+authType:  API_KEY
 ```
 
-O campo `active` utiliza:
+Regras principais do `basePath`:
+
+- obrigatório;
+- deve iniciar com `/api/`;
+- não deve terminar com `/`;
+- não pode conter espaços;
+- a resolução considera o `basePath` ativo mais específico.
+
+### Endpoints dinâmicos
+
+Cada endpoint define:
 
 ```text
-S = ativo
-N = inativo
-```
-
-O campo `authType` define a política de autenticação dos endpoints dinâmicos da integração:
-
-```text
-NONE    = consumo sem API Key
-API_KEY = exige o header X-API-Key
-```
-
-Quando `authType = API_KEY`, a chave é gerada pelo backend com valor aleatório, exibida ao administrador/criador somente no momento da geração ou regeneração e armazenada no Oracle apenas como hash BCrypt em `API_KEY_HASH`.
-
-O valor original da API Key não pode ser recuperado posteriormente. `apiKeyCreatedAt` informa quando a chave atual foi gerada ou regenerada.
-
-Na implementação atual, os campos de auditoria das configurações administrativas ainda utilizam o usuário técnico definido pela aplicação.
-
-A autenticação administrativa já está disponível, mas a associação do usuário autenticado aos campos `createdBy` e `updatedBy` poderá ser evoluída posteriormente.
-
-### Regras do basePath
-
-Toda integração deve possuir um `basePath` válido.
-
-Na V1 são aplicadas as seguintes regras:
-
-```text
-✓ obrigatório
-✓ deve iniciar com /api/
-✓ não deve terminar com /
-✓ não deve conter espaços
-```
-
-Exemplos válidos:
-
-```text
-/api/pedidos
-/api/clientes
-/api/pedidos/especiais
-```
-
-Exemplos inválidos:
-
-```text
-/pedidos
-api/pedidos
-/api/pedidos/
-/api/meus pedidos
-```
-
-Uma configuração inválida é rejeitada com `400 Bad Request` antes da persistência.
-
----
-
-## Endpoint
-
-Representa uma operação pertencente a uma integração.
-
-Principais propriedades:
-
-```text
-id
 integrationId
 name
 description
@@ -386,89 +127,50 @@ method
 sqlText
 parameters
 active
-createdBy
-createdAt
-updatedBy
-updatedAt
 ```
+
+Na V1, somente `GET` é disponibilizado dinamicamente.
 
 Exemplo:
 
 ```text
-integrationId: 8
-name:          Listar pedidos
-description:   Lista pedidos por status
-path:          /listar
-method:        GET
-active:        S
-createdBy:     SYSTEM
+basePath: /api/pedidos
+path:     /listar
 ```
 
-O campo `integrationId` identifica a `Integration` à qual o endpoint pertence.
+Resultado:
 
-Na V1, apenas endpoints com método `GET` são suportados para execução dinâmica.
+```http
+GET /api/pedidos/listar?status=ABERTO
+```
+
+O backend resolve a integração e o endpoint em tempo de execução e executa o SQL configurado no Oracle.
 
 ---
 
-# Persistência Oracle
+## SQL dinâmico e parâmetros
 
-As configurações do Integration Hub são persistidas no Oracle Database.
+As consultas devem utilizar **bind parameters**:
 
-Todas as tabelas próprias da aplicação utilizam o prefixo:
-
-```text
-IH_
+```sql
+select id,
+       numero,
+       status,
+       valor_total
+from pedido
+where status = :status
 ```
 
-As tabelas principais são:
+Tipos suportados:
 
-```text
-IH_INTEGRATION
-IH_ENDPOINT
-IH_USERS
-```
+| Tipo | Formato |
+| --- | --- |
+| `VARCHAR2` | texto |
+| `NUMBER` | número |
+| `DATE` | `yyyy-MM-dd` |
+| `TIMESTAMP` | data/hora |
 
-Relacionamento:
-
-```text
-IH_INTEGRATION
-      │
-      │ 1:N
-      ▼
-IH_ENDPOINT
-```
-
-A tabela `IH_INTEGRATION` inclui os campos de autenticação:
-
-```text
-AUTH_TYPE
-API_KEY_HASH
-API_KEY_CREATED_AT
-```
-
-`AUTH_TYPE` aceita `NONE` ou `API_KEY`. O hash da API Key não é exposto nas respostas JSON da API administrativa.
-
-Os scripts de instalação ficam em:
-
-```text
-backend/database/install/
-```
-
----
-
-# Parâmetros dos endpoints
-
-Os parâmetros necessários para executar um endpoint são representados por `EndpointParameter`.
-
-Cada parâmetro possui:
-
-```text
-name
-type
-required
-```
-
-Exemplo:
+Exemplo de parâmetro:
 
 ```json
 {
@@ -478,343 +180,69 @@ Exemplo:
 }
 ```
 
-Um endpoint pode possuir vários parâmetros:
+Os parâmetros são identificados a partir das bind variables do SQL e podem ser gerados automaticamente pelo frontend.
+
+### Restrições de segurança do SQL
+
+A V1:
+
+- aceita somente uma instrução iniciada por `SELECT`;
+- utiliza bind parameters;
+- rejeita ponto e vírgula;
+- rejeita comentários SQL;
+- rejeita `SELECT ... FOR UPDATE`;
+- valida e converte parâmetros antes da execução;
+- limita a quantidade máxima de resultados.
+
+O limite padrão é:
+
+```text
+integration-hub.dynamic.max-results = 1000
+```
+
+---
+
+## Autenticação e autorização
+
+### Administração
+
+As APIs administrativas utilizam usuários persistidos em `IH_USERS`, senhas BCrypt e JWT stateless.
+
+```http
+POST /api/auth/login
+```
+
+Exemplo:
 
 ```json
-[
-  {
-    "name": "id",
-    "type": "NUMBER",
-    "required": true
-  },
-  {
-    "name": "status",
-    "type": "VARCHAR2",
-    "required": false
-  }
-]
+{
+  "username": "admin",
+  "password": "senha",
+  "environment": "development"
+}
 ```
 
-No Java, essa estrutura é representada por:
-
-```text
-List<EndpointParameter>
-```
-
-No Oracle, os parâmetros são armazenados em formato JSON na coluna `PARAMETERS`, do tipo `CLOB`.
-
-A serialização e desserialização são realizadas pelo backend utilizando Jackson.
-
----
-
-# Tipos de parâmetros suportados
-
-A execução dinâmica suporta atualmente:
-
-```text
-VARCHAR2
-NUMBER
-DATE
-TIMESTAMP
-```
-
-Os valores recebidos pela query string são convertidos e validados pelo backend antes da execução da consulta.
-
-### VARCHAR2
+Chamadas protegidas utilizam:
 
 ```http
-GET /api/pedidos/listar?status=ABERTO
+Authorization: Bearer <token>
 ```
 
-### NUMBER
-
-```http
-GET /api/pedidos/itens?pedido_id=1
-```
-
-### DATE
-
-Formato aceito:
-
-```text
-yyyy-MM-dd
-```
-
-Exemplo:
-
-```http
-GET /api/pedidos/por-data?data=2026-08-20
-```
-
-Um valor em outro formato é rejeitado com `400 Bad Request`.
-
-### TIMESTAMP
-
-Parâmetros `TIMESTAMP` permitem que endpoints dinâmicos recebam valores contendo data e hora.
-
-O tipo também é representado na documentação OpenAPI como `date-time`.
-
-### Parâmetros obrigatórios
-
-Quando um parâmetro obrigatório não é informado, a execução é interrompida antes do acesso ao banco.
-
-Exemplo:
-
-```http
-GET /api/pedidos/listar
-```
-
-Resposta:
-
-```text
-400 Bad Request
-
-Parâmetro obrigatório não informado: status
-```
-
-### NUMBER inválido
-
-```http
-GET /api/pedidos/itens?pedido_id=abc
-```
-
-Resposta:
-
-```text
-400 Bad Request
-
-Parâmetro pedido_id deve ser numérico
-```
-
----
-
-# Composição dos endpoints
-
-O endereço final é formado pela combinação do `basePath` da integração com o `path` do endpoint.
-
-Exemplo:
-
-```text
-Integration.basePath
-/api/pedidos
-
-Endpoint.path
-/listar
-```
-
-Resultado:
-
-```text
-/api/pedidos/listar
-```
-
-Uma mesma integração pode possuir diversos endpoints:
-
-```text
-/api/pedidos
-    │
-    ├── /listar
-    ├── /itens
-    ├── /por-data
-    └── /por-data-hora
-```
-
----
-
-# Resolução dinâmica
-
-O `DynamicEndpointController` recebe requisições `GET` sob `/api/**` que não possuem um controller específico e utiliza o caminho completo da requisição para localizar a integração configurada.
-
-```text
-Requisição HTTP
-        │
-        ▼
-DynamicEndpointController
-        │
-        ▼
-IntegrationService
-        │
-        ▼
-IntegrationRepository
-        │
-        ▼
-findBestMatchByRequestPath
-        │
-        ▼
-validação da autenticação
-NONE / X-API-Key
-        │
-        ▼
-EndpointService
-        │
-        ▼
-DynamicEndpointService
-        │
-        ▼
-NamedParameterJdbcTemplate
-        │
-        ▼
-Oracle
-```
-
-A integração é localizada através do `basePath`.
-
-Após encontrar a integração, o restante da URL é utilizado para localizar o endpoint correspondente.
-
-Exemplo:
-
-```text
-Request
-/api/pedidos/itens
-
-Integration.basePath
-/api/pedidos
-
-Endpoint.path
-/itens
-```
-
----
-
-# Resolução do basePath
-
-A resolução considera o `basePath` mais específico compatível com a requisição.
-
-Caso existam:
-
-```text
-/api/pedidos
-/api/pedidos/especiais
-```
-
-uma requisição para:
-
-```text
-/api/pedidos/especiais/listar
-```
-
-utiliza:
-
-```text
-/api/pedidos/especiais
-```
-
-e não `/api/pedidos`.
-
-Também é validado o limite do segmento da URL, evitando que `/api/pedidos` seja considerado correspondente a `/api/pedidos-especiais`.
-
-Somente integrações ativas são consideradas durante a resolução.
-
----
-
-# Execução dinâmica de SQL
-
-O SQL armazenado em `IH_ENDPOINT.SQL_TEXT` é executado dinamicamente pelo backend.
-
-Exemplo:
-
-```sql
-select id,
-       numero,
-       cliente_nome,
-       status,
-       valor_total,
-       data_pedido
-  from pedido
- where status = :status
-```
-
-Considerando:
-
-```text
-basePath: /api/pedidos
-path:     /listar
-```
-
-a consulta fica disponível através de:
-
-```http
-GET /api/pedidos/listar?status=ABERTO
-```
-
-Os parâmetros recebidos são validados e utilizados como bind variables.
-
-Isso evita a necessidade de criar um controller Java específico para cada consulta disponibilizada pelo Integration Hub.
-
-A execução dinâmica segue uma política restritiva na V1:
-
-```text
-✓ aceita somente SQL iniciado por SELECT
-✓ aceita somente uma instrução
-✓ rejeita ponto e vírgula
-✓ rejeita comentários SQL
-✓ rejeita SELECT ... FOR UPDATE
-✓ utiliza bind parameters
-✓ valida parâmetros antes da execução
-✓ limita a quantidade máxima de resultados
-```
-
-A rejeição de `SELECT ... FOR UPDATE` evita bloqueios de registros durante o consumo dos endpoints.
-
-O limite máximo de resultados é configurável através da propriedade:
-
-```text
-integration-hub.dynamic.max-results
-```
-
-O valor padrão é:
-
-```text
-1000
-```
-
----
-
-# Consultas parametrizadas
-
-As consultas configuradas nos endpoints devem utilizar bind parameters.
-
-Exemplo:
-
-```sql
-select id,
-       nome
-  from cliente
- where id = :id
-```
-
-O valor de `id` é recebido pela requisição HTTP e enviado ao banco separadamente da instrução SQL.
-
-Valores recebidos pela API não devem ser concatenados diretamente ao SQL.
-
-Esse modelo reduz riscos de SQL Injection e permite que o Oracle reutilize planos de execução com maior eficiência.
-
----
-
-# Autenticação e usuários
-
-A autenticação administrativa da V1 utiliza usuários persistidos no Oracle, senha protegida com BCrypt e JWT stateless.
-
-```text
-Usuário
-   │ username + password
-   ▼
-POST /api/auth/login
-   │
-   ▼
-AuthService
-   │
-   ├── localiza usuário em IH_USERS
-   ├── valida status
-   ├── valida senha com BCrypt
-   ▼
-JwtService
-   │
-   ▼
-JWT com username + perfil
-```
-
-A tabela `IH_USERS` mantém os usuários da aplicação. Os perfis suportados são:
+`401 Unauthorized` representa ausência ou invalidez da autenticação.
+`403 Forbidden` representa usuário autenticado sem permissão para a operação.
+
+### Perfis
+
+| Recurso | Administrador | Criador | Consumidor |
+| --- | :---: | :---: | :---: |
+| Consultar integrações/endpoints | ✓ | ✓ | ✓ |
+| Criar/editar/excluir integrações | ✓ | ✓ | — |
+| Criar/editar/excluir endpoints | ✓ | ✓ | — |
+| Testar endpoints | ✓ | ✓ | ✓ |
+| Gerenciar usuários | ✓ | — | — |
+| Gerar/regenerar API Key | ✓ | ✓ | — |
+
+Perfis internos:
 
 ```text
 A = Administrador
@@ -822,407 +250,79 @@ C = Criador
 U = Consumidor
 ```
 
-O status do usuário utiliza:
+O frontend aplica as permissões e mantém o Consumidor em modo somente leitura.
+
+### Senhas
+
+O gerenciamento de usuários inclui:
+
+- criação de usuário;
+- senha temporária;
+- troca obrigatória de senha;
+- reset administrativo;
+- armazenamento somente do hash BCrypt.
+
+---
+
+## Autenticação dos endpoints dinâmicos
+
+A autenticação administrativa é independente da autenticação de consumo.
+
+Cada integração define:
 
 ```text
-A = ativo
-I = inativo
+NONE
+API_KEY
 ```
 
-A autenticação administrativa é stateless. Cada requisição administrativa protegida deve fornecer:
+### `NONE`
 
-```http
-Authorization: Bearer <token>
-```
-
-# Login
-
-```http
-POST /api/auth/login
-```
-
-O login é público. Credenciais inválidas ou usuário sem autenticação válida resultam em `401 Unauthorized`.
-
-Quando o usuário está autenticado, mas seu perfil não permite determinada operação, a API retorna `403 Forbidden`.
-
-O JWT contém a identidade do usuário e seu perfil, que é convertido pelo filtro de autenticação para a authority correspondente.
-
-## Usuário autenticado
-
-```http
-GET /api/auth/me
-Authorization: Bearer <token>
-```
-
-A rota retorna os dados do usuário associado à sessão:
-
-```json
-{
-  "id": 1,
-  "username": "admin",
-  "name": "Administrador",
-  "email": null,
-  "role": "A"
-}
-```
-
-O frontend utiliza essa informação para apresentar dinamicamente o nome e o perfil do usuário autenticado no Header.
-
-# Senhas
-
-As senhas são armazenadas somente como hash BCrypt em `IH_USERS`.
-
-O fluxo de usuários contempla senha temporária e troca obrigatória. O indicador `ie_trocar_senha` utiliza `S/N` para informar se a senha deve ser alterada no próximo acesso.
-
-Ao criar um usuário ou executar o reset administrativo de senha, o backend gera uma senha temporária, persiste apenas seu hash BCrypt, marca a troca como obrigatória e devolve a senha temporária uma única vez ao administrador.
-
-O usuário que entrar com senha temporária deve concluir a troca antes de utilizar normalmente a aplicação.
-
-A administração também possui reset de senha:
-
-```http
-POST /api/users/{id}/reset-password
-```
-
-# Autenticação dos endpoints dinâmicos
-
-A autenticação administrativa e a autenticação de consumo são responsabilidades separadas.
-
-As APIs administrativas continuam utilizando JWT:
-
-```http
-Authorization: Bearer <token>
-```
-
-Os endpoints dinâmicos seguem a configuração `authType` da `Integration`.
-
-## Sem autenticação
-
-Quando:
-
-```text
-authType = NONE
-```
-
-o endpoint dinâmico pode ser consumido sem `X-API-Key`.
-
-Exemplo:
+O endpoint pode ser consumido sem API Key.
 
 ```http
 GET /api/pedidos/listar?status=ABERTO
 ```
 
-## API Key
+### `API_KEY`
 
-Quando:
-
-```text
-authType = API_KEY
-```
-
-todas as operações dinâmicas pertencentes à integração exigem a mesma API Key:
+Todos os endpoints da integração exigem:
 
 ```http
-GET /api/pedidos/listar?status=ABERTO
 X-API-Key: ihub_xxxxxxxxxxxxxxxxx
 ```
 
-A chave é configurada no nível da integração. Portanto, a mesma chave protege todos os endpoints associados ao respectivo `basePath`.
+A chave:
 
-Exemplo:
+- é gerada aleatoriamente;
+- é exibida somente na geração/regeneração;
+- é armazenada no Oracle apenas como hash BCrypt;
+- é compartilhada pelos endpoints da mesma integração;
+- invalida a chave anterior quando regenerada.
 
-```text
-Integration: Pedidos
-basePath: /api/pedidos
-authType: API_KEY
-
-/api/pedidos/listar
-/api/pedidos/buscar
-/api/pedidos/itens
-        │
-        └── mesma X-API-Key
-```
-
-A geração e regeneração são operações administrativas protegidas por JWT:
+Geração/regeneração:
 
 ```http
 POST /api/integrations/{id}/api-key
 Authorization: Bearer <token>
 ```
 
-Resposta:
-
-```json
-{
-  "apiKey": "ihub_xxxxxxxxxxxxxxxxx"
-}
-```
-
-A API Key em texto é retornada somente nessa operação. O banco armazena apenas seu hash BCrypt.
-
-Ao regenerar a chave:
-
-```text
-chave anterior → deixa de funcionar
-nova chave     → passa a ser válida
-```
-
-Para uma integração protegida por API Key:
-
-```text
-chave válida   → 200 OK
-sem chave      → 401 Unauthorized
-chave inválida → 401 Unauthorized
-```
-
-A validação ocorre no `DynamicEndpointController` depois que a integração correspondente ao caminho solicitado é resolvida.
-
 ---
 
-# Controle de acesso e RBAC
+## Ambientes e DataSources
 
-A V1 implementa autorização por perfil.
-
-| Recurso | Administrador | Criador | Consumidor |
-| --- | --- | --- | --- |
-| Consultar integrações/endpoints | ✓ | ✓ | ✓ |
-| Criar/editar/excluir integrações | ✓ | ✓ | — |
-| Criar/editar/excluir endpoints | ✓ | ✓ | — |
-| Testar endpoints pela interface | ✓ | ✓ | ✓ |
-| Administrar usuários | ✓ | — | — |
-
-Em termos de API:
+O backend suporta múltiplas conexões Oracle configuradas em:
 
 ```text
-GET /api/integrations/**  → A, C, U
-GET /api/endpoints/**     → A, C, U
-POST/PUT/DELETE           → A, C
-/api/users/**             → A
-gerar/regenerar API Key   → A, C
+integration-hub.datasource.connections
 ```
 
-O `/api/health` e o login permanecem públicos. O consumo de endpoints dinâmicos não depende da role do usuário administrativo: ele segue `authType = NONE` ou `API_KEY` configurado na integração.
-
-# API de usuários
-
-O gerenciamento de usuários é exclusivo do perfil Administrador e contempla consulta, cadastro, atualização e reset de senha. A senha temporária gerada em cadastro/reset deve ser apresentada somente no momento da operação e não é persistida em texto puro.
-
-# Utilização do token
-
-O frontend centraliza as chamadas autenticadas através de `apiFetch`, que inclui automaticamente o Bearer token. `401 Unauthorized` remove a sessão local e retorna ao login. `403 Forbidden` preserva a sessão e informa que o usuário autenticado não possui permissão para a operação.
-
----
-
----
-
-# OpenAPI e Swagger
-
-O backend disponibiliza documentação OpenAPI 3.1 integrada ao Swagger UI.
-
-A documentação OpenAPI pode ser consultada em:
-
-```text
-http://localhost:8081/v3/api-docs
-```
-
-A interface Swagger UI está disponível em:
-
-```text
-http://localhost:8081/swagger-ui/index.html
-```
-
-A documentação utiliza:
-
-```text
-Título: Integration Hub API
-Versão: v1
-```
-
-Os controllers administrativos são documentados normalmente pelo Springdoc.
-
-Os endpoints dinâmicos são adicionados à especificação OpenAPI através do `DynamicOpenApiCustomizer`.
-
-```text
-IH_INTEGRATION
-      │
-      ▼
-IntegrationService
-      │
-      ▼
-IH_ENDPOINT
-      │
-      ▼
-EndpointService
-      │
-      ▼
-DynamicOpenApiCustomizer
-      │
-      ▼
-OpenAPI
-      │
-      ▼
-Swagger UI
-```
-
-Dessa forma, endpoints configurados no Oracle aparecem automaticamente na documentação.
-
-O agrupamento no Swagger utiliza o nome da `Integration` como tag.
-
-A rota interna `/api/**` não é apresentada ao consumidor na documentação.
-
-Os tipos dos parâmetros são convertidos para os schemas correspondentes:
-
-```text
-VARCHAR2  → string
-NUMBER    → number
-DATE      → date
-TIMESTAMP → date-time
-```
-
-Para endpoints dinâmicos são documentadas as respostas:
-
-```text
-200 → consulta executada com sucesso
-400 → parâmetro inválido ou obrigatório não informado
-401 → API Key ausente ou inválida quando exigida
-404 → integração ou endpoint não encontrado
-500 → erro durante a execução da consulta
-```
-
-Endpoints com `authType = NONE` podem ser executados diretamente pelo recurso **Try it out** do Swagger UI.
-
-Para integrações com `authType = API_KEY`, o consumo exige o header `X-API-Key`; a validação funcional pode ser realizada por Postman, PowerShell, curl ou outro cliente HTTP que permita informar o header.
-
----
-
-# Tratamento de erros
-
-O backend possui tratamento centralizado de exceções através de:
-
-```text
-GlobalExceptionHandler
-```
-
-O objetivo é fornecer respostas HTTP consistentes para erros de validação, recursos não encontrados, conflitos, métodos HTTP não suportados, problemas de banco e falhas inesperadas.
-
-Formato de erro:
-
-```json
-{
-  "timestamp": "2026-08-24T20:00:39.5506495",
-  "status": 409,
-  "error": "Conflict",
-  "message": "A integração possui endpoints vinculados",
-  "path": "/api/integrations/12"
-}
-```
-
-Entre os status tratados pela API estão:
-
-```text
-400 Bad Request
-401 Unauthorized
-404 Not Found
-405 Method Not Allowed
-409 Conflict
-500 Internal Server Error
-```
-
-O `401 Unauthorized` também é utilizado pelo Spring Security quando uma rota administrativa protegida é acessada sem autenticação válida.
-
----
-
-# Ambiente Oracle de desenvolvimento
-
-O projeto possui um ambiente Oracle local dedicado ao desenvolvimento.
-
-A infraestrutura é executada em uma máquina virtual isolada, permitindo desenvolver e testar o Integration Hub sem depender de ambientes Oracle externos.
-
-O ambiente utiliza:
-
-- VirtualBox
-- Oracle Linux
-- Oracle Database Free 23ai
-- Oracle Net Listener
-- rede em modo Bridge para comunicação entre host e VM
-- endereço IPv4 estático para a VM
-
-O Listener utiliza a porta padrão:
-
-```text
-1521
-```
-
-A PDB utilizada pelo ambiente de desenvolvimento é:
-
-```text
-freepdb1
-```
-
-Informações específicas do ambiente, como endereço IP e credenciais, não devem ser documentadas no repositório.
-
----
-
-# Inicialização do ambiente Oracle
-
-O ambiente Oracle pode ser iniciado através do VirtualBox.
-
-Após a inicialização da VM, deve-se aguardar a rede e o Oracle Listener estarem disponíveis antes de iniciar o backend.
-
-Fluxo:
-
-```text
-Iniciar VM
-    │
-    ▼
-Aguardar rede da VM
-    │
-    ▼
-Aguardar Oracle Listener :1521
-    │
-    ▼
-AMBIENTE PRONTO
-```
-
-O Oracle Database pode levar alguns segundos adicionais para ficar disponível após a rede da VM começar a responder.
-
----
-
-# Pool de conexões
-
-O backend utiliza HikariCP para gerenciamento das conexões com o Oracle.
-
-A aplicação mantém um conjunto reutilizável de conexões, evitando a criação de uma nova conexão para cada requisição.
-
-A configuração atual é:
-
-```yaml
-hikari:
-  pool-name: IntegrationHubPool
-  minimum-idle: 1
-  maximum-pool-size: 5
-  connection-timeout: 30000
-  idle-timeout: 600000
-  max-lifetime: 1800000
-```
-
-O pool reduzido é adequado ao ambiente atual de desenvolvimento.
-
-Esses valores poderão ser ajustados posteriormente conforme o volume de requisições e a infraestrutura utilizada em cloud.
-
----
-
-# Configuração dos ambientes
-
-O Integration Hub suporta múltiplas conexões Oracle configuradas no backend. Os ambientes disponíveis são carregados dinamicamente pela tela de login, portanto os identificadores e nomes das conexões não ficam fixos no frontend.
-
-A rota pública abaixo informa os ambientes configurados:
+A tela de login carrega os ambientes dinamicamente:
 
 ```http
 GET /api/environments
 ```
 
-Exemplo de resposta:
+Exemplo:
 
 ```json
 [
@@ -1237,33 +337,23 @@ Exemplo de resposta:
 ]
 ```
 
-O campo `id` identifica internamente a conexão e o campo `name` é o nome apresentado ao usuário na tela de login e na Sidebar.
+Quando existe apenas uma conexão configurada, ela também é utilizada como DataSource padrão para operações sem ambiente explícito, como health check e bootstrap. Com múltiplas conexões, o ambiente selecionado continua obrigatório.
 
-Os nomes `development` e `cloud` são apenas exemplos. Outras instalações podem utilizar identificadores como `homologacao`, `producao` ou qualquer outra nomenclatura adequada ao ambiente.
+### Configuração local
 
-## Configuração local
-
-O repositório fornece:
+Copie:
 
 ```text
 backend/src/main/resources/application-local.example.yml
 ```
 
-Copie-o para:
+para:
 
 ```text
 backend/src/main/resources/application-local.yml
 ```
 
-No PowerShell:
-
-```powershell
-Copy-Item backend/src/main/resources/application-local.example.yml backend/src/main/resources/application-local.yml
-```
-
-O `application-local.yml` está no `.gitignore` e **não deve ser versionado**.
-
-Cada conexão é declarada em `integration-hub.datasource.connections`:
+Exemplo:
 
 ```yaml
 integration-hub:
@@ -1281,782 +371,185 @@ integration-hub:
         username: seu_usuario_cloud
         password: sua_senha_cloud
 
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5175}
+
   security:
     jwt:
       secret: SUA_CHAVE_JWT
       expiration-minutes: 60
-
-  bootstrap:
-    admin:
-      enabled: true
-      username: admin
-      name: Administrador
-      email: ''
-      password: altere_esta_senha
 ```
 
-Não adicione ao arquivo de exemplo credenciais reais, endereço privado da máquina de desenvolvimento, caminho pessoal da Wallet ou segredo JWT utilizado por uma instalação real.
+`application-local.yml`, configurações cloud reais, credenciais, Wallets e segredos não devem ser versionados.
 
-## Oracle Cloud e Wallet
-
-Uma conexão Oracle Autonomous Database pode utilizar Oracle Wallet:
-
-```yaml
-cloud:
-  name: Oracle Cloud
-  url: jdbc:oracle:thin:@ihub_high?TNS_ADMIN=C:/caminho/para/wallet
-  username: seu_usuario_cloud
-  password: sua_senha_cloud
-```
-
-O diretório informado em `TNS_ADMIN` deve apontar para a Wallet disponível na máquina que executa o backend.
-
-## Seleção da conexão no login
+O CORS é configurável por ambiente através de:
 
 ```text
-Tela de login
-    │
-    ├── usuário
-    ├── senha
-    └── ambiente
-         │
-         ▼
+integration-hub.cors.allowed-origins
+```
+
+ou:
+
+```text
+CORS_ALLOWED_ORIGINS
+```
+
+---
+
+## Persistência Oracle
+
+As tabelas próprias da aplicação utilizam o prefixo `IH_`.
+
+Principais tabelas:
+
+```text
+IH_INTEGRATION
+IH_ENDPOINT
+IH_USERS
+```
+
+`IH_INTEGRATION` armazena também:
+
+```text
+AUTH_TYPE
+API_KEY_HASH
+API_KEY_CREATED_AT
+```
+
+Os parâmetros dos endpoints são persistidos em JSON.
+
+Scripts de instalação ficam em:
+
+```text
+backend/database/install/
+```
+
+---
+
+## Principais APIs
+
+### Públicas
+
+```http
+GET  /api/health
+GET  /api/environments
 POST /api/auth/login
-         │
-         ▼
-seleção do DataSource
-         │
-         ▼
-Oracle selecionado
-         │
-         ▼
-validação do usuário
-         │
-         ▼
-JWT
 ```
 
-Exemplo:
-
-```json
-{
-  "username": "admin",
-  "password": "senha",
-  "environment": "development"
-}
-```
-
-O ambiente selecionado é associado à sessão para que as chamadas autenticadas seguintes continuem utilizando a mesma conexão.
-
-Isso permite que uma única instância do backend trabalhe, por exemplo, com uma VM Oracle e um Oracle Autonomous Database sem manter essa escolha fixa no frontend.
-
----
-
-# Executando o backend
-
-Primeiro, certifique-se de que o ambiente Oracle esteja disponível.
-
-Depois entre no diretório:
-
-```bash
-cd backend
-```
-
-## Desenvolvimento local
-
-Windows:
-
-```powershell
-.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
-```
-
-O log deverá indicar que o profile `local` está ativo.
-
-Linux ou Git Bash:
-
-```bash
-./mvnw spring-boot:run -Dspring-boot.run.profiles=local
-```
-
-O backend utiliza a porta:
-
-```text
-8081
-```
-
----
-
-# Executando o frontend
-
-Entre no diretório:
-
-```bash
-cd frontend
-```
-
-Instale as dependências, caso necessário:
-
-```bash
-npm install
-```
-
-Inicie o servidor de desenvolvimento:
-
-```bash
-npm run dev
-```
-
-O frontend utiliza a porta:
-
-```text
-5175
-```
-
-A aplicação estará disponível em:
-
-```text
-http://localhost:5175
-```
-
-Para validar o frontend:
-
-```bash
-npm run lint
-npm run test
-npm run build
-```
-
----
-
-# Comunicação frontend e backend
-
-Durante o desenvolvimento local:
-
-```text
-React / Vite
-localhost:5175
-      │
-      │ HTTP
-      ▼
-Spring Boot
-localhost:8081
-      │
-      ▼
-Oracle Database
-```
-
-Como frontend e backend utilizam portas diferentes, o navegador considera as aplicações origens distintas.
-
-O backend possui configuração de CORS para permitir o acesso do frontend local às APIs necessárias.
-
-A configuração fica centralizada em:
-
-```text
-br.com.integrationhub.config.WebConfig
-```
-
-A origem local autorizada é:
-
-```text
-http://localhost:5175
-```
-
-Essa configuração é destinada ao ambiente de desenvolvimento e poderá ser externalizada por ambiente durante a publicação em cloud.
-
-Com a autenticação administrativa, as chamadas protegidas realizadas pelo frontend deverão enviar:
+### Sessão
 
 ```http
-Authorization: Bearer <token>
+GET /api/auth/me
+PUT /api/auth/password
 ```
 
----
-
-# Frontend
-
-A interface administrativa está sendo construída de forma incremental.
-
-A estrutura segue a separação:
-
-```text
-App
-├── Sidebar
-└── Content
-    ├── Header
-    └── Page
-```
-
-Os componentes visuais possuem seus respectivos arquivos CSS.
-
-O `index.css` é reservado para estilos globais, normalizações e definições compartilhadas.
-
----
-
-## Tela de integrações
-
-A página de integrações está conectada ao backend.
-
-Fluxo de consulta:
-
-```text
-IntegrationsPage
-      │
-      ▼
-integrationService.js
-      │
-      ▼
-GET /api/integrations
-      │
-      ▼
-Spring Boot
-      │
-      ▼
-Oracle
-      │
-      ▼
-IntegrationList
-```
-
-A implementação atual contempla:
-
-- carregamento das integrações persistidas no Oracle;
-- apresentação do nome e `basePath`;
-- indicação visual de integração ativa ou inativa;
-- estado de carregamento;
-- estado vazio;
-- cadastro de novas integrações;
-- edição de integrações;
-- exclusão de integrações;
-- confirmação antes da exclusão;
-- apresentação de erros através de diálogo personalizado;
-- atualização automática da lista após operações bem-sucedidas.
-
-### Cadastro
-
-O botão **Nova integração** abre o `IntegrationForm`.
-
-O formulário envia os dados através de:
+### Integrações
 
 ```http
-POST /api/integrations
-```
-
-Após o cadastro, a listagem é carregada novamente.
-
-### Exclusão
-
-Cada integração pode solicitar sua exclusão através da interface.
-
-Antes da chamada ao backend, o `ConfirmDialog` solicita confirmação do usuário.
-
-```text
-IntegrationList
-      │
-      ▼
-IntegrationsPage
-      │
-      ▼
-ConfirmDialog
-      │
-      ▼
-integrationService.deleteIntegration()
-      │
-      ▼
+GET    /api/integrations
+GET    /api/integrations/{id}
+POST   /api/integrations
+PUT    /api/integrations/{id}
 DELETE /api/integrations/{id}
+
+POST   /api/integrations/{id}/api-key
 ```
 
-A confirmação utiliza um componente próprio da aplicação em vez do `window.confirm` do navegador.
-
-### MessageDialog
-
-Mensagens de erro relevantes são apresentadas através do componente reutilizável `MessageDialog`.
-
-Por exemplo, se uma integração possuir endpoints vinculados, o backend retorna:
-
-```text
-409 Conflict
-```
-
-com a mensagem:
-
-```text
-A integração possui endpoints vinculados
-```
-
-O frontend apresenta essa mensagem em diálogo, mantendo a experiência visual consistente com a aplicação.
-
----
-
-## Tela de endpoints
-
-A página de endpoints permite administrar as operações pertencentes a uma integração selecionada.
-
-A implementação atual contempla:
-
-- listagem dos endpoints da integração;
-- cadastro de endpoints;
-- edição de endpoints;
-- exclusão com confirmação;
-- indicação visual de método e status;
-- geração automática dos parâmetros encontrados no SQL;
-- configuração de tipo e obrigatoriedade dos parâmetros;
-- validação de sincronização entre o SQL e os parâmetros antes do salvamento;
-- atualização automática da lista após operações bem-sucedidas;
-- apresentação de erros através do `MessageDialog`;
-- modal para teste de endpoints;
-- apresentação da URL executada;
-- apresentação da duração da chamada;
-- apresentação da resposta retornada.
-
-As bind variables são identificadas a partir do SQL.
-
-Por exemplo, uma consulta que utiliza:
-
-```sql
-where id = :id
-  and status = :status
-```
-
-permite gerar automaticamente:
-
-```text
-id
-status
-```
-
-como parâmetros do endpoint.
-
-Isso evita configuração manual duplicada e reduz inconsistências entre o SQL e a definição dos parâmetros.
-
----
-
-# Autenticação no frontend
-
-O fluxo administrativo de autenticação está implementado:
-
-```text
-Tela de login
-      │
-      ▼
-POST /api/auth/login
-      │
-      ▼
-JWT
-      │
-      ▼
-armazenamento da sessão no frontend
-      │
-      ▼
-Authorization: Bearer <token>
-      │
-      ▼
-APIs administrativas
-```
-
-As chamadas para:
-
-```text
-/api/integrations/**
-/api/endpoints/**
-```
-
-incluem automaticamente o cabeçalho:
+### Endpoints
 
 ```http
-Authorization: Bearer <token>
+GET    /api/endpoints
+GET    /api/endpoints/{id}
+GET    /api/endpoints/integration/{integrationId}
+POST   /api/endpoints
+PUT    /api/endpoints/{id}
+DELETE /api/endpoints/{id}
 ```
 
-Quando a API retorna:
+### Usuários
 
-```text
-401 Unauthorized
-```
-
-o token local é removido e a aplicação retorna à tela de login. O logout também remove a sessão armazenada.
+As rotas `/api/users/**` são administrativas e restritas ao perfil Administrador.
 
 ---
 
-# Health Check
+## Health check e documentação
 
-A aplicação disponibiliza um endpoint próprio para verificar tanto o funcionamento do backend quanto a conectividade com o Oracle.
+Health check:
 
 ```http
 GET /api/health
-```
-
-Exemplo:
-
-```text
-http://localhost:8081/api/health
 ```
 
 Resposta esperada:
 
 ```json
 {
-  "database": "Online",
-  "status": "OK"
+  "status": "OK",
+  "database": "Online"
 }
 ```
 
-O health check permanece público e não exige JWT.
+OpenAPI:
+
+```text
+http://localhost:8081/v3/api-docs
+```
+
+Swagger UI:
+
+```text
+http://localhost:8081/swagger-ui/index.html
+```
+
+Os endpoints dinâmicos são adicionados automaticamente à especificação OpenAPI com base nas configurações persistidas no Oracle.
 
 ---
 
-# API de autenticação
+## Executando localmente
 
-## Login
+### Backend
 
-```http
-POST /api/auth/login
+Windows:
+
+```powershell
+cd backend
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
 ```
 
-A rota é pública.
+Linux / Git Bash:
 
-Requisição:
-
-```json
-{
-  "username": "admin",
-  "password": "senha",
-  "environment": "development"
-}
+```bash
+cd backend
+./mvnw spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
-Resposta:
-
-```json
-{
-  "token": "eyJ...",
-  "tokenType": "Bearer",
-  "expiresIn": 3600
-}
-```
-
-O token retornado deve ser utilizado nas APIs administrativas.
-
-Exemplo:
-
-```http
-Authorization: Bearer eyJ...
-```
-
-Credenciais inválidas resultam em:
+Backend:
 
 ```text
-401 Unauthorized
+http://localhost:8081
 ```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Frontend:
+
+```text
+http://localhost:5175
+```
+
+O Vite encaminha `/api` para o backend local em `localhost:8081`.
 
 ---
 
-# API de Integrações
+## Validação
 
-A API administrativa de integrações possui operações de consulta, cadastro, atualização e exclusão, além da geração/regeneração de API Key.
-
-Todas as rotas:
-
-```text
-/api/integrations/**
-```
-
-exigem autenticação JWT.
-
-## Listar integrações
-
-```http
-GET /api/integrations
-```
-
-## Buscar integração
-
-```http
-GET /api/integrations/{id}
-```
-
-## Cadastrar integração
-
-```http
-POST /api/integrations
-```
-
-Exemplo:
-
-```json
-{
-  "name": "Clientes",
-  "description": "Integração para consulta de clientes",
-  "basePath": "/api/clientes",
-  "active": "S",
-  "authType": "NONE"
-}
-```
-
-## Atualizar integração
-
-```http
-PUT /api/integrations/{id}
-```
-
-A atualização preserva os dados de criação e registra as informações de atualização.
-
-Exemplo:
-
-```json
-{
-  "name": "Itens do Pedido",
-  "description": "Itens vinculados aos pedidos",
-  "basePath": "/api/itens",
-  "active": "S",
-  "authType": "API_KEY"
-}
-```
-
-## Gerar ou regenerar API Key
-
-```http
-POST /api/integrations/{id}/api-key
-```
-
-A operação é permitida para Administrador e Criador e exige que a integração esteja configurada com:
-
-```text
-authType = API_KEY
-```
-
-A resposta contém a chave original uma única vez:
-
-```json
-{
-  "apiKey": "ihub_xxxxxxxxxxxxxxxxx"
-}
-```
-
-O hash é persistido em `IH_INTEGRATION.API_KEY_HASH` e a data da geração em `API_KEY_CREATED_AT`.
-
-Regenerar a chave substitui o hash anterior e invalida imediatamente a chave antiga.
-
-## Excluir integração
-
-```http
-DELETE /api/integrations/{id}
-```
-
-A exclusão somente é permitida quando a integração não possui endpoints vinculados.
-
-Quando existem endpoints associados, a operação retorna:
-
-```text
-409 Conflict
-```
-
-Exemplo de resposta:
-
-```json
-{
-  "status": 409,
-  "error": "Conflict",
-  "message": "A integração possui endpoints vinculados",
-  "path": "/api/integrations/12"
-}
-```
-
-Essa proteção evita a remoção de uma integração que ainda possui configurações dependentes.
-
----
-
-# API de Endpoints
-
-A API administrativa de endpoints possui operações de consulta, cadastro, atualização e exclusão.
-
-Todas as rotas:
-
-```text
-/api/endpoints/**
-```
-
-exigem autenticação JWT.
-
-## Listar endpoints
-
-```http
-GET /api/endpoints
-```
-
-## Buscar endpoint
-
-```http
-GET /api/endpoints/{id}
-```
-
-## Listar endpoints de uma integração
-
-```http
-GET /api/endpoints/integration/{integrationId}
-```
-
-## Cadastrar endpoint
-
-```http
-POST /api/endpoints
-```
-
-Exemplo:
-
-```json
-{
-  "integrationId": 1,
-  "name": "Buscar cliente",
-  "description": "Consulta um cliente pelo identificador",
-  "path": "/buscar",
-  "method": "GET",
-  "sqlText": "select id, nome from cliente where id = :id",
-  "parameters": [
-    {
-      "name": "id",
-      "type": "NUMBER",
-      "required": true
-    }
-  ],
-  "active": "S"
-}
-```
-
-O `POST` é utilizado para configuração administrativa do Integration Hub.
-
-Os endpoints dinamicamente disponibilizados para consumidores possuem inicialmente apenas operações `GET`.
-
----
-
-# Operações administrativas x endpoints dinâmicos
-
-As operações `POST`, `PUT` e `DELETE` existentes na API administrativa não significam que endpoints dinâmicos desses tipos já sejam suportados.
-
-Por exemplo:
-
-```http
-PUT /api/integrations/{id}
-DELETE /api/integrations/{id}
-```
-
-são operações de administração da configuração do Integration Hub.
-
-A execução das APIs configuradas pelos usuários continua limitada a:
-
-```text
-GET
-```
-
-na V1.
-
-Essa separação permite evoluir a interface administrativa sem ampliar prematuramente o escopo do mecanismo dinâmico.
-
----
-
-# Testes automatizados
-
-O backend possui testes automatizados utilizando JUnit e Mockito.
-
-Os testes cobrem componentes importantes da execução e das regras de negócio, incluindo:
-
-- validação de `basePath`;
-- valores padrão de `active` e `createdBy`;
-- persistência através dos repositories simulados;
-- repositories Oracle;
-- execução dinâmica;
-- conversão e validação de parâmetros;
-- parâmetros `VARCHAR2`;
-- parâmetros `NUMBER`;
-- parâmetros `DATE`;
-- parâmetros `TIMESTAMP`;
-- parâmetros obrigatórios;
-- limite máximo de resultados;
-- rejeição de `SELECT ... FOR UPDATE`;
-- rejeição de ponto e vírgula;
-- rejeição de comentários SQL;
-- serialização e desserialização dos parâmetros JSON no repositório Oracle;
-- comportamento dos controllers;
-- preservação das rotas administrativas;
-- resposta `405 Method Not Allowed` para métodos não suportados nas rotas dinâmicas;
-- respostas para recursos inexistentes;
-- atualização de integrações;
-- exclusão de integrações;
-- bloqueio da exclusão quando existem endpoints vinculados;
-- configuração CORS;
-- proteção das APIs administrativas;
-- bloqueio de `/api/integrations/**` sem token;
-- bloqueio de `/api/endpoints/**` sem token;
-- acesso administrativo com token válido;
-- rejeição de token inválido.
-- geração, validação, expiração e adulteração de JWT;
-- comportamento do filtro JWT para requisições sem token, token válido e token inválido;
-- validação de campos obrigatórios no login;
-- acesso público ao login e ao health check;
-- consulta de `/api/auth/me` com usuário autenticado;
-- geração segura de API Key;
-- hash e validação de API Key;
-- geração/regeneração de API Key por integração;
-- rejeição da geração quando `authType` não é `API_KEY`;
-- persistência de `authType`, `apiKeyHash` e `apiKeyCreatedAt`;
-- acesso a endpoint dinâmico com API Key válida;
-- `401 Unauthorized` sem API Key em integração protegida;
-- `401 Unauthorized` com API Key inválida;
-- acesso sem API Key quando `authType = NONE`.
-
-O `IntegrationServiceTest` utiliza mocks de:
-
-```text
-IntegrationRepository
-EndpointRepository
-ApiKeyService
-```
-
-Isso permite testar as regras da camada de serviço sem necessidade de conexão real com o Oracle.
-
-A proteção de exclusão deve garantir que o repository responsável pela remoção não seja chamado quando existirem endpoints associados à integração.
-
----
-
-# Testes de autenticação
-
-A autenticação possui cobertura em:
-
-```text
-AuthServiceTest
-AuthControllerTest
-JwtServiceTest
-JwtAuthenticationFilterTest
-SecurityConfigTest
-ApiKeyServiceTest
-DynamicEndpointControllerTest
-IntegrationControllerTest
-```
-
-Os cenários cobertos incluem:
-
-```text
-✓ login com credenciais válidas
-✓ geração do JWT
-✓ tokenType Bearer
-✓ expiresIn
-✓ validação da senha através do PasswordEncoder
-✓ usuário inválido
-✓ senha inválida
-✓ username obrigatório
-✓ password obrigatório
-✓ 401 para credenciais inválidas
-✓ JWT válido, expirado, adulterado e assinado por outra chave
-✓ filtro de autenticação com e sem Bearer token
-✓ login e health check públicos
-```
-
-No frontend, a cobertura contempla login, persistência e remoção da sessão, inclusão do Bearer token, tratamento de `401`, logout, seleção de `NONE/API_KEY`, geração/regeneração de chave, `ApiKeyDialog`, cópia da chave e os fluxos principais da aplicação autenticada.
-
----
-
-# Validação do projeto
-
-## Backend
-
-Linux:
+### Backend
 
 ```bash
 cd backend
@@ -2070,498 +563,145 @@ cd backend
 .\mvnw.cmd clean verify
 ```
 
-O build deve terminar com:
-
-```text
-BUILD SUCCESS
-```
-
-## Frontend
+### Frontend
 
 ```bash
 cd frontend
-
 npm run lint
 npm run test
 npm run build
 ```
 
-O projeto utiliza validações automatizadas para detectar problemas de compilação, testes e qualidade antes que alterações sejam incorporadas.
-
 ---
 
-# CI/CD
+## CI
 
-O repositório possui workflow do GitHub Actions para validação automática do projeto.
-
-Arquivo:
+O workflow:
 
 ```text
 .github/workflows/validate.yml
 ```
 
-O workflow valida backend e frontend.
+é executado em `push` e `pull_request` para `main`, além de permitir execução manual.
 
-Fluxo geral:
-
-```text
-Push / execução manual
-        │
-        ├───────────────┐
-        ▼               ▼
-Validar backend     Validar frontend
-        │               │
-        ▼               ▼
-Java 21             npm ci
-        │               │
-        ▼               ▼
-Maven verify        lint
-                        │
-                        ▼
-                     testes
-                        │
-                        ▼
-                      build
-```
-
-Para o backend é executado:
+Ele valida:
 
 ```text
-clean verify
+Backend
+  Java 21
+  Maven clean verify
+
+Frontend
+  Node 24
+  npm ci
+  lint
+  testes
+  build
 ```
 
-Para o frontend são executados:
+---
+
+## Segurança
+
+A V1 adota, entre outros, os seguintes controles:
+
+- JWT stateless nas APIs administrativas;
+- BCrypt para senhas e API Keys;
+- RBAC por operação;
+- API Key opcional por integração;
+- bind parameters obrigatórios;
+- validação de parâmetros antes do banco;
+- execução dinâmica restrita a `SELECT`;
+- bloqueio de comentários, `;` e `FOR UPDATE`;
+- limite de resultados;
+- CORS configurável por ambiente;
+- HTTPS no ambiente publicado;
+- segredos e credenciais fora do repositório;
+- tratamento centralizado de erros.
+
+---
+
+## Estrutura resumida
 
 ```text
-npm ci
-npm run lint
-npm run test
-npm run build
+integration-hub/
+├── .github/workflows/
+├── backend/
+│   ├── database/install/
+│   ├── src/main/java/br/com/integrationhub/
+│   │   ├── auth/
+│   │   ├── config/
+│   │   ├── controller/
+│   │   ├── exception/
+│   │   ├── integration/
+│   │   ├── security/
+│   │   ├── service/
+│   │   └── user/
+│   └── src/test/
+│
+├── frontend/
+│   ├── public/
+│   └── src/
+│       ├── components/
+│       ├── pages/
+│       ├── services/
+│       └── utils/
+│
+└── README.md
 ```
 
-O objetivo é detectar automaticamente regressões ou problemas introduzidos por novos commits.
-
-O workflow também pode ser executado manualmente através do GitHub Actions.
-
 ---
 
-# Segurança
+## Escopo da V1
 
-A execução de SQL configurável exige controles específicos.
+A V1 contempla:
 
-Entre os princípios e mecanismos atualmente utilizados estão:
-
-- utilização obrigatória de bind parameters;
-- proibição de concatenação direta de parâmetros no SQL;
-- validação dos parâmetros antes da execução;
-- separação entre configuração e consumo das integrações;
-- autenticação JWT das APIs administrativas;
-- sessão stateless;
-- autenticação por API Key opcional no nível da integração;
-- geração aleatória de API Key;
-- armazenamento somente do hash BCrypt da API Key;
-- exibição da chave original apenas na geração/regeneração;
-- invalidação da chave anterior após regeneração;
-- senha administrativa protegida por BCrypt;
-- armazenamento externo das credenciais;
-- armazenamento externo do segredo JWT;
-- aceitação exclusiva de uma instrução iniciada por `SELECT`;
-- rejeição de ponto e vírgula;
-- rejeição de comentários SQL;
-- bloqueio de `SELECT ... FOR UPDATE`;
-- limite máximo de resultados;
-- tratamento de tokens inválidos ou expirados;
-- auditoria das execuções em etapas futuras.
-
-Na V1, o foco dos endpoints dinâmicos continua sendo consultas de leitura.
-
----
-
-# Perfis de acesso
-
-A V1 possui três perfis efetivos de acesso:
-
-## Administrador
-
-Possui acesso completo às integrações, endpoints e gerenciamento de usuários, incluindo criação, edição, ativação/inativação e reset de senha.
-
-## Criador
-
-Pode consultar e manter integrações e endpoints, definir SQL e parâmetros e testar endpoints dinâmicos. Não possui acesso à administração de usuários.
-
-## Consumidor
-
-Possui acesso somente de leitura às configurações permitidas e pode testar endpoints conforme as regras disponíveis na interface. No frontend, o perfil Consumidor opera em modo readonly, sem ações de criação, edição, exclusão ou geração de API Key. O consumo externo dos endpoints dinâmicos segue a política `NONE/API_KEY` da integração, e não a role do usuário administrativo.
-
-# Autorização baseada em roles
-
-O RBAC está implementado na V1. O perfil do usuário é incluído no JWT e transformado em authority pelo `JwtAuthenticationFilter`. A configuração de segurança diferencia leitura, manutenção e administração de usuários.
-
-A ausência de autenticação válida produz `401 Unauthorized`; a tentativa de executar uma operação sem a role necessária produz `403 Forbidden`.
-
----
-
----
-
-# Escopo da V1
-
-A primeira versão do Integration Hub possui foco em:
-
-- cadastro e gerenciamento administrativo de integrações;
-- cadastro, edição e exclusão de endpoints;
-- persistência das configurações no Oracle;
-- relacionamento `Integration 1:N Endpoint`;
-- endpoints de consumo do tipo `GET`;
-- consultas SQL parametrizadas;
-- validação dos parâmetros recebidos;
-- conexão com Oracle através de pool;
+- CRUD administrativo de integrações e endpoints;
+- endpoints dinâmicos `GET`;
+- SQL parametrizado e execução segura;
+- parâmetros `VARCHAR2`, `NUMBER`, `DATE` e `TIMESTAMP`;
 - resolução dinâmica de `basePath + path`;
-- execução dinâmica das consultas;
-- retorno dos resultados em JSON;
-- documentação OpenAPI/Swagger;
-- tratamento padronizado de erros;
-- interface administrativa em React;
-- criação, edição e exclusão de integrações pelo frontend;
-- criação, edição e exclusão de endpoints pelo frontend;
-- componentes de diálogo reutilizáveis;
-- autenticação administrativa;
-- validação de usuário e senha;
-- BCrypt;
-- geração e validação de JWT;
-- proteção das rotas administrativas;
+- autenticação administrativa com JWT;
 - usuários persistidos no Oracle;
-- perfis Administrador, Criador e Consumidor;
-- RBAC;
-- senha temporária, troca obrigatória e reset administrativo;
-- autenticação `NONE/API_KEY` por integração para endpoints dinâmicos;
-- geração e regeneração segura de API Key;
-- ambiente Oracle local para desenvolvimento;
-- testes automatizados;
-- validação por CI;
-- publicação da aplicação e banco em ambiente cloud.
+- RBAC `A/C/U`;
+- senha temporária, troca obrigatória e reset;
+- autenticação `NONE` ou `API_KEY` por integração;
+- OpenAPI/Swagger;
+- frontend administrativo React;
+- testes automatizados e CI;
+- múltiplos ambientes Oracle;
+- execução local e publicação em OCI;
+- Oracle Autonomous Database;
+- frontend e backend publicados com HTTPS.
 
-Funcionalidades adicionais serão incorporadas de maneira incremental após a estabilização desse fluxo.
+### Fora do escopo inicial
 
----
-
-# Fora do escopo inicial
-
-Não fazem parte da primeira implementação dos endpoints dinâmicos:
-
-- operações dinâmicas `POST`;
-- operações dinâmicas `PUT`;
-- operações dinâmicas `PATCH`;
-- operações dinâmicas `DELETE`;
+- endpoints dinâmicos `POST`, `PUT`, `PATCH` e `DELETE`;
 - mensageria;
 - processamento assíncrono;
-- orquestração em Kubernetes;
+- Kubernetes;
+- OAuth2;
 - refresh token;
-- OAuth2, Basic Auth e credenciais distintas por consumidor;
 - recursos avançados de escalabilidade distribuída.
 
 ---
 
-# Estado atual
+## Status
 
-Atualmente estão implementados e validados:
+A **V1 está funcional e publicada em cloud**.
 
-## Backend e infraestrutura
-
-- aplicação Spring Boot com Java 21;
-- backend executando na porta `8081`;
-- conexão JDBC com Oracle;
-- persistência das configurações no Oracle;
-- repositories Oracle para integrações e endpoints;
-- configuração de datasource por ambiente;
-- profile `local` para desenvolvimento;
-- HikariCP;
-- health check da aplicação e do Oracle;
-- Maven Wrapper;
-- tratamento centralizado de erros;
-- OpenAPI 3.1;
-- Swagger UI;
-- workflow de validação no GitHub Actions;
-- `.editorconfig`;
-- VM dedicada para Oracle;
-- Oracle Linux;
-- Oracle Database Free 23ai;
-- Oracle Net Listener.
-
-## Integrações
-
-- cadastro de integrações;
-- consulta de integrações;
-- atualização de integrações;
-- exclusão de integrações;
-- proteção contra exclusão de integração com endpoints vinculados;
-- resposta `409 Conflict` para conflitos de exclusão;
-- validação de `basePath`;
-- relacionamento `Integration 1:N Endpoint`;
-- configuração `authType = NONE/API_KEY`;
-- geração e regeneração de API Key por integração;
-- armazenamento somente do hash da API Key;
-- data de geração da chave em `apiKeyCreatedAt`.
-
-## Endpoints
-
-- cadastro de endpoints;
-- consulta de endpoints;
-- consulta de endpoints por integração;
-- atualização de endpoints;
-- exclusão de endpoints;
-- parâmetros `VARCHAR2`;
-- parâmetros `NUMBER`;
-- parâmetros `DATE`;
-- parâmetros `TIMESTAMP`;
-- validação de parâmetros obrigatórios;
-- conversão dos parâmetros antes da execução;
-- resolução dinâmica de `basePath + path`;
-- seleção do `basePath` mais específico;
-- execução dinâmica das consultas SQL;
-- bind parameters;
-- limite configurável de resultados;
-- retorno das consultas em JSON;
-- validações de segurança do SQL;
-- documentação automática dos endpoints dinâmicos;
-- execução dos endpoints pelo Swagger UI.
-
-## Segurança
-
-- Spring Security;
-- `POST /api/auth/login`;
-- usuários persistidos em `IH_USERS`;
-- validação de usuário e senha via Oracle;
-- perfis Administrador, Criador e Consumidor;
-- RBAC por operação;
-- senha temporária e troca obrigatória;
-- reset administrativo de senha;
-- BCrypt;
-- `PasswordEncoder`;
-- geração de JWT;
-- validação de JWT;
-- expiração configurável;
-- claim de perfil no JWT;
-- `JwtAuthenticationFilter`;
-- sessão stateless;
-- login público;
-- `/api/health` público;
-- `/api/integrations/**` protegido;
-- `/api/endpoints/**` protegido;
-- `401 Unauthorized` sem autenticação válida;
-- `403 Forbidden` para operação administrativa sem permissão;
-- endpoints dinâmicos com política `NONE/API_KEY`;
-- validação do header `X-API-Key`;
-- `401 Unauthorized` para API Key ausente ou inválida em integração protegida;
-- regeneração de chave invalidando a anterior;
-- testes da proteção das rotas administrativas e da autenticação dos endpoints dinâmicos.
-
-## Frontend
-
-- React 19 com Vite;
-- interface adaptada ao perfil autenticado;
-- modo readonly para Consumidor;
-- gerenciamento de usuários para Administrador;
-- fluxo de senha temporária e troca obrigatória;
-- diálogo para apresentação de senha temporária;
-- seleção de autenticação `NONE/API_KEY` por integração;
-- geração/regeneração de API Key;
-- `ApiKeyDialog` com cópia e aviso de exibição única;
-- indicação visual do tipo de autenticação na lista de integrações;
-- frontend executando na porta `5175`;
-- estrutura separada em `components`, `pages` e `services`;
-- layout principal com Sidebar e Header;
-- Header exibindo nome e perfil do usuário autenticado através de `/api/auth/me`;
-- página de integrações;
-- `IntegrationForm`;
-- `IntegrationList`;
-- cadastro de integrações;
-- edição de integrações;
-- exclusão de integrações;
-- página de endpoints;
-- cadastro de endpoints;
-- edição de endpoints;
-- exclusão de endpoints;
-- geração automática de parâmetros a partir das bind variables do SQL;
-- configuração de tipo e obrigatoriedade dos parâmetros;
-- validação de sincronização entre SQL e parâmetros antes do salvamento;
-- modal para testar endpoints diretamente pela interface;
-- apresentação dos parâmetros de teste;
-- apresentação da URL executada;
-- apresentação da duração;
-- apresentação da resposta;
-- `ConfirmDialog`;
-- `MessageDialog`;
-- comunicação frontend → backend;
-- estados de loading e lista vazia;
-- tratamento visual de erros;
-- configuração de CORS para o ambiente local.
-
-## Testes e CI
-
-- testes automatizados com JUnit;
-- testes com Mockito;
-- testes de repositories;
-- testes de services;
-- testes de controllers;
-- testes da execução dinâmica;
-- testes das regras administrativas;
-- testes da segurança;
-- build com `clean verify`;
-- testes do fluxo de autenticação no backend e frontend;
-- testes automatizados da geração, validação e interface de API Key;
-- validação automática do backend pelo GitHub Actions;
-- validação automática do frontend pelo GitHub Actions.
-
----
-
-# Checklist da autenticação da V1
-
-O fluxo de autenticação da V1 foi dividido nas seguintes etapas:
+O fluxo completo foi validado com:
 
 ```text
-1. Backend preparado para configuração de segurança
-2. POST /api/auth/login
-3. Backend validando usuário e senha
-4. JWT retornado após login
-5. Backend bloqueando APIs administrativas sem JWT
-6. Frontend enviando JWT nas APIs administrativas
-7. Tela de login no frontend
+Frontend React
+      ↓ HTTPS
+Nginx
+      ↓
+Spring Boot
+      ↓
+Oracle Autonomous Database
 ```
 
-Estado atual:
+Estão operacionais o login, seleção de ambiente, RBAC, administração de usuários, integrações, endpoints dinâmicos, API Keys, health check e acesso externo por navegador desktop e mobile.
 
-```text
-[x] configuração de segurança
-[x] POST /api/auth/login
-[x] validação de usuário
-[x] validação de senha com BCrypt
-[x] geração de JWT
-[x] validação de JWT
-[x] proteção de /api/integrations/**
-[x] proteção de /api/endpoints/**
-[x] armazenamento e controle do JWT no frontend
-[x] envio do Bearer token pelo frontend
-[x] tratamento de 401 no frontend
-[x] tela de login
-[x] GET /api/auth/me
-[x] Header com nome e perfil do usuário autenticado
-[x] configuração NONE/API_KEY por integração
-[x] geração/regeneração de API Key
-[x] armazenamento somente do hash da API Key
-[x] validação de X-API-Key nos endpoints dinâmicos
-[x] 401 sem chave ou com chave inválida
-[x] invalidação da chave anterior após regeneração
-```
-
----
-
-# Próximas etapas
-
-A sequência imediata para conclusão da V1 está concentrada na publicação e validação em cloud:
-
-1. concluir a preparação do ambiente cloud;
-2. disponibilizar o Oracle do ambiente cloud;
-3. publicar o backend;
-4. publicar o frontend;
-5. executar a validação integrada final da V1 no ambiente publicado.
-
----
-
----
-
-# Publicação em cloud
-
-A publicação em cloud é a última grande etapa prevista para a V1.
-
-O objetivo é substituir a dependência do ambiente exclusivamente local por uma infraestrutura acessível externamente.
-
-Arquitetura esperada:
-
-```text
-Internet
-    │
-    ▼
-Frontend
-    │
-    │ HTTPS
-    ▼
-Backend Spring Boot
-    │
-    │ JDBC
-    ▼
-Oracle Database
-```
-
-No ambiente cloud deverão ser externalizadas pelo menos:
-
-```text
-DB_URL
-DB_USERNAME
-DB_PASSWORD
-ADMIN_USERNAME
-ADMIN_PASSWORD
-JWT_SECRET
-JWT_EXPIRATION_MINUTES
-DYNAMIC_MAX_RESULTS
-```
-
-`ADMIN_PASSWORD` deverá continuar contendo um hash BCrypt.
-
-`JWT_SECRET` deverá ser um segredo próprio do ambiente e não deverá ser armazenado no repositório.
-
-A configuração local continuará disponível para desenvolvimento.
-
----
-
-# Critérios para conclusão da V1
-
-A V1 poderá ser considerada concluída quando:
-
-```text
-[x] integrações puderem ser configuradas
-[x] endpoints puderem ser configurados
-[x] configurações forem persistidas no Oracle
-[x] endpoints GET forem resolvidos dinamicamente
-[x] SQL parametrizado for executado com segurança
-[x] parâmetros forem validados e convertidos
-[x] resultados forem retornados em JSON
-[x] endpoints forem documentados via OpenAPI
-[x] frontend permitir administração das configurações
-[x] backend possuir autenticação administrativa
-[x] senha administrativa utilizar BCrypt
-[x] backend gerar e validar JWT
-[x] APIs administrativas exigirem autenticação
-[x] frontend possuir tela de login
-[x] frontend enviar JWT nas chamadas administrativas
-[x] frontend tratar expiração/invalidação da sessão
-[x] frontend exibir nome e perfil do usuário autenticado
-[x] usuários forem persistidos no Oracle
-[x] RBAC estiver aplicado aos perfis A/C/U
-[x] frontend respeitar permissões e modo readonly do Consumidor
-[x] senha temporária, troca obrigatória e reset estiverem implementados
-[x] endpoints dinâmicos suportarem NONE/API_KEY por integração
-[x] API Key for gerada/regenerada com armazenamento somente do hash
-[x] API Key válida permitir consumo e chave ausente/inválida retornar 401
-[x] testes automatizados, lint, build e CI estiverem validados
-[ ] aplicação estiver publicada em cloud
-[ ] Oracle estiver disponível para o ambiente cloud
-[ ] fluxo completo estiver validado no ambiente publicado
-```
-
----
-
-# Status da V1
-
-O núcleo funcional do Integration Hub já permite configurar integrações e endpoints no Oracle e disponibilizar consultas `GET` dinamicamente sem a necessidade de criar um controller Java específico para cada nova consulta.
-
-O CRUD administrativo de integrações e endpoints está funcional.
-
-O frontend React já permite administrar integrações e endpoints, gerar parâmetros automaticamente a partir do SQL e testar endpoints diretamente pela interface.
-
-O backend possui autenticação administrativa baseada em usuários do Oracle, BCrypt, JWT e RBAC para os perfis Administrador, Criador e Consumidor. O frontend aplica essas permissões, incluindo modo readonly para Consumidor, gerenciamento de usuários para Administrador, senha temporária, troca obrigatória e reset de senha. Para consumo externo, cada integração pode operar sem API Key (`NONE`) ou exigir `X-API-Key` (`API_KEY`). A chave é gerada/regenerada pela interface, exibida somente uma vez e armazenada no banco apenas como hash BCrypt.
-
-Com isso, o núcleo funcional e de segurança da V1 está implementado. O trabalho restante está concentrado na publicação e validação final em cloud.
-
-Após essa etapa, a última grande fase da V1 será a publicação do banco, backend e frontend em ambiente cloud.
-
-A expansão para novos métodos dinâmicos, múltiplos usuários, RBAC avançado, mensageria e recursos de escalabilidade permanece fora do escopo inicial.
+As próximas evoluções podem se concentrar em novos métodos dinâmicos, melhorias operacionais de deploy, observabilidade e evolução das capacidades de integração.
