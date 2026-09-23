@@ -61,6 +61,7 @@ function EndpointTestModal({
   onClose,
 }) {
   const [parameters, setParameters] = useState({})
+  const [apiKey, setApiKey] = useState('')
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
   const [executing, setExecuting] = useState(false)
@@ -72,6 +73,7 @@ function EndpointTestModal({
 
   function handleClose() {
     setParameters(createInitialParameters(endpoint))
+    setApiKey('')
     setResult(null)
     setError(null)
     setExecuting(false)
@@ -101,6 +103,7 @@ function EndpointTestModal({
         integration,
         endpoint,
         parameters,
+        apiKey,
       )
 
       setResult(response)
@@ -160,6 +163,35 @@ function EndpointTestModal({
           className="endpoint-test-modal__form"
           onSubmit={handleSubmit}
         >
+          {integration.authType === 'API_KEY' && (
+            <div className="endpoint-test-modal__parameters">
+              <h3 className="endpoint-test-modal__section-title">
+                Autenticação
+              </h3>
+
+              <label className="endpoint-test-modal__field">
+                <span>
+                  API Key <strong>*</strong>
+                </span>
+
+                <input
+                  type="password"
+                  value={apiKey}
+                  placeholder="ihub_..."
+                  required
+                  autoComplete="off"
+                  onChange={(event) =>
+                    setApiKey(event.target.value)
+                  }
+                />
+
+                <small>
+                  Enviada no header X-API-Key
+                </small>
+              </label>
+            </div>
+          )}
+
           <div className="endpoint-test-modal__parameters">
             <h3 className="endpoint-test-modal__section-title">
               Parâmetros

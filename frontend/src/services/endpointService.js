@@ -100,6 +100,7 @@ export async function executeEndpoint(
   integration,
   endpoint,
   parameters = {},
+  apiKey = '',
 ) {
   const basePath =
     integration.basePath.replace(/\/$/, '')
@@ -127,11 +128,21 @@ export async function executeEndpoint(
     `${basePath}/${endpointPath}` +
     (queryString ? `?${queryString}` : '')
 
+  const headers = {}
+
+  if (
+    integration.authType === 'API_KEY' &&
+    apiKey
+  ) {
+    headers['X-API-Key'] = apiKey
+  }
+
   const startedAt = performance.now()
 
   try {
     const response = await apiFetch(path, {
       method: 'GET',
+      headers,
     })
 
     const duration = Math.round(
