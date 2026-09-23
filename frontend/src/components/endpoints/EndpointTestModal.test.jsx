@@ -1,17 +1,45 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 import EndpointTestModal from './EndpointTestModal'
 
-const endpointService = vi.hoisted(() => ({ executeEndpoint: vi.fn() }))
-vi.mock('../../services/endpointService', () => endpointService)
+const endpointService = vi.hoisted(() => ({
+  executeEndpoint: vi.fn(),
+}))
 
-const integration = { id: 1, basePath: '/api/clientes' }
+vi.mock(
+  '../../services/endpointService',
+  () => endpointService,
+)
+
+const integration = {
+  id: 1,
+  basePath: '/api/clientes',
+}
+
 const endpoint = {
   id: 2,
   name: 'Buscar cliente',
   method: 'GET',
   path: '/buscar',
-  parameters: [{ name: 'codigo', type: 'NUMBER', required: true }],
+  parameters: [
+    {
+      name: 'codigo',
+      type: 'NUMBER',
+      required: true,
+    },
+  ],
 }
 
 describe('EndpointTestModal', () => {
@@ -27,34 +55,155 @@ describe('EndpointTestModal', () => {
       data: [{ CODIGO: 10 }],
     })
 
-    render(<EndpointTestModal open integration={integration} endpoint={endpoint} onClose={vi.fn()} />)
-    fireEvent.change(screen.getByRole('textbox', { name: /codigo/i }), {
-      target: { value: '10' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Executar' }))
+    render(
+      <EndpointTestModal
+        open
+        integration={integration}
+        endpoint={endpoint}
+        onClose={vi.fn()}
+      />,
+    )
+
+    fireEvent.change(
+      screen.getByRole('textbox', {
+        name: /codigo/i,
+      }),
+      {
+        target: {
+          value: '10',
+        },
+      },
+    )
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Executar',
+      }),
+    )
 
     await waitFor(() => {
-      expect(endpointService.executeEndpoint).toHaveBeenCalledWith(
+      expect(
+        endpointService.executeEndpoint,
+      ).toHaveBeenCalledWith(
         integration,
         endpoint,
-        { codigo: '10' },
+        {
+          codigo: '10',
+        },
+        '',
       )
     })
-    expect(await screen.findByText('HTTP 200')).toBeInTheDocument()
-    expect(screen.getByText('12 ms')).toBeInTheDocument()
-    expect(screen.getByText(/"CODIGO": 10/)).toBeInTheDocument()
+
+    expect(
+      await screen.findByText('HTTP 200'),
+    ).toBeInTheDocument()
+
+    expect(
+      screen.getByText('12 ms'),
+    ).toBeInTheDocument()
+
+    expect(
+      screen.getByText(/"CODIGO": 10/),
+    ).toBeInTheDocument()
+  })
+
+  it('envia a API Key ao testar uma integração protegida', async () => {
+    const protectedIntegration = {
+      ...integration,
+      authType: 'API_KEY',
+    }
+
+    endpointService.executeEndpoint.mockResolvedValue({
+      success: true,
+      status: 200,
+      duration: 12,
+      url: '/api/clientes/buscar?codigo=10',
+      data: [{ CODIGO: 10 }],
+    })
+
+    render(
+      <EndpointTestModal
+        open
+        integration={protectedIntegration}
+        endpoint={endpoint}
+        onClose={vi.fn()}
+      />,
+    )
+
+    fireEvent.change(
+      screen.getByPlaceholderText('ihub_...'),
+      {
+        target: {
+          value: 'ihub_teste123',
+        },
+      },
+    )
+
+    fireEvent.change(
+      screen.getByRole('textbox', {
+        name: /codigo/i,
+      }),
+      {
+        target: {
+          value: '10',
+        },
+      },
+    )
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Executar',
+      }),
+    )
+
+    await waitFor(() => {
+      expect(
+        endpointService.executeEndpoint,
+      ).toHaveBeenCalledWith(
+        protectedIntegration,
+        endpoint,
+        {
+          codigo: '10',
+        },
+        'ihub_teste123',
+      )
+    })
   })
 
   it('mostra o erro retornado pela execução', async () => {
-    endpointService.executeEndpoint.mockRejectedValue(new Error('Parâmetro inválido'))
+    endpointService.executeEndpoint.mockRejectedValue(
+      new Error('Parâmetro inválido'),
+    )
 
-    render(<EndpointTestModal open integration={integration} endpoint={endpoint} onClose={vi.fn()} />)
-    fireEvent.change(screen.getByRole('textbox', { name: /codigo/i }), {
-      target: { value: 'abc' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Executar' }))
+    render(
+      <EndpointTestModal
+        open
+        integration={integration}
+        endpoint={endpoint}
+        onClose={vi.fn()}
+      />,
+    )
 
-    expect(await screen.findByText('Parâmetro inválido')).toBeInTheDocument()
+    fireEvent.change(
+      screen.getByRole('textbox', {
+        name: /codigo/i,
+      }),
+      {
+        target: {
+          value: 'abc',
+        },
+      },
+    )
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Executar',
+      }),
+    )
+
+    expect(
+      await screen.findByText('Parâmetro inválido'),
+    ).toBeInTheDocument()
   })
 
   it('inicia limpo ao fechar e abrir novamente', () => {
@@ -66,9 +215,17 @@ describe('EndpointTestModal', () => {
         onClose={vi.fn()}
       />,
     )
-    fireEvent.change(screen.getByRole('textbox', { name: /codigo/i }), {
-      target: { value: '10' },
-    })
+
+    fireEvent.change(
+      screen.getByRole('textbox', {
+        name: /codigo/i,
+      }),
+      {
+        target: {
+          value: '10',
+        },
+      },
+    )
 
     unmount()
 
@@ -81,15 +238,27 @@ describe('EndpointTestModal', () => {
       />,
     )
 
-    expect(screen.getByRole('textbox', { name: /codigo/i })).toHaveValue('')
+    expect(
+      screen.getByRole('textbox', {
+        name: /codigo/i,
+      }),
+    ).toHaveValue('')
   })
 
   it('configura campos de data e hora com as máscaras esperadas', () => {
     const endpointWithDates = {
       ...endpoint,
       parameters: [
-        { name: 'data', type: 'DATE', required: true },
-        { name: 'momento', type: 'TIMESTAMP', required: false },
+        {
+          name: 'data',
+          type: 'DATE',
+          required: true,
+        },
+        {
+          name: 'momento',
+          type: 'TIMESTAMP',
+          required: false,
+        },
       ],
     }
 
@@ -102,18 +271,39 @@ describe('EndpointTestModal', () => {
       />,
     )
 
-    expect(screen.getByRole('textbox', { name: /data/i }))
-      .toHaveAttribute('placeholder', 'aaaa-mm-dd')
-    expect(screen.getByRole('textbox', { name: /momento/i }))
-      .toHaveAttribute('placeholder', 'aaaa-mm-ddThh:mm:ss')
+    expect(
+      screen.getByRole('textbox', {
+        name: /data/i,
+      }),
+    ).toHaveAttribute(
+      'placeholder',
+      'aaaa-mm-dd',
+    )
+
+    expect(
+      screen.getByRole('textbox', {
+        name: /momento/i,
+      }),
+    ).toHaveAttribute(
+      'placeholder',
+      'aaaa-mm-ddThh:mm:ss',
+    )
   })
 
   it('copia a URL do resultado', async () => {
     const writeText = vi.fn().mockResolvedValue()
-    Object.defineProperty(navigator, 'clipboard', {
-      configurable: true,
-      value: { writeText },
-    })
+
+    Object.defineProperty(
+      navigator,
+      'clipboard',
+      {
+        configurable: true,
+        value: {
+          writeText,
+        },
+      },
+    )
+
     endpointService.executeEndpoint.mockResolvedValue({
       success: true,
       status: 200,
@@ -122,20 +312,50 @@ describe('EndpointTestModal', () => {
       data: [],
     })
 
-    render(<EndpointTestModal open integration={integration} endpoint={endpoint} onClose={vi.fn()} />)
-    fireEvent.change(screen.getByRole('textbox', { name: /codigo/i }), {
-      target: { value: '10' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Executar' }))
+    render(
+      <EndpointTestModal
+        open
+        integration={integration}
+        endpoint={endpoint}
+        onClose={vi.fn()}
+      />,
+    )
+
+    fireEvent.change(
+      screen.getByRole('textbox', {
+        name: /codigo/i,
+      }),
+      {
+        target: {
+          value: '10',
+        },
+      },
+    )
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Executar',
+      }),
+    )
+
     await screen.findByText('HTTP 200')
-    fireEvent.click(screen.getByRole('button', { name: 'Copiar URL' }))
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Copiar URL',
+      }),
+    )
 
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith(
         '/api/clientes/buscar?codigo=10',
       )
     })
-    expect(screen.getByRole('button', { name: 'Copiada!' })).toBeInTheDocument()
+
+    expect(
+      screen.getByRole('button', {
+        name: 'Copiada!',
+      }),
+    ).toBeInTheDocument()
   })
 })
-
