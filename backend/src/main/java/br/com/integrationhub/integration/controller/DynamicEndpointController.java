@@ -2,8 +2,10 @@ package br.com.integrationhub.integration.controller;
 
 import br.com.integrationhub.integration.model.Endpoint;
 import br.com.integrationhub.integration.model.Integration;
+import br.com.integrationhub.integration.model.IntegrationCredential;
 import br.com.integrationhub.integration.service.DynamicEndpointService;
 import br.com.integrationhub.integration.service.EndpointService;
+import br.com.integrationhub.integration.service.IntegrationCredentialService;
 import br.com.integrationhub.integration.service.IntegrationService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -18,102 +20,115 @@ import java.util.Map;
 @RestController
 public class DynamicEndpointController {
 
-        private static final String API_KEY_HEADER = "X-API-Key";
+    private static final String API_KEY_HEADER = "X-API-Key";
 
-        private final IntegrationService integrationService;
-        private final EndpointService endpointService;
-        private final DynamicEndpointService dynamicEndpointService;
+    private final IntegrationService integrationService;
+    private final EndpointService endpointService;
+    private final DynamicEndpointService dynamicEndpointService;
+    private final IntegrationCredentialService integrationCredentialService;
 
-        public DynamicEndpointController(
-                        IntegrationService integrationService,
-                        EndpointService endpointService,
-                        DynamicEndpointService dynamicEndpointService) {
+    public DynamicEndpointController(
+            IntegrationService integrationService,
+            EndpointService endpointService,
+            DynamicEndpointService dynamicEndpointService,
+            IntegrationCredentialService integrationCredentialService) {
 
-                this.integrationService = integrationService;
-                this.endpointService = endpointService;
-                this.dynamicEndpointService = dynamicEndpointService;
-        }
+        this.integrationService = integrationService;
+        this.endpointService = endpointService;
+        this.dynamicEndpointService = dynamicEndpointService;
+        this.integrationCredentialService = integrationCredentialService;
+    }
 
-        @GetMapping("/api/**")
-        public ResponseEntity<?> executeGet(
-                        HttpServletRequest request,
-                        @RequestParam Map<String, String> requestParameters) {
+    @GetMapping("/api/**")
+    public ResponseEntity<?> executeGet(
+            HttpServletRequest request,
+            @RequestParam Map<String, String> requestParameters) {
 
-                String requestPath = request.getRequestURI();
+        String requestPath =
+                request.getRequestURI();
 
-                Integration integration = integrationService
-                                .findBestMatchByRequestPath(
-                                                requestPath)
-                                .orElseThrow(() -> new ResponseStatusException(
-                                                HttpStatus.NOT_FOUND,
-                                                "Integração não encontrada"));
+        Integration integration =
+                integrationService
+                        .findBestMatchByRequestPath(
+                                requestPath)
+                        .orElseThrow(() ->
+                                new ResponseStatusException(
+                                        HttpStatus.NOT_FOUND,
+                                        "Integração não encontrada"
+                                )
+                        );
 
+        IntegrationCredential credential =
                 validateAuthentication(
-                                request,
-                                integration);
+                        request,
+                        integration);
 
-                String endpointPath = requestPath.substring(
-                                integration
-                                                .getBasePath()
-                                                .length());
+        String endpointPath =
+                requestPath.substring(
+                        integration.getBasePath()
+                                .length());
 
-                endpointPath = normalizePath(endpointPath);
+        endpointPath =
+                normalizePath(
+                        endpointPath);
 
-                Endpoint endpoint = endpointService
-                                .findByIntegrationIdAndPathAndMethod(
-                                                integration.getId(),
-                                                endpointPath,
-                                                "GET")
-                                .orElseThrow(() -> new ResponseStatusException(
-                                                HttpStatus.NOT_FOUND,
-                                                "Endpoint não encontrado"));
+        Endpoint endpoint =
+                endpointService
+                        .findByIntegrationIdAndPathAndMethod(
+                                integration.getId(),
+                                endpointPath,
+                                "GET")
+                        .orElseThrow(() ->
+                                new ResponseStatusException(
+                                        HttpStatus.NOT_FOUND,
+                                        "Endpoint não encontrado"
+                                )
+                        );
 
-                return ResponseEntity.ok(
-                                dynamicEndpointService.executeGet(
-                                                endpoint,
-                                                requestParameters));
+        return ResponseEntity.ok(
+                dynamicEndpointService.executeGet(
+                        endpoint,
+                        requestParameters)
+        );
+    }
+
+    private IntegrationCredential validateAuthentication(
+            HttpServletRequest request,
+            Integration integration) {
+
+        if (!"API_KEY".equals(
+                integration.getAuthType())) {
+
+            return null;
         }
 
-        private void validateAuthentication(
-                        HttpServletRequest request,
-                        Integration integration) {
+        String apiKey =
+                request.getHeader(
+                        API_KEY_HEADER);
 
-                if (!"API_KEY".equals(
-                                integration.getAuthType())) {
-                        return;
-                }
+        return integrationCredentialService
+                .authenticate(
+                        integration.getId(),
+                        apiKey)
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.UNAUTHORIZED,
+                                "API Key inválida"
+                        )
+                );
+    }
 
-                String apiKey = request.getHeader(
-                                API_KEY_HEADER);
+    private String normalizePath(
+            String path) {
 
-                if (apiKey == null ||
-                                apiKey.isBlank()) {
+        if (path == null ||
+                path.isBlank()) {
 
-                        throw new ResponseStatusException(
-                                        HttpStatus.UNAUTHORIZED,
-                                        "API Key não informada");
-                }
-
-                if (!integrationService.validateApiKey(
-                                integration,
-                                apiKey)) {
-
-                        throw new ResponseStatusException(
-                                        HttpStatus.UNAUTHORIZED,
-                                        "API Key inválida");
-                }
+            return "/";
         }
 
-        private String normalizePath(
-                        String path) {
-
-                if (path == null ||
-                                path.isBlank()) {
-                        return "/";
-                }
-
-                return path.startsWith("/")
-                                ? path
-                                : "/" + path;
-        }
+        return path.startsWith("/")
+                ? path
+                : "/" + path;
+    }
 }

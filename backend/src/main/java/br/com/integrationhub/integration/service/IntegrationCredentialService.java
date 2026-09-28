@@ -9,6 +9,7 @@ import br.com.integrationhub.security.ApiKeyService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class IntegrationCredentialService {
@@ -164,6 +165,37 @@ public class IntegrationCredentialService {
         );
 
         return apiKey;
+    }
+
+    public Optional<IntegrationCredential> authenticate(
+            Long integrationId,
+            String apiKey) {
+
+        if (apiKey == null ||
+                apiKey.isBlank()) {
+
+            return Optional.empty();
+        }
+
+        List<IntegrationCredential> credentials =
+                credentialRepository.findActiveByIntegrationId(
+                        integrationId);
+
+        for (IntegrationCredential credential : credentials) {
+
+            String storedApiKey =
+                    apiKeyEncryptionService.decrypt(
+                            credential.getApiKeyEncrypted());
+
+            if (apiKey.equals(
+                    storedApiKey)) {
+
+                return Optional.of(
+                        credential);
+            }
+        }
+
+        return Optional.empty();
     }
 
     private IntegrationCredential getCredential(

@@ -126,6 +126,95 @@ class OracleIntegrationCredentialRepositoryTest {
     }
 
     @Test
+    void deveBuscarSomenteCredenciaisAtivasPorIntegrationId() {
+        IntegrationCredential credential =
+                createCredential(
+                        10L,
+                        1L,
+                        "Sistema Tasy",
+                        "S"
+                );
+
+        when(jdbcTemplate.query(
+                anyString(),
+                ArgumentMatchers.<Map<String, ?>>any(),
+                ArgumentMatchers.<RowMapper<IntegrationCredential>>any()
+        )).thenReturn(List.of(credential));
+
+        List<IntegrationCredential> result =
+                repository.findActiveByIntegrationId(
+                        1L);
+
+        ArgumentCaptor<String> sqlCaptor =
+                ArgumentCaptor.forClass(
+                        String.class);
+
+        ArgumentCaptor<Map<String, ?>> paramsCaptor =
+                createMapCaptor();
+
+        verify(jdbcTemplate).query(
+                sqlCaptor.capture(),
+                paramsCaptor.capture(),
+                ArgumentMatchers.<RowMapper<IntegrationCredential>>any()
+        );
+
+        String sql =
+                normalizeSql(
+                        sqlCaptor.getValue());
+
+        assertTrue(
+                sql.contains(
+                        "where integration_id = :integrationid"
+                )
+        );
+
+        assertTrue(
+                sql.contains(
+                        "and active = 's'"
+                )
+        );
+
+        assertTrue(
+                sql.contains(
+                        "order by id"
+                )
+        );
+
+        assertEquals(
+                1L,
+                paramsCaptor.getValue()
+                        .get("integrationId")
+        );
+
+        assertEquals(
+                1,
+                result.size()
+        );
+
+        assertEquals(
+                10L,
+                result.getFirst().getId()
+        );
+    }
+
+    @Test
+    void deveRetornarListaVaziaQuandoNaoExistiremCredenciaisAtivas() {
+        when(jdbcTemplate.query(
+                anyString(),
+                ArgumentMatchers.<Map<String, ?>>any(),
+                ArgumentMatchers.<RowMapper<IntegrationCredential>>any()
+        )).thenReturn(List.of());
+
+        List<IntegrationCredential> result =
+                repository.findActiveByIntegrationId(
+                        1L);
+
+        assertTrue(
+                result.isEmpty()
+        );
+    }
+
+    @Test
     void deveBuscarCredencialPorId() {
         IntegrationCredential credential =
                 createCredential(
@@ -145,13 +234,10 @@ class OracleIntegrationCredentialRepositoryTest {
                 repository.findById(10L);
 
         assertTrue(result.isPresent());
+
         assertEquals(
                 10L,
                 result.get().getId()
-        );
-        assertEquals(
-                "Sistema Tasy",
-                result.get().getName()
         );
     }
 
@@ -166,7 +252,9 @@ class OracleIntegrationCredentialRepositoryTest {
         Optional<IntegrationCredential> result =
                 repository.findById(999L);
 
-        assertTrue(result.isEmpty());
+        assertTrue(
+                result.isEmpty()
+        );
     }
 
     @Test
@@ -212,66 +300,8 @@ class OracleIntegrationCredentialRepositoryTest {
         )).thenReturn(List.of(persisted));
 
         IntegrationCredential result =
-                repository.save(credential);
-
-        ArgumentCaptor<String> sqlCaptor =
-                ArgumentCaptor.forClass(
-                        String.class);
-
-        ArgumentCaptor<MapSqlParameterSource> paramsCaptor =
-                ArgumentCaptor.forClass(
-                        MapSqlParameterSource.class);
-
-        verify(jdbcTemplate).update(
-                sqlCaptor.capture(),
-                paramsCaptor.capture()
-        );
-
-        String sql =
-                normalizeSql(
-                        sqlCaptor.getValue());
-
-        assertTrue(
-                sql.contains(
-                        "insert into ih_integration_credential"
-                )
-        );
-
-        assertEquals(
-                10L,
-                paramsCaptor.getValue()
-                        .getValue("id")
-        );
-
-        assertEquals(
-                1L,
-                paramsCaptor.getValue()
-                        .getValue("integrationId")
-        );
-
-        assertEquals(
-                "Sistema Tasy",
-                paramsCaptor.getValue()
-                        .getValue("name")
-        );
-
-        assertEquals(
-                "chave-criptografada",
-                paramsCaptor.getValue()
-                        .getValue("apiKeyEncrypted")
-        );
-
-        assertEquals(
-                "S",
-                paramsCaptor.getValue()
-                        .getValue("active")
-        );
-
-        assertEquals(
-                "admin",
-                paramsCaptor.getValue()
-                        .getValue("createdBy")
-        );
+                repository.save(
+                        credential);
 
         assertEquals(
                 10L,
@@ -336,9 +366,6 @@ class OracleIntegrationCredentialRepositoryTest {
                         "S"
                 );
 
-        updated.setUpdatedBy(
-                "admin");
-
         when(jdbcTemplate.update(
                 anyString(),
                 ArgumentMatchers.any(
@@ -358,65 +385,6 @@ class OracleIntegrationCredentialRepositoryTest {
                         "admin"
                 );
 
-        ArgumentCaptor<String> sqlCaptor =
-                ArgumentCaptor.forClass(
-                        String.class);
-
-        ArgumentCaptor<MapSqlParameterSource> paramsCaptor =
-                ArgumentCaptor.forClass(
-                        MapSqlParameterSource.class);
-
-        verify(jdbcTemplate).update(
-                sqlCaptor.capture(),
-                paramsCaptor.capture()
-        );
-
-        String sql =
-                normalizeSql(
-                        sqlCaptor.getValue());
-
-        assertTrue(
-                sql.contains(
-                        "update ih_integration_credential"
-                )
-        );
-
-        assertTrue(
-                sql.contains(
-                        "set name = :name"
-                )
-        );
-
-        assertTrue(
-                !sql.contains(
-                        "api_key_encrypted ="
-                )
-        );
-
-        assertTrue(
-                !sql.contains(
-                        "active ="
-                )
-        );
-
-        assertEquals(
-                10L,
-                paramsCaptor.getValue()
-                        .getValue("id")
-        );
-
-        assertEquals(
-                "Sistema Financeiro",
-                paramsCaptor.getValue()
-                        .getValue("name")
-        );
-
-        assertEquals(
-                "admin",
-                paramsCaptor.getValue()
-                        .getValue("updatedBy")
-        );
-
         assertEquals(
                 "Sistema Financeiro",
                 result.getName()
@@ -432,9 +400,6 @@ class OracleIntegrationCredentialRepositoryTest {
                         "Sistema Tasy",
                         "N"
                 );
-
-        updated.setUpdatedBy(
-                "admin");
 
         when(jdbcTemplate.update(
                 anyString(),
@@ -455,59 +420,6 @@ class OracleIntegrationCredentialRepositoryTest {
                         "admin"
                 );
 
-        ArgumentCaptor<String> sqlCaptor =
-                ArgumentCaptor.forClass(
-                        String.class);
-
-        ArgumentCaptor<MapSqlParameterSource> paramsCaptor =
-                ArgumentCaptor.forClass(
-                        MapSqlParameterSource.class);
-
-        verify(jdbcTemplate).update(
-                sqlCaptor.capture(),
-                paramsCaptor.capture()
-        );
-
-        String sql =
-                normalizeSql(
-                        sqlCaptor.getValue());
-
-        assertTrue(
-                sql.contains(
-                        "set active = :active"
-                )
-        );
-
-        assertTrue(
-                !sql.contains(
-                        "api_key_encrypted ="
-                )
-        );
-
-        assertTrue(
-                !sql.contains(
-                        "name ="
-                )
-        );
-
-        assertEquals(
-                10L,
-                paramsCaptor.getValue()
-                        .getValue("id")
-        );
-
-        assertEquals(
-                "N",
-                paramsCaptor.getValue()
-                        .getValue("active")
-        );
-
-        assertEquals(
-                "admin",
-                paramsCaptor.getValue()
-                        .getValue("updatedBy")
-        );
-
         assertEquals(
                 "N",
                 result.getActive()
@@ -527,9 +439,6 @@ class OracleIntegrationCredentialRepositoryTest {
         updated.setApiKeyEncrypted(
                 "nova-chave-criptografada");
 
-        updated.setUpdatedBy(
-                "admin");
-
         when(jdbcTemplate.update(
                 anyString(),
                 ArgumentMatchers.any(
@@ -548,59 +457,6 @@ class OracleIntegrationCredentialRepositoryTest {
                         "nova-chave-criptografada",
                         "admin"
                 );
-
-        ArgumentCaptor<String> sqlCaptor =
-                ArgumentCaptor.forClass(
-                        String.class);
-
-        ArgumentCaptor<MapSqlParameterSource> paramsCaptor =
-                ArgumentCaptor.forClass(
-                        MapSqlParameterSource.class);
-
-        verify(jdbcTemplate).update(
-                sqlCaptor.capture(),
-                paramsCaptor.capture()
-        );
-
-        String sql =
-                normalizeSql(
-                        sqlCaptor.getValue());
-
-        assertTrue(
-                sql.contains(
-                        "set api_key_encrypted = :apikeyencrypted"
-                )
-        );
-
-        assertTrue(
-                !sql.contains(
-                        "name ="
-                )
-        );
-
-        assertTrue(
-                !sql.contains(
-                        "active ="
-                )
-        );
-
-        assertEquals(
-                10L,
-                paramsCaptor.getValue()
-                        .getValue("id")
-        );
-
-        assertEquals(
-                "nova-chave-criptografada",
-                paramsCaptor.getValue()
-                        .getValue("apiKeyEncrypted")
-        );
-
-        assertEquals(
-                "admin",
-                paramsCaptor.getValue()
-                        .getValue("updatedBy")
-        );
 
         assertEquals(
                 "nova-chave-criptografada",

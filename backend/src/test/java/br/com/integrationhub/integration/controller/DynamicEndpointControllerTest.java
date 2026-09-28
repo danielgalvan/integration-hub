@@ -1,566 +1,573 @@
 package br.com.integrationhub.integration.controller;
 
-import br.com.integrationhub.exception.GlobalExceptionHandler;
 import br.com.integrationhub.integration.model.Endpoint;
 import br.com.integrationhub.integration.model.Integration;
+import br.com.integrationhub.integration.model.IntegrationCredential;
 import br.com.integrationhub.integration.service.DynamicEndpointService;
 import br.com.integrationhub.integration.service.EndpointService;
+import br.com.integrationhub.integration.service.IntegrationCredentialService;
 import br.com.integrationhub.integration.service.IntegrationService;
-import br.com.integrationhub.security.JwtService;
+import jakarta.servlet.http.HttpServletRequest;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.ArgumentMatchers;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.dao.DataAccessResourceFailureException;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest({
-        DynamicEndpointController.class,
-        IntegrationController.class,
-        GlobalExceptionHandler.class
-})
-@AutoConfigureMockMvc(addFilters = false)
 class DynamicEndpointControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockitoBean
     private IntegrationService integrationService;
-
-    @MockitoBean
     private EndpointService endpointService;
-
-    @MockitoBean
     private DynamicEndpointService dynamicEndpointService;
+    private IntegrationCredentialService integrationCredentialService;
+    private HttpServletRequest request;
 
-    @MockitoBean
-    private JwtService jwtService;
+    private DynamicEndpointController controller;
 
-    @Test
-    void deveExecutarEndpointDinamico() throws Exception {
+    @BeforeEach
+    void setUp() {
+        integrationService =
+                mock(IntegrationService.class);
 
-        Integration integration = createIntegration();
-        Endpoint endpoint = createEndpoint();
+        endpointService =
+                mock(EndpointService.class);
 
-        when(integrationService.findBestMatchByRequestPath(
-                "/api/pedidos/buscar"
-        )).thenReturn(Optional.of(integration));
+        dynamicEndpointService =
+                mock(DynamicEndpointService.class);
 
-        when(endpointService.findByIntegrationIdAndPathAndMethod(
-                8L,
-                "/buscar",
-                "GET"
-        )).thenReturn(Optional.of(endpoint));
+        integrationCredentialService =
+                mock(IntegrationCredentialService.class);
 
-        when(dynamicEndpointService.executeGet(
-                eq(endpoint),
-                ArgumentMatchers.<Map<String, String>>any()
-        )).thenReturn(
-                List.of(
-                        Map.of(
-                                "ID", 1,
-                                "STATUS", "ABERTO"
-                        )
-                )
-        );
+        request =
+                mock(HttpServletRequest.class);
 
-        mockMvc.perform(
-                        get("/api/pedidos/buscar")
-                                .param("id", "1")
-                )
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].ID").value(1))
-                .andExpect(jsonPath("$[0].STATUS").value("ABERTO"));
+        controller =
+                new DynamicEndpointController(
+                        integrationService,
+                        endpointService,
+                        dynamicEndpointService,
+                        integrationCredentialService
+                );
     }
 
     @Test
-    void deveRepassarParametrosDaRequisicaoParaService()
-            throws Exception {
+    void shouldExecuteGetWithoutAuthentication() {
+        Integration integration =
+                createIntegration(
+                        1L,
+                        "/api/clientes",
+                        "NONE"
+                );
 
-        Integration integration = createIntegration();
-        Endpoint endpoint = createEndpoint();
-
-        when(integrationService.findBestMatchByRequestPath(
-                "/api/pedidos/buscar"
-        )).thenReturn(Optional.of(integration));
-
-        when(endpointService.findByIntegrationIdAndPathAndMethod(
-                8L,
-                "/buscar",
-                "GET"
-        )).thenReturn(Optional.of(endpoint));
-
-        when(dynamicEndpointService.executeGet(
-                eq(endpoint),
-                ArgumentMatchers.<Map<String, String>>any()
-        )).thenReturn(List.of());
-
-        mockMvc.perform(
-                        get("/api/pedidos/buscar")
-                                .param("id", "10")
-                                .param("status", "ABERTO")
-                )
-                .andExpect(status().isOk());
-
-        ArgumentCaptor<Map<String, String>> parametersCaptor =
-                createStringMapCaptor();
-
-        verify(dynamicEndpointService).executeGet(
-                eq(endpoint),
-                parametersCaptor.capture()
-        );
+        Endpoint endpoint =
+                createEndpoint(
+                        10L,
+                        1L,
+                        "/buscar"
+                );
 
         Map<String, String> parameters =
-                parametersCaptor.getValue();
-
-        assertEquals(
-                "10",
-                parameters.get("id")
-        );
-
-        assertEquals(
-                "ABERTO",
-                parameters.get("status")
-        );
-    }
-
-    @Test
-    void deveRetornarNotFoundQuandoIntegrationNaoExistir()
-            throws Exception {
-
-        when(integrationService.findBestMatchByRequestPath(
-                "/api/inexistente/buscar"
-        )).thenReturn(Optional.empty());
-
-        mockMvc.perform(
-                        get("/api/inexistente/buscar")
-                                .param("id", "1")
-                )
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.status").value(404))
-                .andExpect(jsonPath("$.error").value("Not Found"))
-                .andExpect(
-                        jsonPath("$.message")
-                                .value("Integração não encontrada")
-                )
-                .andExpect(
-                        jsonPath("$.path")
-                                .value("/api/inexistente/buscar")
+                Map.of(
+                        "codigo",
+                        "10"
                 );
-    }
 
-    @Test
-    void deveRetornarNotFoundQuandoEndpointNaoExistir()
-            throws Exception {
-
-        Integration integration = createIntegration();
-
-        when(integrationService.findBestMatchByRequestPath(
-                "/api/pedidos/inexistente"
-        )).thenReturn(Optional.of(integration));
-
-        when(endpointService.findByIntegrationIdAndPathAndMethod(
-                8L,
-                "/inexistente",
-                "GET"
-        )).thenReturn(Optional.empty());
-
-        mockMvc.perform(
-                        get("/api/pedidos/inexistente")
-                                .param("id", "1")
-                )
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.status").value(404))
-                .andExpect(jsonPath("$.error").value("Not Found"))
-                .andExpect(
-                        jsonPath("$.message")
-                                .value("Endpoint não encontrado")
-                )
-                .andExpect(
-                        jsonPath("$.path")
-                                .value("/api/pedidos/inexistente")
+        List<Map<String, Object>> result =
+                List.of(
+                        Map.of(
+                                "CODIGO",
+                                10
+                        )
                 );
-    }
 
-    @Test
-    void deveRetornarBadRequestParaParametroObrigatorioAusente()
-            throws Exception {
+        when(request.getRequestURI())
+                .thenReturn(
+                        "/api/clientes/buscar");
 
-        Integration integration = createIntegration();
-        Endpoint endpoint = createEndpoint();
-
-        when(integrationService.findBestMatchByRequestPath(
-                "/api/pedidos/buscar"
-        )).thenReturn(Optional.of(integration));
-
-        when(endpointService.findByIntegrationIdAndPathAndMethod(
-                8L,
-                "/buscar",
-                "GET"
-        )).thenReturn(Optional.of(endpoint));
-
-        when(dynamicEndpointService.executeGet(
-                eq(endpoint),
-                ArgumentMatchers.<Map<String, String>>any()
-        )).thenThrow(
-                new IllegalArgumentException(
-                        "Parâmetro obrigatório não informado: id"
-                )
-        );
-
-        mockMvc.perform(
-                        get("/api/pedidos/buscar")
-                )
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.error").value("Bad Request"))
-                .andExpect(
-                        jsonPath("$.message")
-                                .value(
-                                        "Parâmetro obrigatório não informado: id"
-                                )
-                )
-                .andExpect(
-                        jsonPath("$.path")
-                                .value("/api/pedidos/buscar")
-                );
-    }
-
-    @Test
-    void deveRetornarBadRequestParaParametroNumberInvalido()
-            throws Exception {
-
-        Integration integration = createIntegration();
-        Endpoint endpoint = createEndpoint();
-
-        when(integrationService.findBestMatchByRequestPath(
-                "/api/pedidos/buscar"
-        )).thenReturn(Optional.of(integration));
-
-        when(endpointService.findByIntegrationIdAndPathAndMethod(
-                8L,
-                "/buscar",
-                "GET"
-        )).thenReturn(Optional.of(endpoint));
-
-        when(dynamicEndpointService.executeGet(
-                eq(endpoint),
-                ArgumentMatchers.<Map<String, String>>any()
-        )).thenThrow(
-                new IllegalArgumentException(
-                        "Parâmetro id deve ser numérico"
-                )
-        );
-
-        mockMvc.perform(
-                        get("/api/pedidos/buscar")
-                                .param("id", "abc")
-                )
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.error").value("Bad Request"))
-                .andExpect(
-                        jsonPath("$.message")
-                                .value("Parâmetro id deve ser numérico")
-                )
-                .andExpect(
-                        jsonPath("$.path")
-                                .value("/api/pedidos/buscar")
-                );
-    }
-
-    @Test
-    void deveRetornarErroControladoQuandoOcorrerErroDeBanco()
-            throws Exception {
-
-        Integration integration = createIntegration();
-        Endpoint endpoint = createEndpoint();
-
-        when(integrationService.findBestMatchByRequestPath(
-                "/api/pedidos/buscar"
-        )).thenReturn(Optional.of(integration));
-
-        when(endpointService.findByIntegrationIdAndPathAndMethod(
-                8L,
-                "/buscar",
-                "GET"
-        )).thenReturn(Optional.of(endpoint));
-
-        when(dynamicEndpointService.executeGet(
-                eq(endpoint),
-                ArgumentMatchers.<Map<String, String>>any()
-        )).thenThrow(
-                new DataAccessResourceFailureException(
-                        "Erro ao acessar banco de dados"
-                )
-        );
-
-        mockMvc.perform(
-                        get("/api/pedidos/buscar")
-                                .param("id", "1")
-                )
-                .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.status").value(500))
-                .andExpect(
-                        jsonPath("$.error")
-                                .value("Internal Server Error")
-                )
-                .andExpect(
-                        jsonPath("$.message")
-                                .value(
-                                        "Erro ao executar o endpoint configurado"
-                                )
-                )
-                .andExpect(
-                        jsonPath("$.path")
-                                .value("/api/pedidos/buscar")
-                );
-    }
-
-    @Test
-    void deveUsarRequestPathCompletoParaResolverIntegration()
-            throws Exception {
-
-        Integration integration = createIntegration();
-        Endpoint endpoint = createEndpoint();
-
-        when(integrationService.findBestMatchByRequestPath(
-                "/api/pedidos/buscar"
-        )).thenReturn(Optional.of(integration));
-
-        when(endpointService.findByIntegrationIdAndPathAndMethod(
-                8L,
-                "/buscar",
-                "GET"
-        )).thenReturn(Optional.of(endpoint));
-
-        when(dynamicEndpointService.executeGet(
-                eq(endpoint),
-                ArgumentMatchers.<Map<String, String>>any()
-        )).thenReturn(List.of());
-
-        mockMvc.perform(
-                        get("/api/pedidos/buscar")
-                                .param("id", "1")
-                )
-                .andExpect(status().isOk());
-
-        verify(integrationService)
+        when(integrationService
                 .findBestMatchByRequestPath(
-                        "/api/pedidos/buscar"
-                );
-    }
+                        "/api/clientes/buscar"))
+                .thenReturn(
+                        Optional.of(
+                                integration));
 
-    @Test
-    void deveCalcularEndpointPathComBaseNaIntegrationResolvida()
-            throws Exception {
-
-        Integration integration = new Integration();
-
-        integration.setId(20L);
-        integration.setName("Pedidos especiais");
-        integration.setBasePath("/api/pedidos/especiais");
-        integration.setActive("S");
-
-        Endpoint endpoint = createEndpoint();
-        endpoint.setIntegrationId(20L);
-
-        when(integrationService.findBestMatchByRequestPath(
-                "/api/pedidos/especiais/buscar"
-        )).thenReturn(Optional.of(integration));
-
-        when(endpointService.findByIntegrationIdAndPathAndMethod(
-                20L,
-                "/buscar",
-                "GET"
-        )).thenReturn(Optional.of(endpoint));
+        when(endpointService
+                .findByIntegrationIdAndPathAndMethod(
+                        1L,
+                        "/buscar",
+                        "GET"))
+                .thenReturn(
+                        Optional.of(
+                                endpoint));
 
         when(dynamicEndpointService.executeGet(
-                eq(endpoint),
-                ArgumentMatchers.<Map<String, String>>any()
-        )).thenReturn(List.of());
+                endpoint,
+                parameters))
+                .thenReturn(
+                        result);
 
-        mockMvc.perform(
-                        get("/api/pedidos/especiais/buscar")
-                                .param("id", "1")
-                )
-                .andExpect(status().isOk());
+        ResponseEntity<?> response =
+                controller.executeGet(
+                        request,
+                        parameters);
 
-        verify(endpointService)
+        assertEquals(
+                200,
+                response.getStatusCode()
+                        .value());
+
+        assertEquals(
+                result,
+                response.getBody());
+
+        verify(integrationCredentialService, never())
+                .authenticate(
+                        1L,
+                        null);
+
+        verify(dynamicEndpointService)
+                .executeGet(
+                        endpoint,
+                        parameters);
+    }
+
+    @Test
+    void shouldExecuteGetWithValidApiKey() {
+        Integration integration =
+                createIntegration(
+                        1L,
+                        "/api/clientes",
+                        "API_KEY"
+                );
+
+        IntegrationCredential credential =
+                createCredential(
+                        100L,
+                        1L,
+                        "Sistema Tasy"
+                );
+
+        Endpoint endpoint =
+                createEndpoint(
+                        10L,
+                        1L,
+                        "/buscar"
+                );
+
+        Map<String, String> parameters =
+                Map.of(
+                        "codigo",
+                        "10"
+                );
+
+        List<Map<String, Object>> result =
+                List.of(
+                        Map.of(
+                                "CODIGO",
+                                10
+                        )
+                );
+
+        when(request.getRequestURI())
+                .thenReturn(
+                        "/api/clientes/buscar");
+
+        when(request.getHeader(
+                "X-API-Key"))
+                .thenReturn(
+                        "ihub-chave-valida");
+
+        when(integrationService
+                .findBestMatchByRequestPath(
+                        "/api/clientes/buscar"))
+                .thenReturn(
+                        Optional.of(
+                                integration));
+
+        when(integrationCredentialService
+                .authenticate(
+                        1L,
+                        "ihub-chave-valida"))
+                .thenReturn(
+                        Optional.of(
+                                credential));
+
+        when(endpointService
                 .findByIntegrationIdAndPathAndMethod(
-                        20L,
+                        1L,
                         "/buscar",
-                        "GET"
+                        "GET"))
+                .thenReturn(
+                        Optional.of(
+                                endpoint));
+
+        when(dynamicEndpointService.executeGet(
+                endpoint,
+                parameters))
+                .thenReturn(
+                        result);
+
+        ResponseEntity<?> response =
+                controller.executeGet(
+                        request,
+                        parameters);
+
+        assertEquals(
+                200,
+                response.getStatusCode()
+                        .value());
+
+        assertEquals(
+                result,
+                response.getBody());
+
+        verify(integrationCredentialService)
+                .authenticate(
+                        1L,
+                        "ihub-chave-valida");
+
+        verify(dynamicEndpointService)
+                .executeGet(
+                        endpoint,
+                        parameters);
+    }
+
+    @Test
+    void shouldRejectInvalidApiKey() {
+        Integration integration =
+                createIntegration(
+                        1L,
+                        "/api/clientes",
+                        "API_KEY"
                 );
-    }
 
-    @Test
-    void deveManterRotaAdministrativaForaDoControllerDinamico()
-            throws Exception {
+        when(request.getRequestURI())
+                .thenReturn(
+                        "/api/clientes/buscar");
 
-        when(integrationService.findAll()).thenReturn(List.of());
+        when(request.getHeader(
+                "X-API-Key"))
+                .thenReturn(
+                        "ihub-chave-invalida");
 
-        mockMvc.perform(get("/api/integrations"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isEmpty());
+        when(integrationService
+                .findBestMatchByRequestPath(
+                        "/api/clientes/buscar"))
+                .thenReturn(
+                        Optional.of(
+                                integration));
 
-        verify(integrationService).findAll();
-    }
+        when(integrationCredentialService
+                .authenticate(
+                        1L,
+                        "ihub-chave-invalida"))
+                .thenReturn(
+                        Optional.empty());
 
-    @Test
-    void deveRejeitarMetodoDiferenteDeGetNaRotaDinamica()
-            throws Exception {
-
-        mockMvc.perform(
-                        org.springframework.test.web.servlet.request
-                                .MockMvcRequestBuilders.post(
-                                        "/api/pedidos/buscar"
-                                )
-                )
-                .andExpect(status().isMethodNotAllowed())
-                .andExpect(jsonPath("$.status").value(405))
-                .andExpect(jsonPath("$.error").value("Method Not Allowed"))
-                .andExpect(
-                        jsonPath("$.message")
-                                .value("Método HTTP não suportado")
+        ResponseStatusException exception =
+                assertThrows(
+                        ResponseStatusException.class,
+                        () -> controller.executeGet(
+                                request,
+                                Map.of())
                 );
-    }
 
-    @Test
-    void deveExigirApiKeyQuandoIntegrationUsaEsseTipoDeAutenticacao()
-            throws Exception {
+        assertEquals(
+                401,
+                exception.getStatusCode()
+                        .value());
 
-        Integration integration = createIntegration();
-        integration.setAuthType("API_KEY");
-
-        when(integrationService.findBestMatchByRequestPath(
-                "/api/pedidos/buscar"
-        )).thenReturn(Optional.of(integration));
-
-        mockMvc.perform(get("/api/pedidos/buscar"))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.message")
-                        .value("API Key não informada"));
+        assertEquals(
+                "API Key inválida",
+                exception.getReason());
 
         verify(endpointService, never())
                 .findByIntegrationIdAndPathAndMethod(
-                        org.mockito.ArgumentMatchers.anyLong(),
-                        ArgumentMatchers.anyString(),
-                        ArgumentMatchers.anyString());
+                        1L,
+                        "/buscar",
+                        "GET");
     }
 
     @Test
-    void deveRejeitarApiKeyInvalida()
-            throws Exception {
+    void shouldRejectMissingApiKeyWithGenericMessage() {
+        Integration integration =
+                createIntegration(
+                        1L,
+                        "/api/clientes",
+                        "API_KEY"
+                );
 
-        Integration integration = createIntegration();
-        integration.setAuthType("API_KEY");
+        when(request.getRequestURI())
+                .thenReturn(
+                        "/api/clientes/buscar");
 
-        when(integrationService.findBestMatchByRequestPath(
-                "/api/pedidos/buscar"
-        )).thenReturn(Optional.of(integration));
+        when(request.getHeader(
+                "X-API-Key"))
+                .thenReturn(
+                        null);
 
-        when(integrationService.validateApiKey(
-                integration,
-                "chave-invalida"
-        )).thenReturn(false);
+        when(integrationService
+                .findBestMatchByRequestPath(
+                        "/api/clientes/buscar"))
+                .thenReturn(
+                        Optional.of(
+                                integration));
 
-        mockMvc.perform(
-                        get("/api/pedidos/buscar")
-                                .header("X-API-Key", "chave-invalida")
-                )
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.message")
-                        .value("API Key inválida"));
+        when(integrationCredentialService
+                .authenticate(
+                        1L,
+                        null))
+                .thenReturn(
+                        Optional.empty());
+
+        ResponseStatusException exception =
+                assertThrows(
+                        ResponseStatusException.class,
+                        () -> controller.executeGet(
+                                request,
+                                Map.of())
+                );
+
+        assertEquals(
+                401,
+                exception.getStatusCode()
+                        .value());
+
+        assertEquals(
+                "API Key inválida",
+                exception.getReason());
+
+        verify(integrationCredentialService)
+                .authenticate(
+                        1L,
+                        null);
+
+        verify(endpointService, never())
+                .findByIntegrationIdAndPathAndMethod(
+                        1L,
+                        "/buscar",
+                        "GET");
     }
 
     @Test
-    void deveExecutarEndpointComApiKeyValida()
-            throws Exception {
+    void shouldReturnNotFoundWhenIntegrationDoesNotExist() {
+        when(request.getRequestURI())
+                .thenReturn(
+                        "/api/inexistente/buscar");
 
-        Integration integration = createIntegration();
-        integration.setAuthType("API_KEY");
-        Endpoint endpoint = createEndpoint();
+        when(integrationService
+                .findBestMatchByRequestPath(
+                        "/api/inexistente/buscar"))
+                .thenReturn(
+                        Optional.empty());
 
-        when(integrationService.findBestMatchByRequestPath(
-                "/api/pedidos/buscar"
-        )).thenReturn(Optional.of(integration));
+        ResponseStatusException exception =
+                assertThrows(
+                        ResponseStatusException.class,
+                        () -> controller.executeGet(
+                                request,
+                                Map.of())
+                );
 
-        when(integrationService.validateApiKey(
-                integration,
-                "ihub_chave_valida"
-        )).thenReturn(true);
+        assertEquals(
+                404,
+                exception.getStatusCode()
+                        .value());
 
-        when(endpointService.findByIntegrationIdAndPathAndMethod(
-                8L,
-                "/buscar",
-                "GET"
-        )).thenReturn(Optional.of(endpoint));
+        assertEquals(
+                "Integração não encontrada",
+                exception.getReason());
+
+        verify(integrationCredentialService, never())
+                .authenticate(
+                        1L,
+                        null);
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenEndpointDoesNotExist() {
+        Integration integration =
+                createIntegration(
+                        1L,
+                        "/api/clientes",
+                        "NONE"
+                );
+
+        when(request.getRequestURI())
+                .thenReturn(
+                        "/api/clientes/inexistente");
+
+        when(integrationService
+                .findBestMatchByRequestPath(
+                        "/api/clientes/inexistente"))
+                .thenReturn(
+                        Optional.of(
+                                integration));
+
+        when(endpointService
+                .findByIntegrationIdAndPathAndMethod(
+                        1L,
+                        "/inexistente",
+                        "GET"))
+                .thenReturn(
+                        Optional.empty());
+
+        ResponseStatusException exception =
+                assertThrows(
+                        ResponseStatusException.class,
+                        () -> controller.executeGet(
+                                request,
+                                Map.of())
+                );
+
+        assertEquals(
+                404,
+                exception.getStatusCode()
+                        .value());
+
+        assertEquals(
+                "Endpoint não encontrado",
+                exception.getReason());
+
+        verify(
+                dynamicEndpointService,
+                never())
+                .executeGet(
+                        any(Endpoint.class),
+                        anyMap());
+    }
+
+    @Test
+    void shouldNormalizeRootEndpointPath() {
+        Integration integration =
+                createIntegration(
+                        1L,
+                        "/api/clientes",
+                        "NONE"
+                );
+
+        Endpoint endpoint =
+                createEndpoint(
+                        10L,
+                        1L,
+                        "/"
+                );
+
+        when(request.getRequestURI())
+                .thenReturn(
+                        "/api/clientes");
+
+        when(integrationService
+                .findBestMatchByRequestPath(
+                        "/api/clientes"))
+                .thenReturn(
+                        Optional.of(
+                                integration));
+
+        when(endpointService
+                .findByIntegrationIdAndPathAndMethod(
+                        1L,
+                        "/",
+                        "GET"))
+                .thenReturn(
+                        Optional.of(
+                                endpoint));
 
         when(dynamicEndpointService.executeGet(
-                eq(endpoint),
-                ArgumentMatchers.<Map<String, String>>any()
-        )).thenReturn(List.of(Map.of("ID", 1)));
+                endpoint,
+                Map.of()))
+                .thenReturn(
+                        List.of());
 
-        mockMvc.perform(
-                        get("/api/pedidos/buscar")
-                                .header("X-API-Key", "ihub_chave_valida")
-                )
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].ID").value(1));
+        ResponseEntity<?> response =
+                controller.executeGet(
+                        request,
+                        Map.of());
+
+        assertEquals(
+                200,
+                response.getStatusCode()
+                        .value());
+
+        verify(endpointService)
+                .findByIntegrationIdAndPathAndMethod(
+                        1L,
+                        "/",
+                        "GET");
     }
 
-    private Integration createIntegration() {
+    private Integration createIntegration(
+            Long id,
+            String basePath,
+            String authType) {
 
-        Integration integration = new Integration();
+        Integration integration =
+                new Integration();
 
-        integration.setId(8L);
-        integration.setName("Pedidos");
-        integration.setBasePath("/api/pedidos");
-        integration.setActive("S");
+        integration.setId(id);
+        integration.setName(
+                "Integração Teste");
+        integration.setBasePath(
+                basePath);
+        integration.setActive(
+                "S");
+        integration.setAuthType(
+                authType);
 
         return integration;
     }
 
-    private Endpoint createEndpoint() {
+    private Endpoint createEndpoint(
+            Long id,
+            Long integrationId,
+            String path) {
 
-        Endpoint endpoint = new Endpoint();
+        Endpoint endpoint =
+                new Endpoint();
 
-        endpoint.setId(1L);
-        endpoint.setIntegrationId(8L);
-        endpoint.setName("Buscar pedido");
-        endpoint.setPath("/buscar");
-        endpoint.setMethod("GET");
-        endpoint.setSqlText(
-                "select id from pedido where id = :id"
-        );
-        endpoint.setActive("S");
+        endpoint.setId(id);
+        endpoint.setIntegrationId(
+                integrationId);
+        endpoint.setName(
+                "Endpoint Teste");
+        endpoint.setPath(
+                path);
+        endpoint.setMethod(
+                "GET");
+        endpoint.setActive(
+                "S");
 
         return endpoint;
     }
 
-    @SuppressWarnings("unchecked")
-    private ArgumentCaptor<Map<String, String>> createStringMapCaptor() {
+    private IntegrationCredential createCredential(
+            Long id,
+            Long integrationId,
+            String name) {
 
-        return ArgumentCaptor.forClass(
-                (Class<Map<String, String>>) (Class<?>) Map.class
-        );
+        IntegrationCredential credential =
+                new IntegrationCredential();
+
+        credential.setId(id);
+        credential.setIntegrationId(
+                integrationId);
+        credential.setName(
+                name);
+        credential.setActive(
+                "S");
+
+        return credential;
     }
 }

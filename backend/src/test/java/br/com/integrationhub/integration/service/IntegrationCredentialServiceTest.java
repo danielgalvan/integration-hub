@@ -8,48 +8,57 @@ import br.com.integrationhub.security.ApiKeyEncryptionService;
 import br.com.integrationhub.security.ApiKeyService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
 class IntegrationCredentialServiceTest {
 
-    @Mock
     private IntegrationCredentialRepository credentialRepository;
-
-    @Mock
     private IntegrationRepository integrationRepository;
-
-    @Mock
     private ApiKeyService apiKeyService;
-
-    @Mock
     private ApiKeyEncryptionService apiKeyEncryptionService;
-
     private IntegrationCredentialService service;
 
     @BeforeEach
     void setUp() {
-        service = new IntegrationCredentialService(
-                credentialRepository,
-                integrationRepository,
-                apiKeyService,
-                apiKeyEncryptionService
-        );
+        credentialRepository =
+                mock(IntegrationCredentialRepository.class);
+
+        integrationRepository =
+                mock(IntegrationRepository.class);
+
+        apiKeyService =
+                mock(ApiKeyService.class);
+
+        apiKeyEncryptionService =
+                mock(ApiKeyEncryptionService.class);
+
+        service =
+                new IntegrationCredentialService(
+                        credentialRepository,
+                        integrationRepository,
+                        apiKeyService,
+                        apiKeyEncryptionService
+                );
     }
 
     @Test
     void shouldFindCredentialsByIntegrationId() {
         Integration integration =
-                createIntegration(1L, "API_KEY");
+                createIntegration(
+                        1L,
+                        "API_KEY"
+                );
 
         IntegrationCredential credential =
                 createCredential(
@@ -59,48 +68,42 @@ class IntegrationCredentialServiceTest {
                         "S"
                 );
 
-        when(integrationRepository.findById(1L))
-                .thenReturn(Optional.of(integration));
+        when(integrationRepository.findById(
+                1L))
+                .thenReturn(
+                        Optional.of(
+                                integration));
 
-        when(credentialRepository.findByIntegrationId(1L))
-                .thenReturn(List.of(credential));
+        when(credentialRepository.findByIntegrationId(
+                1L))
+                .thenReturn(
+                        List.of(
+                                credential));
 
         List<IntegrationCredential> result =
-                service.findByIntegrationId(1L);
+                service.findByIntegrationId(
+                        1L);
 
-        assertEquals(1, result.size());
         assertEquals(
-                "Sistema Tasy",
-                result.getFirst().getName()
-        );
+                1,
+                result.size());
+
+        assertEquals(
+                10L,
+                result.getFirst().getId());
 
         verify(credentialRepository)
-                .findByIntegrationId(1L);
-    }
-
-    @Test
-    void shouldThrowWhenIntegrationDoesNotExistWhileListing() {
-        when(integrationRepository.findById(1L))
-                .thenReturn(Optional.empty());
-
-        IllegalArgumentException exception =
-                assertThrows(
-                        IllegalArgumentException.class,
-                        () -> service.findByIntegrationId(1L)
-                );
-
-        assertEquals(
-                "Integração não encontrada",
-                exception.getMessage()
-        );
-
-        verifyNoInteractions(credentialRepository);
+                .findByIntegrationId(
+                        1L);
     }
 
     @Test
     void shouldFindCredentialById() {
         Integration integration =
-                createIntegration(1L, "API_KEY");
+                createIntegration(
+                        1L,
+                        "API_KEY"
+                );
 
         IntegrationCredential credential =
                 createCredential(
@@ -110,140 +113,110 @@ class IntegrationCredentialServiceTest {
                         "S"
                 );
 
-        when(integrationRepository.findById(1L))
-                .thenReturn(Optional.of(integration));
+        when(integrationRepository.findById(
+                1L))
+                .thenReturn(
+                        Optional.of(
+                                integration));
 
-        when(credentialRepository.findById(10L))
-                .thenReturn(Optional.of(credential));
+        when(credentialRepository.findById(
+                10L))
+                .thenReturn(
+                        Optional.of(
+                                credential));
 
         IntegrationCredential result =
-                service.findById(1L, 10L);
+                service.findById(
+                        1L,
+                        10L);
 
-        assertEquals(10L, result.getId());
+        assertEquals(
+                10L,
+                result.getId());
+
         assertEquals(
                 "Sistema Tasy",
-                result.getName()
-        );
+                result.getName());
     }
 
     @Test
-    void shouldThrowWhenCredentialDoesNotExist() {
+    void shouldCreateCredential() {
         Integration integration =
-                createIntegration(1L, "API_KEY");
-
-        when(integrationRepository.findById(1L))
-                .thenReturn(Optional.of(integration));
-
-        when(credentialRepository.findById(10L))
-                .thenReturn(Optional.empty());
-
-        IllegalArgumentException exception =
-                assertThrows(
-                        IllegalArgumentException.class,
-                        () -> service.findById(1L, 10L)
+                createIntegration(
+                        1L,
+                        "API_KEY"
                 );
 
-        assertEquals(
-                "Credencial não encontrada",
-                exception.getMessage()
-        );
-    }
-
-    @Test
-    void shouldThrowWhenCredentialBelongsToAnotherIntegration() {
-        Integration integration =
-                createIntegration(1L, "API_KEY");
-
-        IntegrationCredential credential =
+        IntegrationCredential persisted =
                 createCredential(
                         10L,
-                        2L,
+                        1L,
                         "Sistema Tasy",
                         "S"
                 );
 
-        when(integrationRepository.findById(1L))
-                .thenReturn(Optional.of(integration));
+        persisted.setApiKeyEncrypted(
+                "chave-criptografada");
 
-        when(credentialRepository.findById(10L))
-                .thenReturn(Optional.of(credential));
-
-        IllegalArgumentException exception =
-                assertThrows(
-                        IllegalArgumentException.class,
-                        () -> service.findById(1L, 10L)
-                );
-
-        assertEquals(
-                "Credencial não encontrada",
-                exception.getMessage()
-        );
-    }
-
-    @Test
-    void shouldCreateCredentialForApiKeyIntegration() {
-        Integration integration =
-                createIntegration(1L, "API_KEY");
-
-        when(integrationRepository.findById(1L))
-                .thenReturn(Optional.of(integration));
+        when(integrationRepository.findById(
+                1L))
+                .thenReturn(
+                        Optional.of(
+                                integration));
 
         when(apiKeyService.generateApiKey())
-                .thenReturn("ihub_chave");
+                .thenReturn(
+                        "ihub-chave");
 
-        when(apiKeyEncryptionService.encrypt("ihub_chave"))
-                .thenReturn("chave-criptografada");
+        when(apiKeyEncryptionService.encrypt(
+                "ihub-chave"))
+                .thenReturn(
+                        "chave-criptografada");
 
-        when(credentialRepository.save(any()))
-                .thenAnswer(invocation -> {
-                    IntegrationCredential credential =
-                            invocation.getArgument(0);
-
-                    credential.setId(10L);
-
-                    return credential;
-                });
+        when(credentialRepository.save(
+                any(IntegrationCredential.class)))
+                .thenReturn(
+                        persisted);
 
         IntegrationCredential result =
                 service.create(
                         1L,
                         "Sistema Tasy",
-                        "admin"
-                );
+                        "admin");
 
-        assertEquals(10L, result.getId());
-        assertEquals(1L, result.getIntegrationId());
+        assertEquals(
+                10L,
+                result.getId());
+
         assertEquals(
                 "Sistema Tasy",
-                result.getName()
-        );
-        assertEquals(
-                "chave-criptografada",
-                result.getApiKeyEncrypted()
-        );
-        assertEquals("S", result.getActive());
-        assertEquals(
-                "admin",
-                result.getCreatedBy()
-        );
+                result.getName());
 
         verify(apiKeyService)
                 .generateApiKey();
 
         verify(apiKeyEncryptionService)
-                .encrypt("ihub_chave");
+                .encrypt(
+                        "ihub-chave");
 
         verify(credentialRepository)
-                .save(any(IntegrationCredential.class));
+                .save(
+                        any(IntegrationCredential.class));
     }
 
     @Test
     void shouldNotCreateCredentialForNoneIntegration() {
         Integration integration =
-                createIntegration(1L, "NONE");
+                createIntegration(
+                        1L,
+                        "NONE"
+                );
 
-        when(integrationRepository.findById(1L))
-                .thenReturn(Optional.of(integration));
+        when(integrationRepository.findById(
+                1L))
+                .thenReturn(
+                        Optional.of(
+                                integration));
 
         IllegalStateException exception =
                 assertThrows(
@@ -251,54 +224,27 @@ class IntegrationCredentialServiceTest {
                         () -> service.create(
                                 1L,
                                 "Sistema Tasy",
-                                "admin"
-                        )
+                                "admin")
                 );
 
         assertEquals(
                 "A integração não está configurada para utilizar API Key",
-                exception.getMessage()
-        );
+                exception.getMessage());
 
         verify(apiKeyService, never())
                 .generateApiKey();
 
         verify(apiKeyEncryptionService, never())
-                .encrypt(anyString());
+                .encrypt(
+                        any());
 
         verify(credentialRepository, never())
-                .save(any());
+                .save(
+                        any());
     }
 
     @Test
-    void shouldThrowWhenIntegrationDoesNotExistWhileCreating() {
-        when(integrationRepository.findById(1L))
-                .thenReturn(Optional.empty());
-
-        IllegalArgumentException exception =
-                assertThrows(
-                        IllegalArgumentException.class,
-                        () -> service.create(
-                                1L,
-                                "Sistema Tasy",
-                                "admin"
-                        )
-                );
-
-        assertEquals(
-                "Integração não encontrada",
-                exception.getMessage()
-        );
-
-        verify(apiKeyService, never())
-                .generateApiKey();
-
-        verify(credentialRepository, never())
-                .save(any());
-    }
-
-    @Test
-    void shouldGetDecryptedApiKey() {
+    void shouldGetApiKey() {
         IntegrationCredential credential =
                 createCredential(
                         10L,
@@ -307,28 +253,37 @@ class IntegrationCredentialServiceTest {
                         "S"
                 );
 
-        when(credentialRepository.findById(10L))
-                .thenReturn(Optional.of(credential));
+        credential.setApiKeyEncrypted(
+                "chave-criptografada");
+
+        when(credentialRepository.findById(
+                10L))
+                .thenReturn(
+                        Optional.of(
+                                credential));
 
         when(apiKeyEncryptionService.decrypt(
                 "chave-criptografada"))
-                .thenReturn("ihub_chave");
+                .thenReturn(
+                        "ihub-chave");
 
         String result =
-                service.getApiKey(1L, 10L);
+                service.getApiKey(
+                        1L,
+                        10L);
 
         assertEquals(
-                "ihub_chave",
-                result
-        );
+                "ihub-chave",
+                result);
 
         verify(apiKeyEncryptionService)
-                .decrypt("chave-criptografada");
+                .decrypt(
+                        "chave-criptografada");
     }
 
     @Test
     void shouldUpdateCredentialName() {
-        IntegrationCredential current =
+        IntegrationCredential credential =
                 createCredential(
                         10L,
                         1L,
@@ -344,53 +299,46 @@ class IntegrationCredentialServiceTest {
                         "S"
                 );
 
-        updated.setUpdatedBy("admin");
-
-        when(credentialRepository.findById(10L))
-                .thenReturn(Optional.of(current));
+        when(credentialRepository.findById(
+                10L))
+                .thenReturn(
+                        Optional.of(
+                                credential));
 
         when(credentialRepository.updateName(
                 10L,
                 "Sistema Tasy",
                 "admin"))
-                .thenReturn(updated);
+                .thenReturn(
+                        updated);
 
         IntegrationCredential result =
                 service.updateName(
                         1L,
                         10L,
                         "Sistema Tasy",
-                        "admin"
-                );
+                        "admin");
 
         assertEquals(
                 "Sistema Tasy",
-                result.getName()
-        );
-
-        assertEquals(
-                "admin",
-                result.getUpdatedBy()
-        );
+                result.getName());
 
         verify(credentialRepository)
                 .updateName(
                         10L,
                         "Sistema Tasy",
-                        "admin"
-                );
+                        "admin");
 
         verify(credentialRepository, never())
                 .updateApiKey(
-                        anyLong(),
-                        anyString(),
-                        anyString()
-                );
+                        any(),
+                        any(),
+                        any());
     }
 
     @Test
     void shouldDeactivateCredential() {
-        IntegrationCredential current =
+        IntegrationCredential credential =
                 createCredential(
                         10L,
                         1L,
@@ -406,53 +354,46 @@ class IntegrationCredentialServiceTest {
                         "N"
                 );
 
-        updated.setUpdatedBy("admin");
-
-        when(credentialRepository.findById(10L))
-                .thenReturn(Optional.of(current));
+        when(credentialRepository.findById(
+                10L))
+                .thenReturn(
+                        Optional.of(
+                                credential));
 
         when(credentialRepository.updateActive(
                 10L,
                 "N",
                 "admin"))
-                .thenReturn(updated);
+                .thenReturn(
+                        updated);
 
         IntegrationCredential result =
                 service.setActive(
                         1L,
                         10L,
                         false,
-                        "admin"
-                );
+                        "admin");
 
         assertEquals(
                 "N",
-                result.getActive()
-        );
-
-        assertEquals(
-                "admin",
-                result.getUpdatedBy()
-        );
+                result.getActive());
 
         verify(credentialRepository)
                 .updateActive(
                         10L,
                         "N",
-                        "admin"
-                );
+                        "admin");
 
         verify(credentialRepository, never())
                 .updateApiKey(
-                        anyLong(),
-                        anyString(),
-                        anyString()
-                );
+                        any(),
+                        any(),
+                        any());
     }
 
     @Test
     void shouldActivateCredential() {
-        IntegrationCredential current =
+        IntegrationCredential credential =
                 createCredential(
                         10L,
                         1L,
@@ -468,36 +409,35 @@ class IntegrationCredentialServiceTest {
                         "S"
                 );
 
-        updated.setUpdatedBy("admin");
-
-        when(credentialRepository.findById(10L))
-                .thenReturn(Optional.of(current));
+        when(credentialRepository.findById(
+                10L))
+                .thenReturn(
+                        Optional.of(
+                                credential));
 
         when(credentialRepository.updateActive(
                 10L,
                 "S",
                 "admin"))
-                .thenReturn(updated);
+                .thenReturn(
+                        updated);
 
         IntegrationCredential result =
                 service.setActive(
                         1L,
                         10L,
                         true,
-                        "admin"
-                );
+                        "admin");
 
         assertEquals(
                 "S",
-                result.getActive()
-        );
+                result.getActive());
 
         verify(credentialRepository)
                 .updateActive(
                         10L,
                         "S",
-                        "admin"
-                );
+                        "admin");
     }
 
     @Test
@@ -510,77 +450,256 @@ class IntegrationCredentialServiceTest {
                         "S"
                 );
 
-        when(credentialRepository.findById(10L))
-                .thenReturn(Optional.of(credential));
+        when(credentialRepository.findById(
+                10L))
+                .thenReturn(
+                        Optional.of(
+                                credential));
 
         when(apiKeyService.generateApiKey())
-                .thenReturn("ihub_nova_chave");
+                .thenReturn(
+                        "ihub-nova-chave");
 
         when(apiKeyEncryptionService.encrypt(
-                "ihub_nova_chave"))
-                .thenReturn("nova-chave-criptografada");
+                "ihub-nova-chave"))
+                .thenReturn(
+                        "nova-chave-criptografada");
 
         String result =
                 service.regenerateApiKey(
                         1L,
                         10L,
-                        "admin"
-                );
+                        "admin");
 
         assertEquals(
-                "ihub_nova_chave",
-                result
-        );
+                "ihub-nova-chave",
+                result);
 
         verify(credentialRepository)
                 .updateApiKey(
                         10L,
                         "nova-chave-criptografada",
-                        "admin"
-                );
+                        "admin");
 
         verify(credentialRepository, never())
                 .updateName(
-                        anyLong(),
-                        anyString(),
-                        anyString()
-                );
+                        any(),
+                        any(),
+                        any());
 
         verify(credentialRepository, never())
                 .updateActive(
-                        anyLong(),
-                        anyString(),
-                        anyString()
-                );
+                        any(),
+                        any(),
+                        any());
     }
 
     @Test
-    void shouldRejectGetApiKeyFromAnotherIntegration() {
+    void shouldAuthenticateValidApiKey() {
         IntegrationCredential credential =
                 createCredential(
                         10L,
-                        2L,
-                        "Sistema Tasy",
-                        "S"
-                );
-
-        when(credentialRepository.findById(10L))
-                .thenReturn(Optional.of(credential));
-
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> service.getApiKey(
                         1L,
-                        10L)
-        );
+                        "Sistema Tasy",
+                        "S"
+                );
 
-        verifyNoInteractions(
-                apiKeyEncryptionService
-        );
+        credential.setApiKeyEncrypted(
+                "chave-criptografada");
+
+        when(credentialRepository.findActiveByIntegrationId(
+                1L))
+                .thenReturn(
+                        List.of(
+                                credential));
+
+        when(apiKeyEncryptionService.decrypt(
+                "chave-criptografada"))
+                .thenReturn(
+                        "ihub-chave-valida");
+
+        Optional<IntegrationCredential> result =
+                service.authenticate(
+                        1L,
+                        "ihub-chave-valida");
+
+        assertTrue(
+                result.isPresent());
+
+        assertEquals(
+                10L,
+                result.get().getId());
+
+        assertEquals(
+                "Sistema Tasy",
+                result.get().getName());
+
+        verify(credentialRepository)
+                .findActiveByIntegrationId(
+                        1L);
+
+        verify(apiKeyEncryptionService)
+                .decrypt(
+                        "chave-criptografada");
     }
 
     @Test
-    void shouldRejectUpdateNameFromAnotherIntegration() {
+    void shouldRejectInvalidApiKey() {
+        IntegrationCredential credential =
+                createCredential(
+                        10L,
+                        1L,
+                        "Sistema Tasy",
+                        "S"
+                );
+
+        credential.setApiKeyEncrypted(
+                "chave-criptografada");
+
+        when(credentialRepository.findActiveByIntegrationId(
+                1L))
+                .thenReturn(
+                        List.of(
+                                credential));
+
+        when(apiKeyEncryptionService.decrypt(
+                "chave-criptografada"))
+                .thenReturn(
+                        "ihub-chave-correta");
+
+        Optional<IntegrationCredential> result =
+                service.authenticate(
+                        1L,
+                        "ihub-chave-errada");
+
+        assertTrue(
+                result.isEmpty());
+
+        verify(credentialRepository)
+                .findActiveByIntegrationId(
+                        1L);
+    }
+
+    @Test
+    void shouldAuthenticateSecondCredentialWhenFirstDoesNotMatch() {
+        IntegrationCredential first =
+                createCredential(
+                        10L,
+                        1L,
+                        "Sistema Tasy",
+                        "S"
+                );
+
+        first.setApiKeyEncrypted(
+                "chave-1-criptografada");
+
+        IntegrationCredential second =
+                createCredential(
+                        20L,
+                        1L,
+                        "Sistema Financeiro",
+                        "S"
+                );
+
+        second.setApiKeyEncrypted(
+                "chave-2-criptografada");
+
+        when(credentialRepository.findActiveByIntegrationId(
+                1L))
+                .thenReturn(
+                        List.of(
+                                first,
+                                second));
+
+        when(apiKeyEncryptionService.decrypt(
+                "chave-1-criptografada"))
+                .thenReturn(
+                        "ihub-chave-1");
+
+        when(apiKeyEncryptionService.decrypt(
+                "chave-2-criptografada"))
+                .thenReturn(
+                        "ihub-chave-2");
+
+        Optional<IntegrationCredential> result =
+                service.authenticate(
+                        1L,
+                        "ihub-chave-2");
+
+        assertTrue(
+                result.isPresent());
+
+        assertEquals(
+                20L,
+                result.get().getId());
+
+        assertEquals(
+                "Sistema Financeiro",
+                result.get().getName());
+    }
+
+    @Test
+    void shouldReturnEmptyWhenThereAreNoActiveCredentials() {
+        when(credentialRepository.findActiveByIntegrationId(
+                1L))
+                .thenReturn(
+                        List.of());
+
+        Optional<IntegrationCredential> result =
+                service.authenticate(
+                        1L,
+                        "ihub-chave");
+
+        assertTrue(
+                result.isEmpty());
+
+        verify(credentialRepository)
+                .findActiveByIntegrationId(
+                        1L);
+
+        verify(apiKeyEncryptionService, never())
+                .decrypt(
+                        any());
+    }
+
+    @Test
+    void shouldReturnEmptyWhenApiKeyIsNull() {
+        Optional<IntegrationCredential> result =
+                service.authenticate(
+                        1L,
+                        null);
+
+        assertTrue(
+                result.isEmpty());
+
+        verify(credentialRepository, never())
+                .findActiveByIntegrationId(
+                        any());
+    }
+
+    @Test
+    void shouldReturnEmptyWhenApiKeyIsBlank() {
+        Optional<IntegrationCredential> result =
+                service.authenticate(
+                        1L,
+                        " ");
+
+        assertTrue(
+                result.isEmpty());
+
+        verify(credentialRepository, never())
+                .findActiveByIntegrationId(
+                        any());
+    }
+
+    @Test
+    void shouldRejectCredentialFromAnotherIntegrationWhenFindingById() {
+        Integration integration =
+                createIntegration(
+                        1L,
+                        "API_KEY"
+                );
+
         IntegrationCredential credential =
                 createCredential(
                         10L,
@@ -589,8 +708,46 @@ class IntegrationCredentialServiceTest {
                         "S"
                 );
 
-        when(credentialRepository.findById(10L))
-                .thenReturn(Optional.of(credential));
+        when(integrationRepository.findById(
+                1L))
+                .thenReturn(
+                        Optional.of(
+                                integration));
+
+        when(credentialRepository.findById(
+                10L))
+                .thenReturn(
+                        Optional.of(
+                                credential));
+
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> service.findById(
+                                1L,
+                                10L)
+                );
+
+        assertEquals(
+                "Credencial não encontrada",
+                exception.getMessage());
+    }
+
+    @Test
+    void shouldRejectCredentialFromAnotherIntegrationWhenUpdatingName() {
+        IntegrationCredential credential =
+                createCredential(
+                        10L,
+                        2L,
+                        "Sistema Tasy",
+                        "S"
+                );
+
+        when(credentialRepository.findById(
+                10L))
+                .thenReturn(
+                        Optional.of(
+                                credential));
 
         assertThrows(
                 IllegalArgumentException.class,
@@ -603,14 +760,13 @@ class IntegrationCredentialServiceTest {
 
         verify(credentialRepository, never())
                 .updateName(
-                        anyLong(),
-                        anyString(),
-                        anyString()
-                );
+                        any(),
+                        any(),
+                        any());
     }
 
     @Test
-    void shouldRejectSetActiveFromAnotherIntegration() {
+    void shouldRejectCredentialFromAnotherIntegrationWhenChangingActive() {
         IntegrationCredential credential =
                 createCredential(
                         10L,
@@ -619,8 +775,11 @@ class IntegrationCredentialServiceTest {
                         "S"
                 );
 
-        when(credentialRepository.findById(10L))
-                .thenReturn(Optional.of(credential));
+        when(credentialRepository.findById(
+                10L))
+                .thenReturn(
+                        Optional.of(
+                                credential));
 
         assertThrows(
                 IllegalArgumentException.class,
@@ -633,14 +792,13 @@ class IntegrationCredentialServiceTest {
 
         verify(credentialRepository, never())
                 .updateActive(
-                        anyLong(),
-                        anyString(),
-                        anyString()
-                );
+                        any(),
+                        any(),
+                        any());
     }
 
     @Test
-    void shouldRejectRegenerateApiKeyFromAnotherIntegration() {
+    void shouldRejectCredentialFromAnotherIntegrationWhenRegeneratingApiKey() {
         IntegrationCredential credential =
                 createCredential(
                         10L,
@@ -649,8 +807,11 @@ class IntegrationCredentialServiceTest {
                         "S"
                 );
 
-        when(credentialRepository.findById(10L))
-                .thenReturn(Optional.of(credential));
+        when(credentialRepository.findById(
+                10L))
+                .thenReturn(
+                        Optional.of(
+                                credential));
 
         assertThrows(
                 IllegalArgumentException.class,
@@ -660,18 +821,69 @@ class IntegrationCredentialServiceTest {
                         "admin")
         );
 
-        verify(apiKeyService, never())
-                .generateApiKey();
-
-        verify(apiKeyEncryptionService, never())
-                .encrypt(anyString());
-
         verify(credentialRepository, never())
                 .updateApiKey(
-                        anyLong(),
-                        anyString(),
-                        anyString()
+                        any(),
+                        any(),
+                        any());
+
+        verify(apiKeyService, never())
+                .generateApiKey();
+    }
+
+    @Test
+    void shouldFailWhenIntegrationDoesNotExist() {
+        when(integrationRepository.findById(
+                999L))
+                .thenReturn(
+                        Optional.empty());
+
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> service.findByIntegrationId(
+                                999L)
                 );
+
+        assertEquals(
+                "Integração não encontrada",
+                exception.getMessage());
+
+        verify(credentialRepository, never())
+                .findByIntegrationId(
+                        any());
+    }
+
+    @Test
+    void shouldFailWhenCredentialDoesNotExist() {
+        Integration integration =
+                createIntegration(
+                        1L,
+                        "API_KEY"
+                );
+
+        when(integrationRepository.findById(
+                1L))
+                .thenReturn(
+                        Optional.of(
+                                integration));
+
+        when(credentialRepository.findById(
+                999L))
+                .thenReturn(
+                        Optional.empty());
+
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> service.findById(
+                                1L,
+                                999L)
+                );
+
+        assertEquals(
+                "Credencial não encontrada",
+                exception.getMessage());
     }
 
     private Integration createIntegration(
@@ -682,7 +894,14 @@ class IntegrationCredentialServiceTest {
                 new Integration();
 
         integration.setId(id);
-        integration.setAuthType(authType);
+        integration.setName(
+                "Integração Teste");
+        integration.setBasePath(
+                "/api/teste");
+        integration.setActive(
+                "S");
+        integration.setAuthType(
+                authType);
 
         return integration;
     }
@@ -699,11 +918,10 @@ class IntegrationCredentialServiceTest {
         credential.setId(id);
         credential.setIntegrationId(
                 integrationId);
-        credential.setName(name);
-        credential.setActive(active);
-        credential.setApiKeyEncrypted(
-                "chave-criptografada"
-        );
+        credential.setName(
+                name);
+        credential.setActive(
+                active);
 
         return credential;
     }

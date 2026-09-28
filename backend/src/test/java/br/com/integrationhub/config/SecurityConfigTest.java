@@ -4,18 +4,19 @@ import br.com.integrationhub.auth.AuthController;
 import br.com.integrationhub.auth.AuthService;
 import br.com.integrationhub.auth.LoginResponse;
 import br.com.integrationhub.controller.HealthController;
-import br.com.integrationhub.integration.controller.EndpointController;
 import br.com.integrationhub.integration.controller.DynamicEndpointController;
+import br.com.integrationhub.integration.controller.EndpointController;
 import br.com.integrationhub.integration.controller.IntegrationController;
 import br.com.integrationhub.integration.service.DynamicEndpointService;
 import br.com.integrationhub.integration.service.EndpointService;
+import br.com.integrationhub.integration.service.IntegrationCredentialService;
 import br.com.integrationhub.integration.service.IntegrationService;
 import br.com.integrationhub.security.JwtService;
 import br.com.integrationhub.service.DatabaseHealthService;
 import br.com.integrationhub.user.controller.UserController;
 import br.com.integrationhub.user.service.UserService;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -50,6 +51,9 @@ class SecurityConfigTest {
 
     @MockitoBean
     private IntegrationService integrationService;
+
+    @MockitoBean
+    private IntegrationCredentialService integrationCredentialService;
 
     @MockitoBean
     private EndpointService endpointService;

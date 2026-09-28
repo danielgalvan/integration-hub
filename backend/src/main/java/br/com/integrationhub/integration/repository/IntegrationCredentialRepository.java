@@ -7,11 +7,17 @@ import java.util.Optional;
 
 public interface IntegrationCredentialRepository {
 
-    List<IntegrationCredential> findByIntegrationId(Long integrationId);
+    List<IntegrationCredential> findByIntegrationId(
+            Long integrationId);
 
-    Optional<IntegrationCredential> findById(Long id);
+    List<IntegrationCredential> findActiveByIntegrationId(
+            Long integrationId);
 
-    IntegrationCredential save(IntegrationCredential credential);
+    Optional<IntegrationCredential> findById(
+            Long id);
+
+    IntegrationCredential save(
+            IntegrationCredential credential);
 
     IntegrationCredential updateName(
             Long id,

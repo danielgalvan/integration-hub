@@ -13,7 +13,8 @@ import java.util.Map;
 import java.util.Optional;
 
 @Repository
-public class OracleIntegrationCredentialRepository implements IntegrationCredentialRepository {
+public class OracleIntegrationCredentialRepository
+        implements IntegrationCredentialRepository {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -45,7 +46,39 @@ public class OracleIntegrationCredentialRepository implements IntegrationCredent
 
         return jdbcTemplate.query(
                 sql,
-                Map.of("integrationId", integrationId),
+                Map.of(
+                        "integrationId",
+                        integrationId),
+                this::mapRow
+        );
+    }
+
+    @Override
+    public List<IntegrationCredential> findActiveByIntegrationId(
+            Long integrationId) {
+
+        String sql = """
+                select id,
+                       integration_id,
+                       name,
+                       api_key_encrypted,
+                       active,
+                       last_used_at,
+                       created_by,
+                       created_at,
+                       updated_by,
+                       updated_at
+                  from ih_integration_credential
+                 where integration_id = :integrationId
+                   and active = 'S'
+                 order by id
+                """;
+
+        return jdbcTemplate.query(
+                sql,
+                Map.of(
+                        "integrationId",
+                        integrationId),
                 this::mapRow
         );
     }
@@ -72,7 +105,9 @@ public class OracleIntegrationCredentialRepository implements IntegrationCredent
         List<IntegrationCredential> credentials =
                 jdbcTemplate.query(
                         sql,
-                        Map.of("id", id),
+                        Map.of(
+                                "id",
+                                id),
                         this::mapRow
                 );
 
@@ -84,11 +119,15 @@ public class OracleIntegrationCredentialRepository implements IntegrationCredent
     public IntegrationCredential save(
             IntegrationCredential credential) {
 
-        Long id = jdbcTemplate.queryForObject(
-                "select ih_integration_credential_seq.nextval from dual",
-                Map.of(),
-                Long.class
-        );
+        Long id =
+                jdbcTemplate.queryForObject(
+                        """
+                        select ih_integration_credential_seq.nextval
+                          from dual
+                        """,
+                        Map.of(),
+                        Long.class
+                );
 
         credential.setId(id);
 
