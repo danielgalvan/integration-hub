@@ -160,6 +160,27 @@ public class SecurityConfig {
                         )
 
                         /*
+                         * Credenciais das integrações.
+                         *
+                         * ADMIN / CREATOR:
+                         * acesso completo.
+                         *
+                         * CONSUMER:
+                         * sem acesso.
+                         *
+                         * Esta regra precisa permanecer
+                         * antes da regra genérica
+                         * /api/integrations/**.
+                         */
+                        .requestMatchers(
+                                "/api/integrations/*/credentials/**"
+                        )
+                        .hasAnyRole(
+                                "ADMIN",
+                                "CREATOR"
+                        )
+
+                        /*
                          * Integrações.
                          *
                          * ADMIN / CREATOR:
