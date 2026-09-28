@@ -58,8 +58,7 @@ public class DynamicEndpointController {
                                 )
                         );
 
-        IntegrationCredential credential =
-                validateAuthentication(
+        validateAuthentication(
                         request,
                         integration);
 
