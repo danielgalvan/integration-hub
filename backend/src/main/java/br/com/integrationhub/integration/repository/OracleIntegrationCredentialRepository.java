@@ -17,12 +17,16 @@ public class OracleIntegrationCredentialRepository implements IntegrationCredent
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
-    public OracleIntegrationCredentialRepository(NamedParameterJdbcTemplate jdbcTemplate) {
+    public OracleIntegrationCredentialRepository(
+            NamedParameterJdbcTemplate jdbcTemplate) {
+
         this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
-    public List<IntegrationCredential> findByIntegrationId(Long integrationId) {
+    public List<IntegrationCredential> findByIntegrationId(
+            Long integrationId) {
+
         String sql = """
                 select id,
                        integration_id,
@@ -47,7 +51,9 @@ public class OracleIntegrationCredentialRepository implements IntegrationCredent
     }
 
     @Override
-    public Optional<IntegrationCredential> findById(Long id) {
+    public Optional<IntegrationCredential> findById(
+            Long id) {
+
         String sql = """
                 select id,
                        integration_id,
@@ -63,17 +69,21 @@ public class OracleIntegrationCredentialRepository implements IntegrationCredent
                  where id = :id
                 """;
 
-        List<IntegrationCredential> credentials = jdbcTemplate.query(
-                sql,
-                Map.of("id", id),
-                this::mapRow
-        );
+        List<IntegrationCredential> credentials =
+                jdbcTemplate.query(
+                        sql,
+                        Map.of("id", id),
+                        this::mapRow
+                );
 
-        return credentials.stream().findFirst();
+        return credentials.stream()
+                .findFirst();
     }
 
     @Override
-    public IntegrationCredential save(IntegrationCredential credential) {
+    public IntegrationCredential save(
+            IntegrationCredential credential) {
+
         Long id = jdbcTemplate.queryForObject(
                 "select ih_integration_credential_seq.nextval from dual",
                 Map.of(),
@@ -102,75 +112,185 @@ public class OracleIntegrationCredentialRepository implements IntegrationCredent
                 )
                 """;
 
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("id", credential.getId())
-                .addValue("integrationId", credential.getIntegrationId())
-                .addValue("name", credential.getName())
-                .addValue("apiKeyEncrypted", credential.getApiKeyEncrypted())
-                .addValue("active", credential.getActive())
-                .addValue("createdBy", credential.getCreatedBy());
+        MapSqlParameterSource params =
+                new MapSqlParameterSource()
+                        .addValue(
+                                "id",
+                                credential.getId())
+                        .addValue(
+                                "integrationId",
+                                credential.getIntegrationId())
+                        .addValue(
+                                "name",
+                                credential.getName())
+                        .addValue(
+                                "apiKeyEncrypted",
+                                credential.getApiKeyEncrypted())
+                        .addValue(
+                                "active",
+                                credential.getActive())
+                        .addValue(
+                                "createdBy",
+                                credential.getCreatedBy());
 
-        jdbcTemplate.update(sql, params);
+        jdbcTemplate.update(
+                sql,
+                params);
 
         return findById(id)
-                .orElseThrow(() -> new IllegalStateException(
-                        "Credencial não encontrada após criação"
-                ));
+                .orElseThrow(() ->
+                        new IllegalStateException(
+                                "Credencial não encontrada após criação"
+                        )
+                );
     }
 
     @Override
-    public IntegrationCredential update(Long id, IntegrationCredential credential) {
+    public IntegrationCredential updateName(
+            Long id,
+            String name,
+            String updatedBy) {
+
         String sql = """
                 update ih_integration_credential
                    set name = :name,
-                       api_key_encrypted = :apiKeyEncrypted,
-                       active = :active,
                        updated_by = :updatedBy,
                        updated_at = current_timestamp
                  where id = :id
                 """;
 
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("id", id)
-                .addValue("name", credential.getName())
-                .addValue("apiKeyEncrypted", credential.getApiKeyEncrypted())
-                .addValue("active", credential.getActive())
-                .addValue("updatedBy", credential.getUpdatedBy());
+        MapSqlParameterSource params =
+                new MapSqlParameterSource()
+                        .addValue("id", id)
+                        .addValue("name", name)
+                        .addValue("updatedBy", updatedBy);
 
-        jdbcTemplate.update(sql, params);
+        jdbcTemplate.update(
+                sql,
+                params);
 
-        return findById(id)
-                .orElseThrow(() -> new IllegalStateException(
-                        "Credencial não encontrada após atualização"
-                ));
+        return findUpdatedCredential(id);
     }
 
-    private IntegrationCredential mapRow(ResultSet rs, int rowNum) throws SQLException {
-        IntegrationCredential credential = new IntegrationCredential();
+    @Override
+    public IntegrationCredential updateActive(
+            Long id,
+            String active,
+            String updatedBy) {
 
-        credential.setId(rs.getLong("id"));
-        credential.setIntegrationId(rs.getLong("integration_id"));
-        credential.setName(rs.getString("name"));
-        credential.setApiKeyEncrypted(rs.getString("api_key_encrypted"));
-        credential.setActive(rs.getString("active"));
+        String sql = """
+                update ih_integration_credential
+                   set active = :active,
+                       updated_by = :updatedBy,
+                       updated_at = current_timestamp
+                 where id = :id
+                """;
 
-        Timestamp lastUsedAt = rs.getTimestamp("last_used_at");
+        MapSqlParameterSource params =
+                new MapSqlParameterSource()
+                        .addValue("id", id)
+                        .addValue("active", active)
+                        .addValue("updatedBy", updatedBy);
+
+        jdbcTemplate.update(
+                sql,
+                params);
+
+        return findUpdatedCredential(id);
+    }
+
+    @Override
+    public IntegrationCredential updateApiKey(
+            Long id,
+            String apiKeyEncrypted,
+            String updatedBy) {
+
+        String sql = """
+                update ih_integration_credential
+                   set api_key_encrypted = :apiKeyEncrypted,
+                       updated_by = :updatedBy,
+                       updated_at = current_timestamp
+                 where id = :id
+                """;
+
+        MapSqlParameterSource params =
+                new MapSqlParameterSource()
+                        .addValue("id", id)
+                        .addValue(
+                                "apiKeyEncrypted",
+                                apiKeyEncrypted)
+                        .addValue(
+                                "updatedBy",
+                                updatedBy);
+
+        jdbcTemplate.update(
+                sql,
+                params);
+
+        return findUpdatedCredential(id);
+    }
+
+    private IntegrationCredential findUpdatedCredential(
+            Long id) {
+
+        return findById(id)
+                .orElseThrow(() ->
+                        new IllegalStateException(
+                                "Credencial não encontrada após atualização"
+                        )
+                );
+    }
+
+    private IntegrationCredential mapRow(
+            ResultSet rs,
+            int rowNum) throws SQLException {
+
+        IntegrationCredential credential =
+                new IntegrationCredential();
+
+        credential.setId(
+                rs.getLong("id"));
+
+        credential.setIntegrationId(
+                rs.getLong("integration_id"));
+
+        credential.setName(
+                rs.getString("name"));
+
+        credential.setApiKeyEncrypted(
+                rs.getString("api_key_encrypted"));
+
+        credential.setActive(
+                rs.getString("active"));
+
+        Timestamp lastUsedAt =
+                rs.getTimestamp("last_used_at");
+
         if (lastUsedAt != null) {
-            credential.setLastUsedAt(lastUsedAt.toLocalDateTime());
+            credential.setLastUsedAt(
+                    lastUsedAt.toLocalDateTime());
         }
 
-        credential.setCreatedBy(rs.getString("created_by"));
+        credential.setCreatedBy(
+                rs.getString("created_by"));
 
-        Timestamp createdAt = rs.getTimestamp("created_at");
+        Timestamp createdAt =
+                rs.getTimestamp("created_at");
+
         if (createdAt != null) {
-            credential.setCreatedAt(createdAt.toLocalDateTime());
+            credential.setCreatedAt(
+                    createdAt.toLocalDateTime());
         }
 
-        credential.setUpdatedBy(rs.getString("updated_by"));
+        credential.setUpdatedBy(
+                rs.getString("updated_by"));
 
-        Timestamp updatedAt = rs.getTimestamp("updated_at");
+        Timestamp updatedAt =
+                rs.getTimestamp("updated_at");
+
         if (updatedAt != null) {
-            credential.setUpdatedAt(updatedAt.toLocalDateTime());
+            credential.setUpdatedAt(
+                    updatedAt.toLocalDateTime());
         }
 
         return credential;

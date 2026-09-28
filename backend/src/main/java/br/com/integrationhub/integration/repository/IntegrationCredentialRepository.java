@@ -13,6 +13,18 @@ public interface IntegrationCredentialRepository {
 
     IntegrationCredential save(IntegrationCredential credential);
 
-    IntegrationCredential update(Long id, IntegrationCredential credential);
+    IntegrationCredential updateName(
+            Long id,
+            String name,
+            String updatedBy);
 
+    IntegrationCredential updateActive(
+            Long id,
+            String active,
+            String updatedBy);
+
+    IntegrationCredential updateApiKey(
+            Long id,
+            String apiKeyEncrypted,
+            String updatedBy);
 }

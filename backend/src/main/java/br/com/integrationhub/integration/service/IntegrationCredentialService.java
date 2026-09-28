@@ -1,5 +1,6 @@
 package br.com.integrationhub.integration.service;
 
+import br.com.integrationhub.integration.model.Integration;
 import br.com.integrationhub.integration.model.IntegrationCredential;
 import br.com.integrationhub.integration.repository.IntegrationCredentialRepository;
 import br.com.integrationhub.integration.repository.IntegrationRepository;
@@ -29,10 +30,13 @@ public class IntegrationCredentialService {
         this.apiKeyEncryptionService = apiKeyEncryptionService;
     }
 
-    public List<IntegrationCredential> findByIntegrationId(Long integrationId) {
+    public List<IntegrationCredential> findByIntegrationId(
+            Long integrationId) {
+
         getIntegration(integrationId);
 
-        return credentialRepository.findByIntegrationId(integrationId);
+        return credentialRepository.findByIntegrationId(
+                integrationId);
     }
 
     public IntegrationCredential findById(
@@ -41,7 +45,9 @@ public class IntegrationCredentialService {
 
         getIntegration(integrationId);
 
-        return getCredential(integrationId, credentialId);
+        return getCredential(
+                integrationId,
+                credentialId);
     }
 
     public IntegrationCredential create(
@@ -49,21 +55,42 @@ public class IntegrationCredentialService {
             String name,
             String username) {
 
-        getIntegration(integrationId);
+        Integration integration =
+                getIntegration(integrationId);
 
-        String apiKey = apiKeyService.generateApiKey();
+        if (!"API_KEY".equals(
+                integration.getAuthType())) {
 
-        IntegrationCredential credential = new IntegrationCredential();
+            throw new IllegalStateException(
+                    "A integração não está configurada para utilizar API Key"
+            );
+        }
 
-        credential.setIntegrationId(integrationId);
-        credential.setName(name);
+        String apiKey =
+                apiKeyService.generateApiKey();
+
+        IntegrationCredential credential =
+                new IntegrationCredential();
+
+        credential.setIntegrationId(
+                integrationId);
+
+        credential.setName(
+                name);
+
         credential.setApiKeyEncrypted(
-                apiKeyEncryptionService.encrypt(apiKey)
+                apiKeyEncryptionService.encrypt(
+                        apiKey)
         );
-        credential.setActive("S");
-        credential.setCreatedBy(username);
 
-        return credentialRepository.save(credential);
+        credential.setActive(
+                "S");
+
+        credential.setCreatedBy(
+                username);
+
+        return credentialRepository.save(
+                credential);
     }
 
     public String getApiKey(
@@ -71,7 +98,9 @@ public class IntegrationCredentialService {
             Long credentialId) {
 
         IntegrationCredential credential =
-                getCredential(integrationId, credentialId);
+                getCredential(
+                        integrationId,
+                        credentialId);
 
         return apiKeyEncryptionService.decrypt(
                 credential.getApiKeyEncrypted()
@@ -84,15 +113,14 @@ public class IntegrationCredentialService {
             String name,
             String username) {
 
-        IntegrationCredential credential =
-                getCredential(integrationId, credentialId);
+        getCredential(
+                integrationId,
+                credentialId);
 
-        credential.setName(name);
-        credential.setUpdatedBy(username);
-
-        return credentialRepository.update(
+        return credentialRepository.updateName(
                 credentialId,
-                credential
+                name,
+                username
         );
     }
 
@@ -102,15 +130,14 @@ public class IntegrationCredentialService {
             boolean active,
             String username) {
 
-        IntegrationCredential credential =
-                getCredential(integrationId, credentialId);
+        getCredential(
+                integrationId,
+                credentialId);
 
-        credential.setActive(active ? "S" : "N");
-        credential.setUpdatedBy(username);
-
-        return credentialRepository.update(
+        return credentialRepository.updateActive(
                 credentialId,
-                credential
+                active ? "S" : "N",
+                username
         );
     }
 
@@ -119,19 +146,21 @@ public class IntegrationCredentialService {
             Long credentialId,
             String username) {
 
-        IntegrationCredential credential =
-                getCredential(integrationId, credentialId);
+        getCredential(
+                integrationId,
+                credentialId);
 
-        String apiKey = apiKeyService.generateApiKey();
+        String apiKey =
+                apiKeyService.generateApiKey();
 
-        credential.setApiKeyEncrypted(
-                apiKeyEncryptionService.encrypt(apiKey)
-        );
-        credential.setUpdatedBy(username);
+        String apiKeyEncrypted =
+                apiKeyEncryptionService.encrypt(
+                        apiKey);
 
-        credentialRepository.update(
+        credentialRepository.updateApiKey(
                 credentialId,
-                credential
+                apiKeyEncrypted,
+                username
         );
 
         return apiKey;
@@ -142,7 +171,8 @@ public class IntegrationCredentialService {
             Long credentialId) {
 
         IntegrationCredential credential =
-                credentialRepository.findById(credentialId)
+                credentialRepository.findById(
+                                credentialId)
                         .orElseThrow(() ->
                                 new IllegalArgumentException(
                                         "Credencial não encontrada"
@@ -160,8 +190,11 @@ public class IntegrationCredentialService {
         return credential;
     }
 
-    private void getIntegration(Long integrationId) {
-        integrationRepository.findById(integrationId)
+    private Integration getIntegration(
+            Long integrationId) {
+
+        return integrationRepository.findById(
+                        integrationId)
                 .orElseThrow(() ->
                         new IllegalArgumentException(
                                 "Integração não encontrada"
