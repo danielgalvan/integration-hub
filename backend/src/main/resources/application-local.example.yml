@@ -21,6 +21,9 @@ integration-hub:
       secret: SUA_CHAVE_JWT
       expiration-minutes: 60
 
+    api-key:
+      encryption-key: SUA_CHAVE_AES_256_EM_BASE64
+
   bootstrap:
     admin:
       enabled: true

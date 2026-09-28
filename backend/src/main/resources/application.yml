@@ -24,6 +24,9 @@ integration-hub:
       secret: ${JWT_SECRET}
       expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
 
+    api-key:
+      encryption-key: ${API_KEY_ENCRYPTION_KEY}
+
   bootstrap:
     admin:
       enabled: ${BOOTSTRAP_ADMIN_ENABLED:false}
