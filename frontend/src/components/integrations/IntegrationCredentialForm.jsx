@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import './IntegrationCredentialForm.css'
 
 function IntegrationCredentialForm({
@@ -7,15 +7,12 @@ function IntegrationCredentialForm({
   onSave,
   onCancel,
 }) {
-  const [name, setName] = useState('')
+  const [name, setName] = useState(
+    credential?.name ?? '',
+  )
   const [error, setError] = useState('')
 
   const editing = Boolean(credential)
-
-  useEffect(() => {
-    setName(credential?.name ?? '')
-    setError('')
-  }, [credential])
 
   function handleSubmit(event) {
     event.preventDefault()
