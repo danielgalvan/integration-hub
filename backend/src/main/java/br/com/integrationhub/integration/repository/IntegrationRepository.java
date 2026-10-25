@@ -1,3 +1,4 @@
+
 package br.com.integrationhub.integration.repository;
 
 import br.com.integrationhub.integration.model.Integration;
@@ -26,6 +27,10 @@ public interface IntegrationRepository {
             Long id,
             String apiKeyHash,
             LocalDateTime apiKeyCreatedAt);
+
+    Integration updateLegacyApiKeyActive(
+            Long id,
+            String legacyApiKeyActive);
 
     void deleteById(Long id);
 }

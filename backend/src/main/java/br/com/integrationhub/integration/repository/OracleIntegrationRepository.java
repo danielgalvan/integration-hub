@@ -1,3 +1,4 @@
+
 package br.com.integrationhub.integration.repository;
 
 import br.com.integrationhub.integration.model.Integration;
@@ -37,6 +38,7 @@ public class OracleIntegrationRepository implements IntegrationRepository {
                     auth_type,
                     api_key_hash,
                     api_key_created_at,
+                    legacy_api_key_active,
                     created_by,
                     created_at,
                     updated_by,
@@ -64,6 +66,7 @@ public class OracleIntegrationRepository implements IntegrationRepository {
                     auth_type,
                     api_key_hash,
                     api_key_created_at,
+                    legacy_api_key_active,
                     created_by,
                     created_at,
                     updated_by,
@@ -94,6 +97,7 @@ public class OracleIntegrationRepository implements IntegrationRepository {
                     auth_type,
                     api_key_hash,
                     api_key_created_at,
+                    legacy_api_key_active,
                     created_by,
                     created_at,
                     updated_by,
@@ -137,6 +141,7 @@ public class OracleIntegrationRepository implements IntegrationRepository {
                     base_path,
                     active,
                     auth_type,
+                    legacy_api_key_active,
                     created_by
                 ) values (
                     :id,
@@ -145,6 +150,7 @@ public class OracleIntegrationRepository implements IntegrationRepository {
                     :basePath,
                     :active,
                     :authType,
+                    :legacyApiKeyActive,
                     :createdBy
                 )
                 """;
@@ -172,6 +178,9 @@ public class OracleIntegrationRepository implements IntegrationRepository {
                         integration.getAuthType() == null
                                 ? "NONE"
                                 : integration.getAuthType())
+                .addValue(
+                        "legacyApiKeyActive",
+                        "N")
                 .addValue(
                         "createdBy",
                         integration.getCreatedBy() == null
@@ -248,6 +257,84 @@ public class OracleIntegrationRepository implements IntegrationRepository {
     }
 
     @Override
+    public Integration updateApiKey(
+            Long id,
+            String apiKeyHash,
+            LocalDateTime apiKeyCreatedAt) {
+
+        String sql = """
+                update ih_integration
+                   set api_key_hash = :apiKeyHash,
+                       api_key_created_at = :apiKeyCreatedAt,
+                       updated_at = systimestamp
+                 where id = :id
+                """;
+
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue(
+                        "id",
+                        id)
+                .addValue(
+                        "apiKeyHash",
+                        apiKeyHash)
+                .addValue(
+                        "apiKeyCreatedAt",
+                        apiKeyCreatedAt);
+
+        int rows = jdbcTemplate.update(
+                sql,
+                params);
+
+        if (rows == 0) {
+            throw new IllegalArgumentException(
+                    "Integração não encontrada: " + id);
+        }
+
+        return findById(id)
+                .orElseThrow();
+    }
+
+    @Override
+    public Integration updateLegacyApiKeyActive(
+            Long id,
+            String legacyApiKeyActive) {
+
+        if (!"S".equals(legacyApiKeyActive)
+                && !"N".equals(legacyApiKeyActive)) {
+
+            throw new IllegalArgumentException(
+                    "legacyApiKeyActive deve ser S ou N");
+        }
+
+        String sql = """
+                update ih_integration
+                   set legacy_api_key_active = :legacyApiKeyActive,
+                       updated_at = systimestamp
+                 where id = :id
+                """;
+
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue(
+                        "id",
+                        id)
+                .addValue(
+                        "legacyApiKeyActive",
+                        legacyApiKeyActive);
+
+        int rows = jdbcTemplate.update(
+                sql,
+                params);
+
+        if (rows == 0) {
+            throw new IllegalArgumentException(
+                    "Integração não encontrada: " + id);
+        }
+
+        return findById(id)
+                .orElseThrow();
+    }
+
+    @Override
     public void deleteById(Long id) {
 
         String sql = """
@@ -299,6 +386,9 @@ public class OracleIntegrationRepository implements IntegrationRepository {
                     apiKeyCreatedAt.toLocalDateTime());
         }
 
+        integration.setLegacyApiKeyActive(
+                rs.getString("legacy_api_key_active"));
+
         integration.setCreatedBy(
                 rs.getString("created_by"));
 
@@ -321,49 +411,4 @@ public class OracleIntegrationRepository implements IntegrationRepository {
 
         return integration;
     }
-
-    @Override
-public Integration updateApiKey(
-        Long id,
-        String apiKeyHash,
-        LocalDateTime apiKeyCreatedAt
-) {
-
-    String sql = """
-            update ih_integration
-               set api_key_hash = :apiKeyHash,
-                   api_key_created_at = :apiKeyCreatedAt,
-                   updated_at = systimestamp
-             where id = :id
-            """;
-
-    MapSqlParameterSource params =
-            new MapSqlParameterSource()
-                    .addValue(
-                            "id",
-                            id
-                    )
-                    .addValue(
-                            "apiKeyHash",
-                            apiKeyHash
-                    )
-                    .addValue(
-                            "apiKeyCreatedAt",
-                            apiKeyCreatedAt
-                    );
-
-    int rows = jdbcTemplate.update(
-            sql,
-            params
-    );
-
-    if (rows == 0) {
-        throw new IllegalArgumentException(
-                "Integração não encontrada: " + id
-        );
-    }
-
-    return findById(id)
-            .orElseThrow();
-}
 }

@@ -1,3 +1,4 @@
+
 package br.com.integrationhub.integration.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -28,6 +29,9 @@ public class Integration {
     private String apiKeyHash;
 
     private LocalDateTime apiKeyCreatedAt;
+
+    @Pattern(regexp = "[SNsn]", message = "legacyApiKeyActive deve ser S ou N")
+    private String legacyApiKeyActive;
 
     private String createdBy;
 
@@ -97,9 +101,16 @@ public class Integration {
         return apiKeyCreatedAt;
     }
 
-    public void setApiKeyCreatedAt(
-            LocalDateTime apiKeyCreatedAt) {
+    public void setApiKeyCreatedAt(LocalDateTime apiKeyCreatedAt) {
         this.apiKeyCreatedAt = apiKeyCreatedAt;
+    }
+
+    public String getLegacyApiKeyActive() {
+        return legacyApiKeyActive;
+    }
+
+    public void setLegacyApiKeyActive(String legacyApiKeyActive) {
+        this.legacyApiKeyActive = legacyApiKeyActive;
     }
 
     public String getCreatedBy() {

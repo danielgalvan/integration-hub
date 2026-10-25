@@ -1,3 +1,4 @@
+
 package br.com.integrationhub.integration.controller;
 
 import br.com.integrationhub.integration.model.ApiKeyResponse;
@@ -8,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/integrations")
@@ -63,6 +65,22 @@ public class IntegrationController {
         ApiKeyResponse response = integrationService.generateApiKey(id);
 
         return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{id}/legacy-api-key")
+    public ResponseEntity<Integration> updateLegacyApiKeyActive(
+            @PathVariable("id") Long id,
+            @RequestBody Map<String, String> request) {
+
+        String legacyApiKeyActive =
+                request.get("legacyApiKeyActive");
+
+        Integration updated =
+                integrationService.updateLegacyApiKeyActive(
+                        id,
+                        legacyApiKeyActive);
+
+        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{id}")

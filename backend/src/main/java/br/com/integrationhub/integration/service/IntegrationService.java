@@ -1,3 +1,4 @@
+
 package br.com.integrationhub.integration.service;
 
 import br.com.integrationhub.integration.model.ApiKeyResponse;
@@ -58,6 +59,8 @@ public class IntegrationService {
             integration.setAuthType("NONE");
         }
 
+        integration.setLegacyApiKeyActive("N");
+
         if (integration.getCreatedBy() == null) {
             integration.setCreatedBy("SYSTEM");
         }
@@ -88,6 +91,9 @@ public class IntegrationService {
                     current.getAuthType());
         }
 
+        integration.setLegacyApiKeyActive(
+                current.getLegacyApiKeyActive());
+
         if (integration.getUpdatedBy() == null) {
             integration.setUpdatedBy("SYSTEM");
         }
@@ -95,6 +101,28 @@ public class IntegrationService {
         return integrationRepository.update(
                 id,
                 integration);
+    }
+
+    public Integration updateLegacyApiKeyActive(
+            Long id,
+            String legacyApiKeyActive) {
+
+        integrationRepository
+                .findById(id)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Integração não encontrada: " + id));
+
+        if (!"S".equals(legacyApiKeyActive)
+                && !"N".equals(legacyApiKeyActive)) {
+
+            throw new IllegalArgumentException(
+                    "legacyApiKeyActive deve ser S ou N");
+        }
+
+        return integrationRepository
+                .updateLegacyApiKeyActive(
+                        id,
+                        legacyApiKeyActive);
     }
 
     public ApiKeyResponse generateApiKey(
@@ -124,6 +152,10 @@ public class IntegrationService {
                 apiKeyHash,
                 createdAt);
 
+        integrationRepository.updateLegacyApiKeyActive(
+                id,
+                "S");
+
         return new ApiKeyResponse(
                 apiKey);
     }
@@ -132,10 +164,20 @@ public class IntegrationService {
             Integration integration,
             String apiKey) {
 
-        if (!"API_KEY".equals(
-                integration.getAuthType())) {
+        if (integration == null
+                || !"API_KEY".equals(integration.getAuthType())) {
 
-            return true;
+            return false;
+        }
+
+        if (!"S".equals(
+                integration.getLegacyApiKeyActive())) {
+
+            return false;
+        }
+
+        if (apiKey == null || apiKey.isBlank()) {
+            return false;
         }
 
         return apiKeyService.matches(
