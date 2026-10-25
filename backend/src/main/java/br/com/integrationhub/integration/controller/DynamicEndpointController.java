@@ -1,3 +1,4 @@
+
 package br.com.integrationhub.integration.controller;
 
 import br.com.integrationhub.integration.model.Endpoint;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 public class DynamicEndpointController {
@@ -59,8 +61,8 @@ public class DynamicEndpointController {
                         );
 
         validateAuthentication(
-                        request,
-                        integration);
+                request,
+                integration);
 
         String endpointPath =
                 requestPath.substring(
@@ -105,16 +107,36 @@ public class DynamicEndpointController {
                 request.getHeader(
                         API_KEY_HEADER);
 
-        return integrationCredentialService
-                .authenticate(
-                        integration.getId(),
-                        apiKey)
-                .orElseThrow(() ->
-                        new ResponseStatusException(
-                                HttpStatus.UNAUTHORIZED,
-                                "API Key inválida"
-                        )
-                );
+        if (apiKey == null ||
+                apiKey.isBlank()) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "API Key inválida"
+            );
+        }
+
+        Optional<IntegrationCredential> credential =
+                integrationCredentialService
+                        .authenticate(
+                                integration.getId(),
+                                apiKey);
+
+        if (credential.isPresent()) {
+            return credential.get();
+        }
+
+        if (integrationService.validateApiKey(
+                integration,
+                apiKey)) {
+
+            return null;
+        }
+
+        throw new ResponseStatusException(
+                HttpStatus.UNAUTHORIZED,
+                "API Key inválida"
+        );
     }
 
     private String normalizePath(

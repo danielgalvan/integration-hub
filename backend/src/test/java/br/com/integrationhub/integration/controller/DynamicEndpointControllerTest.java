@@ -1,3 +1,4 @@
+
 package br.com.integrationhub.integration.controller;
 
 import br.com.integrationhub.integration.model.Endpoint;
@@ -100,8 +101,7 @@ class DynamicEndpointControllerTest {
                 .findBestMatchByRequestPath(
                         "/api/clientes/buscar"))
                 .thenReturn(
-                        Optional.of(
-                                integration));
+                        Optional.of(integration));
 
         when(endpointService
                 .findByIntegrationIdAndPathAndMethod(
@@ -109,14 +109,12 @@ class DynamicEndpointControllerTest {
                         "/buscar",
                         "GET"))
                 .thenReturn(
-                        Optional.of(
-                                endpoint));
+                        Optional.of(endpoint));
 
         when(dynamicEndpointService.executeGet(
                 endpoint,
                 parameters))
-                .thenReturn(
-                        result);
+                .thenReturn(result);
 
         ResponseEntity<?> response =
                 controller.executeGet(
@@ -125,8 +123,7 @@ class DynamicEndpointControllerTest {
 
         assertEquals(
                 200,
-                response.getStatusCode()
-                        .value());
+                response.getStatusCode().value());
 
         assertEquals(
                 result,
@@ -135,6 +132,11 @@ class DynamicEndpointControllerTest {
         verify(integrationCredentialService, never())
                 .authenticate(
                         1L,
+                        null);
+
+        verify(integrationService, never())
+                .validateApiKey(
+                        integration,
                         null);
 
         verify(dynamicEndpointService)
@@ -184,8 +186,7 @@ class DynamicEndpointControllerTest {
                 .thenReturn(
                         "/api/clientes/buscar");
 
-        when(request.getHeader(
-                "X-API-Key"))
+        when(request.getHeader("X-API-Key"))
                 .thenReturn(
                         "ihub-chave-valida");
 
@@ -193,16 +194,14 @@ class DynamicEndpointControllerTest {
                 .findBestMatchByRequestPath(
                         "/api/clientes/buscar"))
                 .thenReturn(
-                        Optional.of(
-                                integration));
+                        Optional.of(integration));
 
         when(integrationCredentialService
                 .authenticate(
                         1L,
                         "ihub-chave-valida"))
                 .thenReturn(
-                        Optional.of(
-                                credential));
+                        Optional.of(credential));
 
         when(endpointService
                 .findByIntegrationIdAndPathAndMethod(
@@ -210,14 +209,12 @@ class DynamicEndpointControllerTest {
                         "/buscar",
                         "GET"))
                 .thenReturn(
-                        Optional.of(
-                                endpoint));
+                        Optional.of(endpoint));
 
         when(dynamicEndpointService.executeGet(
                 endpoint,
                 parameters))
-                .thenReturn(
-                        result);
+                .thenReturn(result);
 
         ResponseEntity<?> response =
                 controller.executeGet(
@@ -226,8 +223,7 @@ class DynamicEndpointControllerTest {
 
         assertEquals(
                 200,
-                response.getStatusCode()
-                        .value());
+                response.getStatusCode().value());
 
         assertEquals(
                 result,
@@ -236,6 +232,11 @@ class DynamicEndpointControllerTest {
         verify(integrationCredentialService)
                 .authenticate(
                         1L,
+                        "ihub-chave-valida");
+
+        verify(integrationService, never())
+                .validateApiKey(
+                        integration,
                         "ihub-chave-valida");
 
         verify(dynamicEndpointService)
@@ -257,8 +258,7 @@ class DynamicEndpointControllerTest {
                 .thenReturn(
                         "/api/clientes/buscar");
 
-        when(request.getHeader(
-                "X-API-Key"))
+        when(request.getHeader("X-API-Key"))
                 .thenReturn(
                         "ihub-chave-invalida");
 
@@ -266,8 +266,7 @@ class DynamicEndpointControllerTest {
                 .findBestMatchByRequestPath(
                         "/api/clientes/buscar"))
                 .thenReturn(
-                        Optional.of(
-                                integration));
+                        Optional.of(integration));
 
         when(integrationCredentialService
                 .authenticate(
@@ -275,6 +274,11 @@ class DynamicEndpointControllerTest {
                         "ihub-chave-invalida"))
                 .thenReturn(
                         Optional.empty());
+
+        when(integrationService.validateApiKey(
+                integration,
+                "ihub-chave-invalida"))
+                .thenReturn(false);
 
         ResponseStatusException exception =
                 assertThrows(
@@ -286,12 +290,16 @@ class DynamicEndpointControllerTest {
 
         assertEquals(
                 401,
-                exception.getStatusCode()
-                        .value());
+                exception.getStatusCode().value());
 
         assertEquals(
                 "API Key inválida",
                 exception.getReason());
+
+        verify(integrationService)
+                .validateApiKey(
+                        integration,
+                        "ihub-chave-invalida");
 
         verify(endpointService, never())
                 .findByIntegrationIdAndPathAndMethod(
@@ -313,24 +321,14 @@ class DynamicEndpointControllerTest {
                 .thenReturn(
                         "/api/clientes/buscar");
 
-        when(request.getHeader(
-                "X-API-Key"))
-                .thenReturn(
-                        null);
+        when(request.getHeader("X-API-Key"))
+                .thenReturn(null);
 
         when(integrationService
                 .findBestMatchByRequestPath(
                         "/api/clientes/buscar"))
                 .thenReturn(
-                        Optional.of(
-                                integration));
-
-        when(integrationCredentialService
-                .authenticate(
-                        1L,
-                        null))
-                .thenReturn(
-                        Optional.empty());
+                        Optional.of(integration));
 
         ResponseStatusException exception =
                 assertThrows(
@@ -342,16 +340,20 @@ class DynamicEndpointControllerTest {
 
         assertEquals(
                 401,
-                exception.getStatusCode()
-                        .value());
+                exception.getStatusCode().value());
 
         assertEquals(
                 "API Key inválida",
                 exception.getReason());
 
-        verify(integrationCredentialService)
+        verify(integrationCredentialService, never())
                 .authenticate(
                         1L,
+                        null);
+
+        verify(integrationService, never())
+                .validateApiKey(
+                        integration,
                         null);
 
         verify(endpointService, never())
@@ -383,8 +385,7 @@ class DynamicEndpointControllerTest {
 
         assertEquals(
                 404,
-                exception.getStatusCode()
-                        .value());
+                exception.getStatusCode().value());
 
         assertEquals(
                 "Integração não encontrada",
@@ -413,8 +414,7 @@ class DynamicEndpointControllerTest {
                 .findBestMatchByRequestPath(
                         "/api/clientes/inexistente"))
                 .thenReturn(
-                        Optional.of(
-                                integration));
+                        Optional.of(integration));
 
         when(endpointService
                 .findByIntegrationIdAndPathAndMethod(
@@ -434,8 +434,7 @@ class DynamicEndpointControllerTest {
 
         assertEquals(
                 404,
-                exception.getStatusCode()
-                        .value());
+                exception.getStatusCode().value());
 
         assertEquals(
                 "Endpoint não encontrado",
@@ -473,8 +472,7 @@ class DynamicEndpointControllerTest {
                 .findBestMatchByRequestPath(
                         "/api/clientes"))
                 .thenReturn(
-                        Optional.of(
-                                integration));
+                        Optional.of(integration));
 
         when(endpointService
                 .findByIntegrationIdAndPathAndMethod(
@@ -482,8 +480,7 @@ class DynamicEndpointControllerTest {
                         "/",
                         "GET"))
                 .thenReturn(
-                        Optional.of(
-                                endpoint));
+                        Optional.of(endpoint));
 
         when(dynamicEndpointService.executeGet(
                 endpoint,
@@ -498,14 +495,274 @@ class DynamicEndpointControllerTest {
 
         assertEquals(
                 200,
-                response.getStatusCode()
-                        .value());
+                response.getStatusCode().value());
 
         verify(endpointService)
                 .findByIntegrationIdAndPathAndMethod(
                         1L,
                         "/",
                         "GET");
+    }
+
+    @Test
+    void shouldExecuteGetWithValidLegacyApiKey() {
+        Integration integration =
+                createIntegration(
+                        1L,
+                        "/api/clientes",
+                        "API_KEY"
+                );
+
+        Endpoint endpoint =
+                createEndpoint(
+                        10L,
+                        1L,
+                        "/buscar"
+                );
+
+        when(request.getRequestURI())
+                .thenReturn(
+                        "/api/clientes/buscar");
+
+        when(request.getHeader("X-API-Key"))
+                .thenReturn(
+                        "ihub-chave-legada");
+
+        when(integrationService
+                .findBestMatchByRequestPath(
+                        "/api/clientes/buscar"))
+                .thenReturn(
+                        Optional.of(integration));
+
+        when(integrationCredentialService
+                .authenticate(
+                        1L,
+                        "ihub-chave-legada"))
+                .thenReturn(
+                        Optional.empty());
+
+        when(integrationService.validateApiKey(
+                integration,
+                "ihub-chave-legada"))
+                .thenReturn(true);
+
+        when(endpointService
+                .findByIntegrationIdAndPathAndMethod(
+                        1L,
+                        "/buscar",
+                        "GET"))
+                .thenReturn(
+                        Optional.of(endpoint));
+
+        when(dynamicEndpointService.executeGet(
+                endpoint,
+                Map.of()))
+                .thenReturn(
+                        List.of());
+
+        ResponseEntity<?> response =
+                controller.executeGet(
+                        request,
+                        Map.of());
+
+        assertEquals(
+                200,
+                response.getStatusCode().value());
+
+        verify(integrationCredentialService)
+                .authenticate(
+                        1L,
+                        "ihub-chave-legada");
+
+        verify(integrationService)
+                .validateApiKey(
+                        integration,
+                        "ihub-chave-legada");
+
+        verify(dynamicEndpointService)
+                .executeGet(
+                        endpoint,
+                        Map.of());
+    }
+
+    @Test
+    void shouldRejectInvalidLegacyApiKey() {
+        Integration integration =
+                createIntegration(
+                        1L,
+                        "/api/clientes",
+                        "API_KEY"
+                );
+
+        when(request.getRequestURI())
+                .thenReturn(
+                        "/api/clientes/buscar");
+
+        when(request.getHeader("X-API-Key"))
+                .thenReturn(
+                        "ihub-legada-invalida");
+
+        when(integrationService
+                .findBestMatchByRequestPath(
+                        "/api/clientes/buscar"))
+                .thenReturn(
+                        Optional.of(integration));
+
+        when(integrationCredentialService
+                .authenticate(
+                        1L,
+                        "ihub-legada-invalida"))
+                .thenReturn(
+                        Optional.empty());
+
+        when(integrationService.validateApiKey(
+                integration,
+                "ihub-legada-invalida"))
+                .thenReturn(false);
+
+        ResponseStatusException exception =
+                assertThrows(
+                        ResponseStatusException.class,
+                        () -> controller.executeGet(
+                                request,
+                                Map.of())
+                );
+
+        assertEquals(
+                401,
+                exception.getStatusCode().value());
+
+        assertEquals(
+                "API Key inválida",
+                exception.getReason());
+
+        verify(endpointService, never())
+                .findByIntegrationIdAndPathAndMethod(
+                        1L,
+                        "/buscar",
+                        "GET");
+    }
+
+    @Test
+    void shouldPrioritizeV2CredentialOverLegacyAuthentication() {
+        Integration integration =
+                createIntegration(
+                        1L,
+                        "/api/clientes",
+                        "API_KEY"
+                );
+
+        IntegrationCredential credential =
+                createCredential(
+                        100L,
+                        1L,
+                        "Sistema Externo"
+                );
+
+        Endpoint endpoint =
+                createEndpoint(
+                        10L,
+                        1L,
+                        "/buscar"
+                );
+
+        when(request.getRequestURI())
+                .thenReturn(
+                        "/api/clientes/buscar");
+
+        when(request.getHeader("X-API-Key"))
+                .thenReturn(
+                        "ihub-chave-v2");
+
+        when(integrationService
+                .findBestMatchByRequestPath(
+                        "/api/clientes/buscar"))
+                .thenReturn(
+                        Optional.of(integration));
+
+        when(integrationCredentialService
+                .authenticate(
+                        1L,
+                        "ihub-chave-v2"))
+                .thenReturn(
+                        Optional.of(credential));
+
+        when(endpointService
+                .findByIntegrationIdAndPathAndMethod(
+                        1L,
+                        "/buscar",
+                        "GET"))
+                .thenReturn(
+                        Optional.of(endpoint));
+
+        when(dynamicEndpointService.executeGet(
+                endpoint,
+                Map.of()))
+                .thenReturn(
+                        List.of());
+
+        ResponseEntity<?> response =
+                controller.executeGet(
+                        request,
+                        Map.of());
+
+        assertEquals(
+                200,
+                response.getStatusCode().value());
+
+        verify(integrationService, never())
+                .validateApiKey(
+                        integration,
+                        "ihub-chave-v2");
+    }
+
+    @Test
+    void shouldRejectBlankApiKeyWithoutCheckingLegacyAuthentication() {
+        Integration integration =
+                createIntegration(
+                        1L,
+                        "/api/clientes",
+                        "API_KEY"
+                );
+
+        when(request.getRequestURI())
+                .thenReturn(
+                        "/api/clientes/buscar");
+
+        when(request.getHeader("X-API-Key"))
+                .thenReturn("   ");
+
+        when(integrationService
+                .findBestMatchByRequestPath(
+                        "/api/clientes/buscar"))
+                .thenReturn(
+                        Optional.of(integration));
+
+        ResponseStatusException exception =
+                assertThrows(
+                        ResponseStatusException.class,
+                        () -> controller.executeGet(
+                                request,
+                                Map.of())
+                );
+
+        assertEquals(
+                401,
+                exception.getStatusCode().value());
+
+        assertEquals(
+                "API Key inválida",
+                exception.getReason());
+
+        verify(integrationCredentialService, never())
+                .authenticate(
+                        1L,
+                        "   ");
+
+        verify(integrationService, never())
+                .validateApiKey(
+                        integration,
+                        "   ");
     }
 
     private Integration createIntegration(
