@@ -1,0 +1,14 @@
+alter table ih_integration
+    add (
+        legacy_api_key_active char(1) default 'N' not null
+    );
+
+alter table ih_integration
+    add constraint ck_ih_integration_legacy_key
+    check (legacy_api_key_active in ('S', 'N'));
+
+update ih_integration
+   set legacy_api_key_active = 'S'
+ where api_key_hash is not null;
+
+commit;
