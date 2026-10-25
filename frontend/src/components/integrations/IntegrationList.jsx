@@ -1,3 +1,4 @@
+
 import './IntegrationList.css'
 
 function IntegrationList({
@@ -7,6 +8,7 @@ function IntegrationList({
   onEdit,
   onDelete,
   onGenerateApiKey,
+  onManageCredentials,
 }) {
   if (integrations.length === 0) {
     return (
@@ -99,17 +101,29 @@ function IntegrationList({
                 </button>
 
                 {canEdit && usesApiKey && (
-                  <button
-                    type="button"
-                    className="integration-list__api-key"
-                    onClick={() =>
-                      onGenerateApiKey(integration)
-                    }
-                  >
-                    {hasApiKey
-                      ? 'Regenerar API Key'
-                      : 'Gerar API Key'}
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      className="integration-list__credentials"
+                      onClick={() =>
+                        onManageCredentials(integration)
+                      }
+                    >
+                      Credenciais
+                    </button>
+
+                    <button
+                      type="button"
+                      className="integration-list__api-key"
+                      onClick={() =>
+                        onGenerateApiKey(integration)
+                      }
+                    >
+                      {hasApiKey
+                        ? 'Regenerar API Key'
+                        : 'Gerar API Key'}
+                    </button>
+                  </>
                 )}
 
                 {canEdit && (

@@ -1,10 +1,14 @@
+
 import { useCallback, useEffect, useState } from 'react'
 import './IntegrationsPage.css'
+
 import ConfirmDialog from '../components/common/ConfirmDialog'
 import MessageDialog from '../components/common/MessageDialog'
 import ApiKeyDialog from '../components/integrations/ApiKeyDialog'
+import IntegrationCredentialsDialog from '../components/integrations/IntegrationCredentialsDialog'
 import IntegrationForm from '../components/integrations/IntegrationForm'
 import IntegrationList from '../components/integrations/IntegrationList'
+
 import {
   createIntegration,
   deleteIntegration,
@@ -40,6 +44,11 @@ function IntegrationsPage({
   const [
     generatedApiKey,
     setGeneratedApiKey,
+  ] = useState(null)
+
+  const [
+    integrationToManageCredentials,
+    setIntegrationToManageCredentials,
   ] = useState(null)
 
   const canEdit =
@@ -91,9 +100,7 @@ function IntegrationsPage({
     setError(null)
   }
 
-  async function handleSubmitIntegration(
-    integration,
-  ) {
+  async function handleSubmitIntegration(integration) {
     if (!canEdit) {
       return
     }
@@ -107,9 +114,7 @@ function IntegrationsPage({
           integration,
         )
       } else {
-        await createIntegration(
-          integration,
-        )
+        await createIntegration(integration)
       }
 
       setShowForm(false)
@@ -121,14 +126,14 @@ function IntegrationsPage({
     }
   }
 
+  // Fluxo legado de API Key - V1
+
   function handleGenerateApiKey(integration) {
     if (!canEdit) {
       return
     }
 
-    setIntegrationToGenerateApiKey(
-      integration,
-    )
+    setIntegrationToGenerateApiKey(integration)
   }
 
   function handleCancelGenerateApiKey() {
@@ -151,9 +156,7 @@ function IntegrationsPage({
           integrationToGenerateApiKey.id,
         )
 
-      setGeneratedApiKey(
-        response.apiKey,
-      )
+      setGeneratedApiKey(response.apiKey)
 
       setIntegrationToGenerateApiKey(null)
 
@@ -171,6 +174,22 @@ function IntegrationsPage({
   function handleCloseApiKeyDialog() {
     setGeneratedApiKey(null)
   }
+
+  // Gerenciamento de múltiplas credenciais - V2
+
+  function handleManageCredentials(integration) {
+    if (!canEdit) {
+      return
+    }
+
+    setIntegrationToManageCredentials(integration)
+  }
+
+  function handleCloseCredentials() {
+    setIntegrationToManageCredentials(null)
+  }
+
+  // Exclusão de integrações
 
   function handleDeleteIntegration(integration) {
     if (!canEdit) {
@@ -278,14 +297,15 @@ function IntegrationsPage({
                 onOpenEndpoints={onOpenEndpoints}
                 onEdit={handleEditIntegration}
                 onDelete={handleDeleteIntegration}
-                onGenerateApiKey={
-                  handleGenerateApiKey
-                }
+                onGenerateApiKey={handleGenerateApiKey}
+                onManageCredentials={handleManageCredentials}
               />
             )}
           </>
         )}
       </div>
+
+      {/* Confirmação de API Key legada - V1 */}
 
       <ConfirmDialog
         open={
@@ -313,6 +333,8 @@ function IntegrationsPage({
         onCancel={handleCancelGenerateApiKey}
       />
 
+      {/* Confirmação de exclusão */}
+
       <ConfirmDialog
         open={
           canEdit &&
@@ -330,10 +352,21 @@ function IntegrationsPage({
         onCancel={handleCancelDelete}
       />
 
+      {/* Exibição da API Key legada - V1 */}
+
       {generatedApiKey && (
         <ApiKeyDialog
           apiKey={generatedApiKey}
           onClose={handleCloseApiKeyDialog}
+        />
+      )}
+
+      {/* Gerenciamento de credenciais - V2 */}
+
+      {canEdit && integrationToManageCredentials && (
+        <IntegrationCredentialsDialog
+          integration={integrationToManageCredentials}
+          onClose={handleCloseCredentials}
         />
       )}
 

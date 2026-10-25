@@ -1,3 +1,4 @@
+
 .integration-list {
   width: 100%;
 }
@@ -77,6 +78,8 @@
 .integration-list__actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
 }
 
@@ -156,6 +159,8 @@
   font-weight: 600;
 }
 
+/* API Key legada - V1 */
+
 .integration-list__api-key {
   padding: 8px 12px;
   border: 1px solid #93c5fd;
@@ -186,4 +191,55 @@
 .integration-list__api-key:focus-visible {
   outline: 2px solid #2563eb;
   outline-offset: 2px;
+}
+
+/* Gerenciamento de credenciais - V2 */
+
+.integration-list__credentials {
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.integration-list__credentials:hover {
+  border-color: #94a3b8;
+  background: #e2e8f0;
+}
+
+.integration-list__credentials:active {
+  background: #cbd5e1;
+}
+
+.integration-list__credentials:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+  .integration-list__item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .integration-list__right {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .integration-list__actions {
+    justify-content: flex-start;
+  }
 }

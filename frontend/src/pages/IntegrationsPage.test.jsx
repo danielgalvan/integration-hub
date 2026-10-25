@@ -1,3 +1,4 @@
+
 import {
   fireEvent,
   render,
@@ -18,6 +19,29 @@ const integrationService = vi.hoisted(() => ({
 
 vi.mock('../services/integrationService', () => integrationService)
 
+vi.mock(
+  '../components/integrations/IntegrationCredentialsDialog',
+  () => ({
+    default: ({ integration, onClose }) => (
+      <div
+        role="dialog"
+        aria-label="Gerenciamento de credenciais"
+      >
+        <span>
+          Credenciais da integração: {integration.name}
+        </span>
+
+        <button
+          type="button"
+          onClick={onClose}
+        >
+          Fechar credenciais
+        </button>
+      </div>
+    ),
+  }),
+)
+
 const integration = {
   id: 1,
   name: 'Clientes',
@@ -25,6 +49,11 @@ const integration = {
   basePath: '/clientes',
   active: 'S',
   authType: 'NONE',
+}
+
+const integrationWithApiKey = {
+  ...integration,
+  authType: 'API_KEY',
 }
 
 function renderPage(props = {}) {
@@ -45,9 +74,11 @@ function fillIntegrationForm({
   fireEvent.change(screen.getByLabelText('Nome'), {
     target: { value: name },
   })
+
   fireEvent.change(screen.getByLabelText('Descrição'), {
     target: { value: description },
   })
+
   fireEvent.change(screen.getByLabelText('Base Path'), {
     target: { value: basePath },
   })
@@ -56,10 +87,21 @@ function fillIntegrationForm({
 describe('IntegrationsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    integrationService.getIntegrations.mockResolvedValue([integration])
-    integrationService.createIntegration.mockResolvedValue(integration)
-    integrationService.updateIntegration.mockResolvedValue(integration)
+
+    integrationService.getIntegrations.mockResolvedValue([
+      integration,
+    ])
+
+    integrationService.createIntegration.mockResolvedValue(
+      integration,
+    )
+
+    integrationService.updateIntegration.mockResolvedValue(
+      integration,
+    )
+
     integrationService.deleteIntegration.mockResolvedValue()
+
     integrationService.generateIntegrationApiKey.mockResolvedValue({
       apiKey: 'ihub_chave_teste',
     })
@@ -68,8 +110,13 @@ describe('IntegrationsPage', () => {
   it('carrega as integrações da API', async () => {
     renderPage()
 
-    expect(await screen.findByText('Clientes')).toBeInTheDocument()
-    expect(integrationService.getIntegrations).toHaveBeenCalledOnce()
+    expect(
+      await screen.findByText('Clientes'),
+    ).toBeInTheDocument()
+
+    expect(
+      integrationService.getIntegrations,
+    ).toHaveBeenCalledOnce()
   })
 
   it('exibe o erro retornado ao carregar integrações', async () => {
@@ -89,15 +136,23 @@ describe('IntegrationsPage', () => {
     await screen.findByText('Clientes')
 
     fireEvent.click(
-      screen.getByRole('button', { name: '+ Nova integração' }),
+      screen.getByRole('button', {
+        name: '+ Nova integração',
+      }),
     )
+
     fillIntegrationForm()
+
     fireEvent.click(
-      screen.getByRole('button', { name: 'Salvar integração' }),
+      screen.getByRole('button', {
+        name: 'Salvar integração',
+      }),
     )
 
     await waitFor(() => {
-      expect(integrationService.createIntegration).toHaveBeenCalledWith({
+      expect(
+        integrationService.createIntegration,
+      ).toHaveBeenCalledWith({
         name: 'Pedidos',
         description: 'Consulta de pedidos',
         basePath: '/pedidos',
@@ -105,21 +160,36 @@ describe('IntegrationsPage', () => {
         authType: 'NONE',
       })
     })
-    expect(integrationService.getIntegrations).toHaveBeenCalledTimes(2)
+
+    expect(
+      integrationService.getIntegrations,
+    ).toHaveBeenCalledTimes(2)
   })
 
   it('edita uma integração existente', async () => {
     renderPage()
     await screen.findByText('Clientes')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Editar' }))
-    fillIntegrationForm({ name: 'Clientes ativos' })
     fireEvent.click(
-      screen.getByRole('button', { name: 'Salvar alterações' }),
+      screen.getByRole('button', {
+        name: 'Editar',
+      }),
+    )
+
+    fillIntegrationForm({
+      name: 'Clientes ativos',
+    })
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Salvar alterações',
+      }),
     )
 
     await waitFor(() => {
-      expect(integrationService.updateIntegration).toHaveBeenCalledWith(1, {
+      expect(
+        integrationService.updateIntegration,
+      ).toHaveBeenCalledWith(1, {
         name: 'Clientes ativos',
         description: 'Consulta de pedidos',
         basePath: '/pedidos',
@@ -133,15 +203,27 @@ describe('IntegrationsPage', () => {
     renderPage()
     await screen.findByText('Clientes')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Excluir' }))
     fireEvent.click(
-      screen.getAllByRole('button', { name: 'Excluir' }).at(-1),
+      screen.getByRole('button', {
+        name: 'Excluir',
+      }),
+    )
+
+    fireEvent.click(
+      screen.getAllByRole('button', {
+        name: 'Excluir',
+      }).at(-1),
     )
 
     await waitFor(() => {
-      expect(integrationService.deleteIntegration).toHaveBeenCalledWith(1)
+      expect(
+        integrationService.deleteIntegration,
+      ).toHaveBeenCalledWith(1)
     })
-    expect(integrationService.getIntegrations).toHaveBeenCalledTimes(2)
+
+    expect(
+      integrationService.getIntegrations,
+    ).toHaveBeenCalledTimes(2)
   })
 
   it('permite ao consumidor apenas visualizar a integração', async () => {
@@ -149,53 +231,160 @@ describe('IntegrationsPage', () => {
     await screen.findByText('Clientes')
 
     expect(
-      screen.queryByRole('button', { name: '+ Nova integração' }),
+      screen.queryByRole('button', {
+        name: '+ Nova integração',
+      }),
     ).not.toBeInTheDocument()
+
     expect(
-      screen.queryByRole('button', { name: 'Excluir' }),
+      screen.queryByRole('button', {
+        name: 'Excluir',
+      }),
     ).not.toBeInTheDocument()
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Visualizar' }),
+      screen.getByRole('button', {
+        name: 'Visualizar',
+      }),
     )
 
     expect(
-      screen.getByRole('button', { name: 'Voltar' }),
+      screen.getByRole('button', {
+        name: 'Voltar',
+      }),
     ).toBeInTheDocument()
+
     expect(
-      screen.queryByRole('button', { name: 'Salvar alterações' }),
+      screen.queryByRole('button', {
+        name: 'Salvar alterações',
+      }),
     ).not.toBeInTheDocument()
-    expect(screen.getByLabelText('Nome')).toHaveAttribute(
-      'readonly',
-    )
+
+    expect(
+      screen.getByLabelText('Nome'),
+    ).toHaveAttribute('readonly')
   })
 
   it('gera API Key após confirmação e a exibe uma única vez', async () => {
-    integrationService.getIntegrations.mockResolvedValue([{
-      ...integration,
-      authType: 'API_KEY',
-    }])
+    integrationService.getIntegrations.mockResolvedValue([
+      integrationWithApiKey,
+    ])
 
     renderPage()
     await screen.findByText('Clientes')
 
-    fireEvent.click(screen.getByRole('button', {
-      name: 'Gerar API Key',
-    }))
-    expect(screen.getByRole('dialog')).toHaveTextContent(
-      'Uma API Key será gerada',
-    )
     fireEvent.click(
-      within(screen.getByRole('dialog')).getByRole('button', {
+      screen.getByRole('button', {
         name: 'Gerar API Key',
       }),
     )
 
-    await waitFor(() => expect(
-      integrationService.generateIntegrationApiKey,
-    ).toHaveBeenCalledWith(1))
-    expect(await screen.findByText('ihub_chave_teste')).toBeInTheDocument()
-    expect(integrationService.getIntegrations).toHaveBeenCalledTimes(2)
+    expect(
+      screen.getByRole('dialog'),
+    ).toHaveTextContent(
+      'Uma API Key será gerada',
+    )
+
+    fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole(
+        'button',
+        {
+          name: 'Gerar API Key',
+        },
+      ),
+    )
+
+    await waitFor(() => {
+      expect(
+        integrationService.generateIntegrationApiKey,
+      ).toHaveBeenCalledWith(1)
+    })
+
+    expect(
+      await screen.findByText('ihub_chave_teste'),
+    ).toBeInTheDocument()
+
+    expect(
+      integrationService.getIntegrations,
+    ).toHaveBeenCalledTimes(2)
+  })
+
+  it('permite ao administrador gerenciar credenciais', async () => {
+    integrationService.getIntegrations.mockResolvedValue([
+      integrationWithApiKey,
+    ])
+
+    renderPage({ role: 'A' })
+    await screen.findByText('Clientes')
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Credenciais',
+      }),
+    )
+
+    const dialog = screen.getByRole('dialog', {
+      name: 'Gerenciamento de credenciais',
+    })
+
+    expect(dialog).toHaveTextContent(
+      'Credenciais da integração: Clientes',
+    )
+
+    fireEvent.click(
+      within(dialog).getByRole('button', {
+        name: 'Fechar credenciais',
+      }),
+    )
+
+    expect(
+      screen.queryByRole('dialog', {
+        name: 'Gerenciamento de credenciais',
+      }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('permite ao criador gerenciar credenciais', async () => {
+    integrationService.getIntegrations.mockResolvedValue([
+      integrationWithApiKey,
+    ])
+
+    renderPage({ role: 'C' })
+    await screen.findByText('Clientes')
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Credenciais',
+      }),
+    )
+
+    expect(
+      screen.getByRole('dialog', {
+        name: 'Gerenciamento de credenciais',
+      }),
+    ).toHaveTextContent(
+      'Credenciais da integração: Clientes',
+    )
+  })
+
+  it('não permite ao consumidor gerenciar credenciais', async () => {
+    integrationService.getIntegrations.mockResolvedValue([
+      integrationWithApiKey,
+    ])
+
+    renderPage({ role: 'U' })
+    await screen.findByText('Clientes')
+
+    expect(
+      screen.queryByRole('button', {
+        name: 'Credenciais',
+      }),
+    ).not.toBeInTheDocument()
+
+    expect(
+      screen.queryByRole('dialog', {
+        name: 'Gerenciamento de credenciais',
+      }),
+    ).not.toBeInTheDocument()
   })
 })
-
