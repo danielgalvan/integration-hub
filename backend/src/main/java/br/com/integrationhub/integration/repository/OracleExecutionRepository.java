@@ -163,6 +163,7 @@ public class OracleExecutionRepository implements ExecutionRepository {
                         );
 
         if (execution.getStartedAt() == null) {
+
             params.addValue(
                     "startedAt",
                     null,
@@ -175,14 +176,21 @@ public class OracleExecutionRepository implements ExecutionRepository {
             );
         }
 
-        jdbcTemplate.update(sql, params);
+        int rowsAffected = jdbcTemplate.update(
+                sql,
+                params
+        );
 
-        return findById(id)
-                .orElseThrow(() ->
-                        new IllegalStateException(
-                                "Execução não encontrada após criação"
-                        )
-                );
+        if (rowsAffected != 1) {
+            throw new IllegalStateException(
+                    "Falha ao registrar execução. Registros afetados: "
+                            + rowsAffected
+            );
+        }
+
+        execution.setId(id);
+
+        return execution;
     }
 
     @Override

@@ -38,16 +38,12 @@ class OracleExecutionRepositoryTest {
 
         Execution execution = createExecution();
 
-        when(jdbcTemplate.queryForObject(
-                contains("ih_execution_seq.nextval"),
-                ArgumentMatchers.<Map<String, ?>>any(),
-                eq(Long.class)
-        )).thenReturn(10L);
-
-        stubFindByIdReturning(10L, execution);
+        stubSequence(10L);
+        stubInsert(1);
 
         Execution result = repository.save(execution);
 
+        assertSame(execution, result);
         assertEquals(10L, result.getId());
 
         ArgumentCaptor<String> sqlCaptor =
@@ -108,20 +104,23 @@ class OracleExecutionRepositoryTest {
 
         assertNull(params.getValue("errorType"));
         assertNull(params.getValue("errorMessage"));
+
+        verify(jdbcTemplate, never()).query(
+                anyString(),
+                ArgumentMatchers.<Map<String, ?>>any(),
+                ArgumentMatchers.<RowMapper<Execution>>any()
+        );
     }
 
     @Test
     void deveGerarIdUtilizandoSequenceOracle() {
 
-        when(jdbcTemplate.queryForObject(
-                contains("ih_execution_seq.nextval"),
-                ArgumentMatchers.<Map<String, ?>>any(),
-                eq(Long.class)
-        )).thenReturn(25L);
+        stubSequence(25L);
+        stubInsert(1);
 
-        stubFindByIdReturning(25L, createExecution());
+        Execution execution = createExecution();
 
-        Execution result = repository.save(createExecution());
+        Execution result = repository.save(execution);
 
         assertEquals(25L, result.getId());
 
@@ -136,6 +135,34 @@ class OracleExecutionRepositoryTest {
                 argThat((MapSqlParameterSource params) ->
                         Long.valueOf(25L).equals(params.getValue("id"))
                 )
+        );
+    }
+
+    @Test
+    void naoDeveConsultarRegistroAposInsert() {
+
+        stubSequence(15L);
+        stubInsert(1);
+
+        Execution result = repository.save(createExecution());
+
+        assertEquals(15L, result.getId());
+
+        verify(jdbcTemplate, times(1)).queryForObject(
+                anyString(),
+                ArgumentMatchers.<Map<String, ?>>any(),
+                eq(Long.class)
+        );
+
+        verify(jdbcTemplate, times(1)).update(
+                anyString(),
+                any(MapSqlParameterSource.class)
+        );
+
+        verify(jdbcTemplate, never()).query(
+                anyString(),
+                ArgumentMatchers.<Map<String, ?>>any(),
+                ArgumentMatchers.<RowMapper<Execution>>any()
         );
     }
 
@@ -264,7 +291,7 @@ class OracleExecutionRepositoryTest {
         when(rs.getInt("http_status"))
                 .thenReturn(0);
 
-        when(rs.wasNull()).thenAnswer(invocation -> true);
+        when(rs.wasNull()).thenReturn(true);
 
         when(rs.getString("request_method"))
                 .thenReturn("GET");
@@ -311,7 +338,11 @@ class OracleExecutionRepositoryTest {
     @Test
     void deveRetornarVazioQuandoExecucaoNaoExistir() {
 
-        stubFindByIdAsEmpty();
+        when(jdbcTemplate.query(
+                anyString(),
+                ArgumentMatchers.<Map<String, ?>>any(),
+                ArgumentMatchers.<RowMapper<Execution>>any()
+        )).thenReturn(List.of());
 
         Optional<Execution> result =
                 repository.findById(999L);
@@ -331,21 +362,21 @@ class OracleExecutionRepositoryTest {
     @Test
     void deveRetornarErroQuandoSequenceNaoGerarId() {
 
-        when(jdbcTemplate.queryForObject(
-                anyString(),
-                ArgumentMatchers.<Map<String, ?>>any(),
-                eq(Long.class)
-        )).thenReturn(null);
+        stubSequence(null);
+
+        Execution execution = createExecution();
 
         IllegalStateException exception = assertThrows(
                 IllegalStateException.class,
-                () -> repository.save(createExecution())
+                () -> repository.save(execution)
         );
 
         assertEquals(
                 "Não foi possível gerar o ID da execução",
                 exception.getMessage()
         );
+
+        assertNull(execution.getId());
 
         verify(jdbcTemplate, never()).update(
                 anyString(),
@@ -360,13 +391,8 @@ class OracleExecutionRepositoryTest {
 
         execution.setStartedAt(null);
 
-        when(jdbcTemplate.queryForObject(
-                anyString(),
-                ArgumentMatchers.<Map<String, ?>>any(),
-                eq(Long.class)
-        )).thenReturn(30L);
-
-        stubFindByIdReturning(30L, execution);
+        stubSequence(30L);
+        stubInsert(1);
 
         repository.save(execution);
 
@@ -390,28 +416,73 @@ class OracleExecutionRepositoryTest {
                 Types.TIMESTAMP,
                 paramsCaptor.getValue().getSqlType("startedAt")
         );
+
+        assertEquals(30L, execution.getId());
     }
 
-    private void stubFindByIdAsEmpty() {
+    @Test
+    void deveRetornarErroQuandoInsertNaoAfetarRegistros() {
 
-        when(jdbcTemplate.query(
+        stubSequence(40L);
+        stubInsert(0);
+
+        Execution execution = createExecution();
+
+        IllegalStateException exception = assertThrows(
+                IllegalStateException.class,
+                () -> repository.save(execution)
+        );
+
+        assertEquals(
+                "Falha ao registrar execução. Registros afetados: 0",
+                exception.getMessage()
+        );
+
+        assertNull(execution.getId());
+
+        verify(jdbcTemplate, never()).query(
                 anyString(),
                 ArgumentMatchers.<Map<String, ?>>any(),
                 ArgumentMatchers.<RowMapper<Execution>>any()
-        )).thenReturn(List.of());
+        );
     }
 
-    private void stubFindByIdReturning(
-            Long id,
-            Execution execution) {
+    @Test
+    void deveRetornarErroQuandoInsertAfetarMultiplosRegistros() {
 
-        execution.setId(id);
+        stubSequence(50L);
+        stubInsert(2);
 
-        when(jdbcTemplate.query(
-                anyString(),
+        Execution execution = createExecution();
+
+        IllegalStateException exception = assertThrows(
+                IllegalStateException.class,
+                () -> repository.save(execution)
+        );
+
+        assertEquals(
+                "Falha ao registrar execução. Registros afetados: 2",
+                exception.getMessage()
+        );
+
+        assertNull(execution.getId());
+    }
+
+    private void stubSequence(Long id) {
+
+        when(jdbcTemplate.queryForObject(
+                contains("ih_execution_seq.nextval"),
                 ArgumentMatchers.<Map<String, ?>>any(),
-                ArgumentMatchers.<RowMapper<Execution>>any()
-        )).thenReturn(List.of(execution));
+                eq(Long.class)
+        )).thenReturn(id);
+    }
+
+    private void stubInsert(int rowsAffected) {
+
+        when(jdbcTemplate.update(
+                anyString(),
+                any(MapSqlParameterSource.class)
+        )).thenReturn(rowsAffected);
     }
 
     private Execution createExecution() {
