@@ -23,6 +23,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import br.com.integrationhub.integration.service.ExecutionAuditService;
 
 import java.util.Optional;
 
@@ -75,6 +76,9 @@ class SecurityConfigTest {
 
     @MockitoBean
     private UserService userService;
+
+    @MockitoBean
+    private ExecutionAuditService executionAuditService;
 
     @BeforeEach
     void setUp() {
