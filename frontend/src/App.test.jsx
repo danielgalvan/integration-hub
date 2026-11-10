@@ -1,44 +1,179 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 import App from './App'
 
 const authService = vi.hoisted(() => ({
-  changePassword: vi.fn(), getAuthenticatedUser: vi.fn(), login: vi.fn(),
+  changePassword: vi.fn(),
+  getAuthenticatedUser: vi.fn(),
+  login: vi.fn(),
 }))
+
 const authStorage = vi.hoisted(() => ({
-  clearAuth: vi.fn(), getEnvironment: vi.fn(), getEnvironmentName: vi.fn(), getRole: vi.fn(), getToken: vi.fn(),
-  isPasswordChangeRequired: vi.fn(), saveAuth: vi.fn(), setPasswordChangeRequired: vi.fn(),
+  clearAuth: vi.fn(),
+  getEnvironment: vi.fn(),
+  getEnvironmentName: vi.fn(),
+  getRole: vi.fn(),
+  getToken: vi.fn(),
+  isPasswordChangeRequired: vi.fn(),
+  saveAuth: vi.fn(),
+  setPasswordChangeRequired: vi.fn(),
 }))
 
 vi.mock('./services/authService', () => authService)
 vi.mock('./utils/authStorage', () => authStorage)
+
 vi.mock('./pages/LoginPage', () => ({
-  default: ({ onLogin }) => <button type="button" onClick={() => onLogin({ username: 'admin', password: 'senha', environment: 'development', environmentName: 'Desenvolvimento Local' })}>Fazer login</button>,
+  default: ({ onLogin }) => (
+    <button
+      type="button"
+      onClick={() =>
+        onLogin({
+          username: 'admin',
+          password: 'senha',
+          environment: 'development',
+          environmentName: 'Desenvolvimento Local',
+        })
+      }
+    >
+      Fazer login
+    </button>
+  ),
 }))
+
 vi.mock('./pages/ChangePasswordPage', () => ({
-  default: ({ onChangePassword }) => <button type="button" onClick={() => onChangePassword('nova-senha')}>Alterar senha obrigatória</button>,
+  default: ({ onChangePassword }) => (
+    <button
+      type="button"
+      onClick={() => onChangePassword('nova-senha')}
+    >
+      Alterar senha obrigatória
+    </button>
+  ),
 }))
+
 vi.mock('./components/layout/Header', () => ({
-  default: ({ onLogout }) => <button type="button" onClick={onLogout}>Sair</button>,
+  default: ({ onLogout }) => (
+    <button
+      type="button"
+      onClick={onLogout}
+    >
+      Sair
+    </button>
+  ),
 }))
+
 vi.mock('./components/layout/Sidebar', () => ({
-  default: ({ environmentName, onOpenUsers }) => <>
-    <span>{environmentName}</span>
-    <button type="button" onClick={onOpenUsers}>Usuários</button>
-  </>,
+  default: ({
+    role,
+    environmentName,
+    onOpenIntegrations,
+    onOpenExecutions,
+    onOpenUsers,
+  }) => (
+    <nav aria-label="Menu principal">
+      <span>{environmentName}</span>
+
+      <button
+        type="button"
+        onClick={onOpenIntegrations}
+      >
+        Integrações
+      </button>
+
+      {role === 'A' && (
+        <>
+          <button
+            type="button"
+            onClick={onOpenExecutions}
+          >
+            Histórico de execuções
+          </button>
+
+          <button
+            type="button"
+            onClick={onOpenUsers}
+          >
+            Usuários
+          </button>
+        </>
+      )}
+    </nav>
+  ),
 }))
-vi.mock('./pages/IntegrationsPage', () => ({ default: () => <div>Integrações protegidas</div> }))
-vi.mock('./pages/EndpointsPage', () => ({ default: () => <div>Endpoints protegidos</div> }))
-vi.mock('./pages/UsersPage', () => ({ default: () => <div>Usuários protegidos</div> }))
+
+vi.mock('./pages/IntegrationsPage', () => ({
+  default: ({ onOpenEndpoints }) => (
+    <div>
+      <div>Integrações protegidas</div>
+
+      <button
+        type="button"
+        onClick={() =>
+          onOpenEndpoints({
+            id: 1,
+            name: 'Integração de teste',
+          })
+        }
+      >
+        Abrir endpoints
+      </button>
+    </div>
+  ),
+}))
+
+vi.mock('./pages/EndpointsPage', () => ({
+  default: ({ integration, onBack }) => (
+    <div>
+      <div>Endpoints protegidos</div>
+      <span>{integration?.name}</span>
+
+      <button
+        type="button"
+        onClick={onBack}
+      >
+        Voltar para integrações
+      </button>
+    </div>
+  ),
+}))
+
+vi.mock('./pages/ExecutionsPage', () => ({
+  default: ({ role }) => (
+    <div>
+      <div>Histórico protegido</div>
+      <span>Perfil: {role}</span>
+    </div>
+  ),
+}))
+
+vi.mock('./pages/UsersPage', () => ({
+  default: () => (
+    <div>Usuários protegidos</div>
+  ),
+}))
 
 describe('App', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+
     authStorage.getToken.mockReturnValue(null)
     authStorage.getRole.mockReturnValue(null)
     authStorage.getEnvironment.mockReturnValue(null)
     authStorage.getEnvironmentName.mockReturnValue(null)
     authStorage.isPasswordChangeRequired.mockReturnValue(false)
+
     authService.getAuthenticatedUser.mockResolvedValue({
       name: 'Administrador',
       role: 'A',
@@ -46,15 +181,36 @@ describe('App', () => {
   })
 
   it('armazena sessão e libera a área administrativa após login', async () => {
-    authService.login.mockResolvedValue({ token: 'header.eyJyb2xlIjoiQSJ9.signature', passwordChangeRequired: false })
-    render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: 'Fazer login' }))
+    authService.login.mockResolvedValue({
+      token: 'header.eyJyb2xlIjoiQSJ9.signature',
+      passwordChangeRequired: false,
+    })
 
-    await waitFor(() => expect(authStorage.saveAuth).toHaveBeenCalledWith({
-      token: 'header.eyJyb2xlIjoiQSJ9.signature', role: 'A', environment: 'development', environmentName: 'Desenvolvimento Local', passwordChangeRequired: false,
-    }))
-    expect(await screen.findByText('Integrações protegidas')).toBeInTheDocument()
-    expect(screen.getByText('Desenvolvimento Local')).toBeInTheDocument()
+    render(<App />)
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Fazer login',
+      }),
+    )
+
+    await waitFor(() =>
+      expect(authStorage.saveAuth).toHaveBeenCalledWith({
+        token: 'header.eyJyb2xlIjoiQSJ9.signature',
+        role: 'A',
+        environment: 'development',
+        environmentName: 'Desenvolvimento Local',
+        passwordChangeRequired: false,
+      }),
+    )
+
+    expect(
+      await screen.findByText('Integrações protegidas'),
+    ).toBeInTheDocument()
+
+    expect(
+      screen.getByText('Desenvolvimento Local'),
+    ).toBeInTheDocument()
   })
 
   it('restaura o nome do ambiente salvo na sessão', () => {
@@ -64,46 +220,101 @@ describe('App', () => {
 
     render(<App />)
 
-    expect(screen.getByText('Oracle Cloud')).toBeInTheDocument()
+    expect(
+      screen.getByText('Oracle Cloud'),
+    ).toBeInTheDocument()
   })
 
   it('exige a troca de senha quando indicada no login', async () => {
-    authService.login.mockResolvedValue({ token: 'header.eyJyb2xlIjoiQSJ9.signature', passwordChangeRequired: true })
+    authService.login.mockResolvedValue({
+      token: 'header.eyJyb2xlIjoiQSJ9.signature',
+      passwordChangeRequired: true,
+    })
+
     render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: 'Fazer login' }))
-    expect(await screen.findByRole('button', { name: 'Alterar senha obrigatória' })).toBeInTheDocument()
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Fazer login',
+      }),
+    )
+
+    expect(
+      await screen.findByRole('button', {
+        name: 'Alterar senha obrigatória',
+      }),
+    ).toBeInTheDocument()
   })
 
   it('encerra a exigência de troca após alterar a senha', async () => {
     authStorage.getToken.mockReturnValue('jwt-token')
     authStorage.isPasswordChangeRequired.mockReturnValue(true)
     authService.changePassword.mockResolvedValue()
-    render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: 'Alterar senha obrigatória' }))
 
-    await waitFor(() => expect(authService.changePassword).toHaveBeenCalledWith('jwt-token', 'nova-senha'))
-    expect(authStorage.setPasswordChangeRequired).toHaveBeenCalledWith(false)
-    expect(screen.getByText('Integrações protegidas')).toBeInTheDocument()
+    render(<App />)
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Alterar senha obrigatória',
+      }),
+    )
+
+    await waitFor(() =>
+      expect(authService.changePassword).toHaveBeenCalledWith(
+        'jwt-token',
+        'nova-senha',
+      ),
+    )
+
+    expect(
+      authStorage.setPasswordChangeRequired,
+    ).toHaveBeenCalledWith(false)
+
+    expect(
+      screen.getByText('Integrações protegidas'),
+    ).toBeInTheDocument()
   })
 
   it('abre usuários somente para administrador', () => {
     authStorage.getToken.mockReturnValue('jwt-token')
     authStorage.getRole.mockReturnValue('A')
+
     render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: 'Usuários' }))
-    expect(screen.getByText('Usuários protegidos')).toBeInTheDocument()
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Usuários',
+      }),
+    )
+
+    expect(
+      screen.getByText('Usuários protegidos'),
+    ).toBeInTheDocument()
   })
 
   it('remove a sessão ao receber evento de não autorizado', async () => {
     authStorage.getToken.mockReturnValue('jwt-token')
+
     render(<App />)
-    window.dispatchEvent(new Event('ihub:unauthorized'))
-    expect(await screen.findByRole('button', { name: 'Fazer login' })).toBeInTheDocument()
-    expect(authStorage.clearAuth).toHaveBeenCalledOnce()
+
+    window.dispatchEvent(
+      new Event('ihub:unauthorized'),
+    )
+
+    expect(
+      await screen.findByRole('button', {
+        name: 'Fazer login',
+      }),
+    ).toBeInTheDocument()
+
+    expect(
+      authStorage.clearAuth,
+    ).toHaveBeenCalledOnce()
   })
 
   it('carrega os dados do usuário autenticado após restaurar a sessão', async () => {
     authStorage.getToken.mockReturnValue('jwt-token')
+
     authService.getAuthenticatedUser.mockResolvedValue({
       name: 'Daniel Galvan',
       role: 'A',
@@ -111,9 +322,204 @@ describe('App', () => {
 
     render(<App />)
 
-    await waitFor(() => expect(
-      authService.getAuthenticatedUser,
-    ).toHaveBeenCalledOnce())
+    await waitFor(() =>
+      expect(
+        authService.getAuthenticatedUser,
+      ).toHaveBeenCalledOnce(),
+    )
+  })
+
+  describe('Histórico de execuções', () => {
+    it('exibe o menu de histórico para administrador', () => {
+      authStorage.getToken.mockReturnValue('jwt-token')
+      authStorage.getRole.mockReturnValue('A')
+
+      render(<App />)
+
+      expect(
+        screen.getByRole('button', {
+          name: 'Histórico de execuções',
+        }),
+      ).toBeInTheDocument()
+    })
+
+    it('abre a página de histórico ao clicar no menu', () => {
+      authStorage.getToken.mockReturnValue('jwt-token')
+      authStorage.getRole.mockReturnValue('A')
+
+      render(<App />)
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Histórico de execuções',
+        }),
+      )
+
+      expect(
+        screen.getByText('Histórico protegido'),
+      ).toBeInTheDocument()
+
+      expect(
+        screen.getByText('Perfil: A'),
+      ).toBeInTheDocument()
+
+      expect(
+        screen.queryByText('Integrações protegidas'),
+      ).not.toBeInTheDocument()
+    })
+
+    it('retorna do histórico para integrações', () => {
+      authStorage.getToken.mockReturnValue('jwt-token')
+      authStorage.getRole.mockReturnValue('A')
+
+      render(<App />)
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Histórico de execuções',
+        }),
+      )
+
+      expect(
+        screen.getByText('Histórico protegido'),
+      ).toBeInTheDocument()
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Integrações',
+        }),
+      )
+
+      expect(
+        screen.getByText('Integrações protegidas'),
+      ).toBeInTheDocument()
+
+      expect(
+        screen.queryByText('Histórico protegido'),
+      ).not.toBeInTheDocument()
+    })
+
+    it('permite navegar do histórico para usuários', () => {
+      authStorage.getToken.mockReturnValue('jwt-token')
+      authStorage.getRole.mockReturnValue('A')
+
+      render(<App />)
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Histórico de execuções',
+        }),
+      )
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Usuários',
+        }),
+      )
+
+      expect(
+        screen.getByText('Usuários protegidos'),
+      ).toBeInTheDocument()
+
+      expect(
+        screen.queryByText('Histórico protegido'),
+      ).not.toBeInTheDocument()
+    })
+
+    it('preserva a navegação de integrações para endpoints', () => {
+      authStorage.getToken.mockReturnValue('jwt-token')
+      authStorage.getRole.mockReturnValue('A')
+
+      render(<App />)
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Abrir endpoints',
+        }),
+      )
+
+      expect(
+        screen.getByText('Endpoints protegidos'),
+      ).toBeInTheDocument()
+
+      expect(
+        screen.getByText('Integração de teste'),
+      ).toBeInTheDocument()
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Histórico de execuções',
+        }),
+      )
+
+      expect(
+        screen.getByText('Histórico protegido'),
+      ).toBeInTheDocument()
+
+      expect(
+        screen.queryByText('Endpoints protegidos'),
+      ).not.toBeInTheDocument()
+    })
+
+    it.each(['C', 'U', null])(
+      'não permite acessar o histórico para o perfil %s',
+      (role) => {
+        authStorage.getToken.mockReturnValue('jwt-token')
+        authStorage.getRole.mockReturnValue(role)
+
+        render(<App />)
+
+        expect(
+          screen.queryByRole('button', {
+            name: 'Histórico de execuções',
+          }),
+        ).not.toBeInTheDocument()
+
+        expect(
+          screen.queryByText('Histórico protegido'),
+        ).not.toBeInTheDocument()
+
+        expect(
+          screen.getByText('Integrações protegidas'),
+        ).toBeInTheDocument()
+      },
+    )
+
+    it('não exibe o histórico após encerrar a sessão', async () => {
+      authStorage.getToken.mockReturnValue('jwt-token')
+      authStorage.getRole.mockReturnValue('A')
+
+      render(<App />)
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Histórico de execuções',
+        }),
+      )
+
+      expect(
+        screen.getByText('Histórico protegido'),
+      ).toBeInTheDocument()
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Sair',
+        }),
+      )
+
+      expect(
+        screen.getByRole('button', {
+          name: 'Fazer login',
+        }),
+      ).toBeInTheDocument()
+
+      expect(
+        screen.queryByText('Histórico protegido'),
+      ).not.toBeInTheDocument()
+
+      expect(
+        authStorage.clearAuth,
+      ).toHaveBeenCalledOnce()
+    })
   })
 })
-

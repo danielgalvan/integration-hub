@@ -1,3 +1,4 @@
+
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import Sidebar from './Sidebar'
@@ -45,6 +46,7 @@ describe('Sidebar', () => {
         role="A"
         environmentName="Ambiente de Homologação"
         onOpenIntegrations={vi.fn()}
+        onOpenExecutions={vi.fn()}
         onOpenUsers={onOpenUsers}
       />,
     )
@@ -71,6 +73,7 @@ describe('Sidebar', () => {
       <Sidebar
         role="U"
         onOpenIntegrations={vi.fn()}
+        onOpenExecutions={vi.fn()}
         onOpenUsers={vi.fn()}
       />,
     )
@@ -94,5 +97,72 @@ describe('Sidebar', () => {
       screen.getByText('Oracle Cloud'),
     ).toBeInTheDocument()
   })
-})
 
+  describe('Histórico de execuções', () => {
+    it('exibe o histórico de execuções para administrador', () => {
+      render(
+        <Sidebar
+          role="A"
+          onOpenIntegrations={vi.fn()}
+          onOpenExecutions={vi.fn()}
+          onOpenUsers={vi.fn()}
+        />,
+      )
+
+      expect(
+        screen.getByRole('button', {
+          name: 'Histórico de execuções',
+        }),
+      ).toBeInTheDocument()
+    })
+
+    it('abre o histórico de execuções ao clicar no item', () => {
+      const onOpenExecutions = vi.fn()
+
+      render(
+        <Sidebar
+          role="A"
+          onOpenIntegrations={vi.fn()}
+          onOpenExecutions={onOpenExecutions}
+          onOpenUsers={vi.fn()}
+        />,
+      )
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Histórico de execuções',
+        }),
+      )
+
+      expect(
+        onOpenExecutions,
+      ).toHaveBeenCalledOnce()
+    })
+
+    it.each(['C', 'U', null])(
+      'oculta o histórico de execuções para o perfil %s',
+      (role) => {
+        const onOpenExecutions = vi.fn()
+
+        render(
+          <Sidebar
+            role={role}
+            onOpenIntegrations={vi.fn()}
+            onOpenExecutions={onOpenExecutions}
+            onOpenUsers={vi.fn()}
+          />,
+        )
+
+        expect(
+          screen.queryByRole('button', {
+            name: 'Histórico de execuções',
+          }),
+        ).not.toBeInTheDocument()
+
+        expect(
+          onOpenExecutions,
+        ).not.toHaveBeenCalled()
+      },
+    )
+  })
+})

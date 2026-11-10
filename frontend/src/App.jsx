@@ -1,3 +1,4 @@
+
 import {
   useCallback,
   useEffect,
@@ -8,6 +9,7 @@ import Header from './components/layout/Header'
 import Sidebar from './components/layout/Sidebar'
 import ChangePasswordPage from './pages/ChangePasswordPage'
 import EndpointsPage from './pages/EndpointsPage'
+import ExecutionsPage from './pages/ExecutionsPage'
 import IntegrationsPage from './pages/IntegrationsPage'
 import LoginPage from './pages/LoginPage'
 import UsersPage from './pages/UsersPage'
@@ -173,6 +175,15 @@ function App() {
     setCurrentPage('integrations')
   }
 
+  function handleOpenExecutions() {
+    if (role !== 'A') {
+      return
+    }
+
+    setSelectedIntegration(null)
+    setCurrentPage('executions')
+  }
+
   function handleOpenUsers() {
     if (role !== 'A') {
       return
@@ -213,6 +224,9 @@ function App() {
         onOpenIntegrations={
           handleBackToIntegrations
         }
+        onOpenExecutions={
+          handleOpenExecutions
+        }
         onOpenUsers={handleOpenUsers}
       />
 
@@ -243,6 +257,13 @@ function App() {
               }
             />
           )}
+
+          {currentPage === 'executions' &&
+            role === 'A' && (
+              <ExecutionsPage
+                role={role}
+              />
+            )}
 
           {currentPage === 'users' &&
             role === 'A' && (

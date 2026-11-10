@@ -1,3 +1,4 @@
+
 import packageJson from '../../../package.json'
 import './Sidebar.css'
 
@@ -5,6 +6,7 @@ function Sidebar({
   role,
   environmentName,
   onOpenIntegrations,
+  onOpenExecutions,
   onOpenUsers,
 }) {
   const isAdmin = role === 'A'
@@ -36,14 +38,27 @@ function Sidebar({
         </button>
 
         {isAdmin && (
-          <button
-            type="button"
-            className="sidebar__item"
-            onClick={onOpenUsers}
-          >
-            <span className="sidebar__icon">👤</span>
-            <span>Users</span>
-          </button>
+          <>
+            <button
+              type="button"
+              className="sidebar__item"
+              onClick={onOpenExecutions}
+            >
+              <span className="sidebar__icon" aria-hidden="true">
+                📋
+              </span>
+              <span>Histórico de execuções</span>
+            </button>
+
+            <button
+              type="button"
+              className="sidebar__item"
+              onClick={onOpenUsers}
+            >
+              <span className="sidebar__icon">👤</span>
+              <span>Users</span>
+            </button>
+          </>
         )}
       </nav>
 
