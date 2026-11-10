@@ -64,13 +64,17 @@ vi.mock('./pages/ChangePasswordPage', () => ({
 }))
 
 vi.mock('./components/layout/Header', () => ({
-  default: ({ onLogout }) => (
-    <button
-      type="button"
-      onClick={onLogout}
-    >
-      Sair
-    </button>
+  default: ({ title = 'Integrações', onLogout }) => (
+    <header>
+      <h1>{title}</h1>
+
+      <button
+        type="button"
+        onClick={onLogout}
+      >
+        Sair
+      </button>
+    </header>
   ),
 }))
 
@@ -520,6 +524,148 @@ describe('App', () => {
       expect(
         authStorage.clearAuth,
       ).toHaveBeenCalledOnce()
+    })
+  })
+
+  describe('Cabeçalho dinâmico', () => {
+    it('exibe Integrações como título inicial', () => {
+      authStorage.getToken.mockReturnValue('jwt-token')
+      authStorage.getRole.mockReturnValue('A')
+
+      render(<App />)
+
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'Integrações',
+        }),
+      ).toBeInTheDocument()
+    })
+
+    it('altera o título ao abrir os endpoints', () => {
+      authStorage.getToken.mockReturnValue('jwt-token')
+      authStorage.getRole.mockReturnValue('A')
+
+      render(<App />)
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Abrir endpoints',
+        }),
+      )
+
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'Endpoints',
+        }),
+      ).toBeInTheDocument()
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Voltar para integrações',
+        }),
+      )
+
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'Integrações',
+        }),
+      ).toBeInTheDocument()
+    })
+
+    it('altera o título ao abrir o histórico de execuções', () => {
+      authStorage.getToken.mockReturnValue('jwt-token')
+      authStorage.getRole.mockReturnValue('A')
+
+      render(<App />)
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Histórico de execuções',
+        }),
+      )
+
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'Histórico de execuções',
+        }),
+      ).toBeInTheDocument()
+
+      expect(
+        screen.queryByRole('heading', {
+          level: 1,
+          name: 'Integrações',
+        }),
+      ).not.toBeInTheDocument()
+    })
+
+    it('altera o título ao abrir usuários', () => {
+      authStorage.getToken.mockReturnValue('jwt-token')
+      authStorage.getRole.mockReturnValue('A')
+
+      render(<App />)
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Usuários',
+        }),
+      )
+
+      expect(
+        screen.getByRole('heading', {
+          level: 1,
+          name: 'Usuários',
+        }),
+      ).toBeInTheDocument()
+    })
+
+    it('atualiza o título ao navegar entre páginas', () => {
+      authStorage.getToken.mockReturnValue('jwt-token')
+      authStorage.getRole.mockReturnValue('A')
+
+      render(<App />)
+
+      const expectTitle = (title) => {
+        expect(
+          screen.getByRole('heading', {
+            level: 1,
+            name: title,
+          }),
+        ).toBeInTheDocument()
+      }
+
+      expectTitle('Integrações')
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Abrir endpoints',
+        }),
+      )
+      expectTitle('Endpoints')
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Histórico de execuções',
+        }),
+      )
+      expectTitle('Histórico de execuções')
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Usuários',
+        }),
+      )
+      expectTitle('Usuários')
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Integrações',
+        }),
+      )
+      expectTitle('Integrações')
     })
   })
 })

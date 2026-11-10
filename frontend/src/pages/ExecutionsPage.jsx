@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useState } from 'react'
 import './ExecutionsPage.css'
 
@@ -65,12 +64,14 @@ function getStatusClass(status) {
   switch (status) {
     case 'SUCCESS':
       return 'executions-page__status--success'
+
     case 'ERROR':
       return 'executions-page__status--error'
+
     case 'UNAUTHORIZED':
-      return 'executions-page__status--warning'
     case 'NOT_FOUND':
       return 'executions-page__status--warning'
+
     default:
       return ''
   }
@@ -231,8 +232,6 @@ function ExecutionsPage({ role }) {
 
   useEffect(() => {
     if (!isAdmin || !filters.integrationId) {
-      setEndpoints([])
-      setLoadingEndpoints(false)
       return
     }
 
@@ -240,8 +239,6 @@ function ExecutionsPage({ role }) {
 
     async function loadEndpoints() {
       try {
-        setLoadingEndpoints(true)
-
         const data = await getEndpointsByIntegration(
           filters.integrationId,
         )
@@ -323,6 +320,11 @@ function ExecutionsPage({ role }) {
   const handleFilterChange = useCallback((event) => {
     const { name, value } = event.target
 
+    if (name === 'integrationId') {
+      setEndpoints([])
+      setLoadingEndpoints(Boolean(value))
+    }
+
     setFilters((current) => ({
       ...current,
       [name]: value,
@@ -340,8 +342,12 @@ function ExecutionsPage({ role }) {
   }
 
   function handleClearFilters() {
+    setEndpoints([])
+    setLoadingEndpoints(false)
+
     setFilters({ ...INITIAL_FILTERS })
     setAppliedFilters({ ...INITIAL_FILTERS })
+
     setPage(0)
     setRefreshKey((current) => current + 1)
   }

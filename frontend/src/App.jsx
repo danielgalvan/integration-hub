@@ -1,4 +1,3 @@
-
 import {
   useCallback,
   useEffect,
@@ -27,6 +26,13 @@ import {
   saveAuth,
   setPasswordChangeRequired,
 } from './utils/authStorage'
+
+const PAGE_TITLES = {
+  integrations: 'Integrações',
+  endpoints: 'Endpoints',
+  executions: 'Histórico de execuções',
+  users: 'Usuários',
+}
 
 function App() {
   const [token, setToken] = useState(
@@ -216,6 +222,10 @@ function App() {
     )
   }
 
+  const pageTitle =
+    PAGE_TITLES[currentPage] ||
+    PAGE_TITLES.integrations
+
   return (
     <div className="app">
       <Sidebar
@@ -233,6 +243,7 @@ function App() {
       <div className="app__content">
         <Header
           user={user}
+          title={pageTitle}
           onLogout={handleLogout}
         />
 

@@ -2,6 +2,7 @@ import './Header.css'
 
 function Header({
   user,
+  title = 'Integrações',
   onLogout,
 }) {
   const displayName =
@@ -20,7 +21,7 @@ function Header({
           </div>
 
           <h1 className="header__title">
-            Integrações
+            {title}
           </h1>
         </div>
 
