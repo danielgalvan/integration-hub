@@ -2,6 +2,10 @@
 # Global
 # =========================
 
+# Node.js / Vitest
+node_modules/
+.vitest-cache/
+
 # OS
 .DS_Store
 Thumbs.db
