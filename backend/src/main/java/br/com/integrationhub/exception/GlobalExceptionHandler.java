@@ -1,3 +1,4 @@
+
 package br.com.integrationhub.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
@@ -22,6 +24,15 @@ public class GlobalExceptionHandler {
     private static final Logger logger =
             LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    /*
+     * Parâmetros inválidos e regras de validação.
+     *
+     * Exemplos:
+     * page negativo
+     * size fora do intervalo permitido
+     * status de execução inválido
+     * intervalo de datas inválido
+     */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiError> handleIllegalArgumentException(
             IllegalArgumentException exception,
@@ -46,6 +57,46 @@ public class GlobalExceptionHandler {
                 .body(error);
     }
 
+    /*
+     * Erros de conversão de parâmetros HTTP.
+     *
+     * Exemplos:
+     * page=abc
+     * size=xyz
+     * integrationId=texto
+     * startedFrom=invalid
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiError> handleMethodArgumentTypeMismatchException(
+            MethodArgumentTypeMismatchException exception,
+            HttpServletRequest request) {
+
+        String message =
+                "Valor inválido para o parâmetro: "
+                        + exception.getName();
+
+        logger.warn(
+                "Requisição inválida em {}: {}",
+                request.getRequestURI(),
+                message
+        );
+
+        ApiError error = new ApiError(
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                message,
+                request.getRequestURI()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(error);
+    }
+
+    /*
+     * Conflitos de estado.
+     */
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ApiError> handleIllegalStateException(
             IllegalStateException exception,
@@ -70,6 +121,9 @@ public class GlobalExceptionHandler {
                 .body(error);
     }
 
+    /*
+     * Parâmetros obrigatórios ausentes.
+     */
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ApiError> handleMissingServletRequestParameterException(
             MissingServletRequestParameterException exception,
@@ -98,6 +152,9 @@ public class GlobalExceptionHandler {
                 .body(error);
     }
 
+    /*
+     * Validação de objetos recebidos nas requisições.
+     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiError> handleMethodArgumentNotValidException(
             MethodArgumentNotValidException exception,
@@ -129,6 +186,12 @@ public class GlobalExceptionHandler {
                 .body(error);
     }
 
+    /*
+     * Corpo da requisição inválido.
+     *
+     * Mantém o comportamento existente
+     * para valores inválidos de ambiente.
+     */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiError> handleHttpMessageNotReadableException(
             HttpMessageNotReadableException exception,
@@ -157,6 +220,9 @@ public class GlobalExceptionHandler {
                 .body(error);
     }
 
+    /*
+     * Exceções com status HTTP definido.
+     */
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<ApiError> handleResponseStatusException(
             ResponseStatusException exception,
@@ -184,6 +250,9 @@ public class GlobalExceptionHandler {
                 .body(error);
     }
 
+    /*
+     * Método HTTP não permitido.
+     */
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ApiError> handleHttpRequestMethodNotSupportedException(
             HttpRequestMethodNotSupportedException exception,
@@ -202,6 +271,12 @@ public class GlobalExceptionHandler {
                 .body(error);
     }
 
+    /*
+     * Erros de acesso ao banco de dados.
+     *
+     * Não expõe detalhes internos da exceção
+     * na resposta HTTP.
+     */
     @ExceptionHandler(DataAccessException.class)
     public ResponseEntity<ApiError> handleDataAccessException(
             DataAccessException exception,
@@ -226,6 +301,12 @@ public class GlobalExceptionHandler {
                 .body(error);
     }
 
+    /*
+     * Tratamento genérico de erros inesperados.
+     *
+     * Mantém os detalhes técnicos apenas
+     * nos logs do servidor.
+     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleException(
             Exception exception,

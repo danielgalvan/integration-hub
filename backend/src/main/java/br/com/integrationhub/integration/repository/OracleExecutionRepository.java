@@ -10,12 +10,34 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 @Repository
 public class OracleExecutionRepository implements ExecutionRepository {
+
+    private static final String EXECUTION_COLUMNS = """
+            id,
+            integration_id,
+            integration_name,
+            endpoint_id,
+            endpoint_name,
+            credential_id,
+            credential_name,
+            request_method,
+            request_path,
+            request_parameters,
+            started_at,
+            finished_at,
+            duration_ms,
+            http_status,
+            execution_status,
+            error_type,
+            error_message,
+            created_at
+            """;
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -197,27 +219,10 @@ public class OracleExecutionRepository implements ExecutionRepository {
     public Optional<Execution> findById(Long id) {
 
         String sql = """
-                select id,
-                       integration_id,
-                       integration_name,
-                       endpoint_id,
-                       endpoint_name,
-                       credential_id,
-                       credential_name,
-                       request_method,
-                       request_path,
-                       request_parameters,
-                       started_at,
-                       finished_at,
-                       duration_ms,
-                       http_status,
-                       execution_status,
-                       error_type,
-                       error_message,
-                       created_at
+                select %s
                   from ih_execution
                  where id = :id
-                """;
+                """.formatted(EXECUTION_COLUMNS);
 
         List<Execution> executions = jdbcTemplate.query(
                 sql,
@@ -225,8 +230,140 @@ public class OracleExecutionRepository implements ExecutionRepository {
                 this::mapRow
         );
 
-        return executions.stream()
-                .findFirst();
+        return executions.stream().findFirst();
+    }
+
+    @Override
+    public List<Execution> findAll(
+            Long integrationId,
+            Long endpointId,
+            String executionStatus,
+            LocalDateTime startedFrom,
+            LocalDateTime startedTo,
+            int page,
+            int size) {
+
+        if (page < 0 || size <= 0) {
+            throw new IllegalArgumentException(
+                    "Página ou tamanho inválido"
+            );
+        }
+
+        long offset = (long) page * size;
+
+        MapSqlParameterSource params = buildFilterParameters(
+                integrationId,
+                endpointId,
+                executionStatus,
+                startedFrom,
+                startedTo
+        );
+
+        params.addValue("offset", offset);
+        params.addValue("size", size);
+
+        String sql = """
+                select %s
+                  from ih_execution
+                 where (:integrationId is null
+                        or integration_id = :integrationId)
+                   and (:endpointId is null
+                        or endpoint_id = :endpointId)
+                   and (:executionStatus is null
+                        or execution_status = :executionStatus)
+                   and (:startedFrom is null
+                        or started_at >= :startedFrom)
+                   and (:startedTo is null
+                        or started_at <= :startedTo)
+                 order by started_at desc, id desc
+                 offset :offset rows
+                 fetch next :size rows only
+                """.formatted(EXECUTION_COLUMNS);
+
+        return jdbcTemplate.query(
+                sql,
+                params,
+                this::mapRow
+        );
+    }
+
+    @Override
+    public long count(
+            Long integrationId,
+            Long endpointId,
+            String executionStatus,
+            LocalDateTime startedFrom,
+            LocalDateTime startedTo) {
+
+        MapSqlParameterSource params = buildFilterParameters(
+                integrationId,
+                endpointId,
+                executionStatus,
+                startedFrom,
+                startedTo
+        );
+
+        String sql = """
+                select count(*)
+                  from ih_execution
+                 where (:integrationId is null
+                        or integration_id = :integrationId)
+                   and (:endpointId is null
+                        or endpoint_id = :endpointId)
+                   and (:executionStatus is null
+                        or execution_status = :executionStatus)
+                   and (:startedFrom is null
+                        or started_at >= :startedFrom)
+                   and (:startedTo is null
+                        or started_at <= :startedTo)
+                """;
+
+        Long total = jdbcTemplate.queryForObject(
+                sql,
+                params,
+                Long.class
+        );
+
+        return total == null ? 0L : total;
+    }
+
+    private MapSqlParameterSource buildFilterParameters(
+            Long integrationId,
+            Long endpointId,
+            String executionStatus,
+            LocalDateTime startedFrom,
+            LocalDateTime startedTo) {
+
+        return new MapSqlParameterSource()
+                .addValue(
+                        "integrationId",
+                        integrationId,
+                        Types.NUMERIC
+                )
+                .addValue(
+                        "endpointId",
+                        endpointId,
+                        Types.NUMERIC
+                )
+                .addValue(
+                        "executionStatus",
+                        executionStatus,
+                        Types.VARCHAR
+                )
+                .addValue(
+                        "startedFrom",
+                        startedFrom == null
+                                ? null
+                                : Timestamp.valueOf(startedFrom),
+                        Types.TIMESTAMP
+                )
+                .addValue(
+                        "startedTo",
+                        startedTo == null
+                                ? null
+                                : Timestamp.valueOf(startedTo),
+                        Types.TIMESTAMP
+                );
     }
 
     private Execution mapRow(
@@ -235,9 +372,7 @@ public class OracleExecutionRepository implements ExecutionRepository {
 
         Execution execution = new Execution();
 
-        execution.setId(
-                rs.getLong("id")
-        );
+        execution.setId(rs.getLong("id"));
 
         execution.setIntegrationId(
                 getNullableLong(rs, "integration_id")
@@ -331,9 +466,7 @@ public class OracleExecutionRepository implements ExecutionRepository {
 
         long value = rs.getLong(columnName);
 
-        return rs.wasNull()
-                ? null
-                : value;
+        return rs.wasNull() ? null : value;
     }
 
     private Integer getNullableInteger(
@@ -342,8 +475,6 @@ public class OracleExecutionRepository implements ExecutionRepository {
 
         int value = rs.getInt(columnName);
 
-        return rs.wasNull()
-                ? null
-                : value;
+        return rs.wasNull() ? null : value;
     }
 }

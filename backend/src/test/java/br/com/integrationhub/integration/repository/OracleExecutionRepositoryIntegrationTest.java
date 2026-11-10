@@ -2,12 +2,15 @@
 package br.com.integrationhub.integration.repository;
 
 import br.com.integrationhub.integration.model.Execution;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import javax.sql.DataSource;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -16,8 +19,11 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class OracleExecutionRepositoryIntegrationTest {
 
-    @Test
-    void devePersistirEConsultarExecucaoNoOracleReal() {
+    private NamedParameterJdbcTemplate jdbcTemplate;
+    private OracleExecutionRepository repository;
+
+    @BeforeEach
+    void setUp() {
 
         String url = requiredEnvironmentVariable("IH_TEST_DB_URL");
         String username = requiredEnvironmentVariable("IH_TEST_DB_USERNAME");
@@ -29,23 +35,25 @@ class OracleExecutionRepositoryIntegrationTest {
                 password
         );
 
-        NamedParameterJdbcTemplate jdbcTemplate =
-                new NamedParameterJdbcTemplate(dataSource);
+        jdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
 
-        OracleExecutionRepository repository =
-                new OracleExecutionRepository(jdbcTemplate);
+        repository = new OracleExecutionRepository(jdbcTemplate);
+    }
+
+    @Test
+    void devePersistirEConsultarExecucaoNoOracleReal() {
 
         String identifier = UUID.randomUUID().toString();
 
         Execution execution = createExecution(identifier);
 
-        Long savedId = null;
+        List<Long> savedIds = new ArrayList<>();
 
         try {
 
-            Execution saved = repository.save(execution);
+            Execution saved = saveExecution(execution, savedIds);
 
-            savedId = saved.getId();
+            Long savedId = saved.getId();
 
             assertNotNull(savedId);
             assertSame(execution, saved);
@@ -133,33 +141,12 @@ class OracleExecutionRepositoryIntegrationTest {
 
         } finally {
 
-            if (savedId != null) {
-
-                jdbcTemplate.update(
-                        """
-                        delete from ih_execution
-                         where id = :id
-                        """,
-                        Map.of("id", savedId)
-                );
-            }
+            deleteExecutions(savedIds);
         }
     }
 
     @Test
     void deveUsarHorarioOracleQuandoStartedAtNaoInformado() {
-
-        String url = requiredEnvironmentVariable("IH_TEST_DB_URL");
-        String username = requiredEnvironmentVariable("IH_TEST_DB_USERNAME");
-        String password = requiredEnvironmentVariable("IH_TEST_DB_PASSWORD");
-
-        NamedParameterJdbcTemplate jdbcTemplate =
-                new NamedParameterJdbcTemplate(
-                        createDataSource(url, username, password)
-                );
-
-        OracleExecutionRepository repository =
-                new OracleExecutionRepository(jdbcTemplate);
 
         Execution execution = createExecution(
                 UUID.randomUUID().toString()
@@ -167,17 +154,15 @@ class OracleExecutionRepositoryIntegrationTest {
 
         execution.setStartedAt(null);
 
-        Long savedId = null;
+        List<Long> savedIds = new ArrayList<>();
 
         try {
 
-            Execution saved = repository.save(execution);
+            Execution saved = saveExecution(execution, savedIds);
 
-            savedId = saved.getId();
+            assertNotNull(saved.getId());
 
-            assertNotNull(savedId);
-
-            Execution persisted = repository.findById(savedId)
+            Execution persisted = repository.findById(saved.getId())
                     .orElseThrow();
 
             assertNotNull(
@@ -189,17 +174,398 @@ class OracleExecutionRepositoryIntegrationTest {
 
         } finally {
 
-            if (savedId != null) {
-
-                jdbcTemplate.update(
-                        """
-                        delete from ih_execution
-                         where id = :id
-                        """,
-                        Map.of("id", savedId)
-                );
-            }
+            deleteExecutions(savedIds);
         }
+    }
+
+    @Test
+    void deveListarExecucoesComFiltrosNoOracleReal() {
+
+        Long integrationId = createTestIntegrationId();
+
+        LocalDateTime startedAt =
+                LocalDateTime.of(2026, 11, 5, 10, 0, 0);
+
+        List<Long> savedIds = new ArrayList<>();
+
+        try {
+
+            Execution success = createExecution(
+                    UUID.randomUUID().toString()
+            );
+
+            success.setIntegrationId(integrationId);
+            success.setEndpointId(10L);
+            success.setStartedAt(startedAt);
+            success.setExecutionStatus("SUCCESS");
+
+            Execution error = createExecution(
+                    UUID.randomUUID().toString()
+            );
+
+            error.setIntegrationId(integrationId);
+            error.setEndpointId(20L);
+            error.setStartedAt(startedAt.plusHours(1));
+            error.setExecutionStatus("ERROR");
+            error.setHttpStatus(500);
+
+            Execution unauthorized = createExecution(
+                    UUID.randomUUID().toString()
+            );
+
+            unauthorized.setIntegrationId(integrationId);
+            unauthorized.setEndpointId(null);
+            unauthorized.setStartedAt(startedAt.plusHours(2));
+            unauthorized.setExecutionStatus("UNAUTHORIZED");
+            unauthorized.setHttpStatus(401);
+
+            saveExecution(success, savedIds);
+            saveExecution(error, savedIds);
+            saveExecution(unauthorized, savedIds);
+
+            List<Execution> all = repository.findAll(
+                    integrationId,
+                    null,
+                    null,
+                    null,
+                    null,
+                    0,
+                    10
+            );
+
+            assertEquals(3, all.size());
+
+            List<Execution> successResults = repository.findAll(
+                    integrationId,
+                    null,
+                    "SUCCESS",
+                    null,
+                    null,
+                    0,
+                    10
+            );
+
+            assertEquals(1, successResults.size());
+            assertEquals(
+                    success.getId(),
+                    successResults.get(0).getId()
+            );
+
+            List<Execution> endpointResults = repository.findAll(
+                    integrationId,
+                    20L,
+                    null,
+                    null,
+                    null,
+                    0,
+                    10
+            );
+
+            assertEquals(1, endpointResults.size());
+            assertEquals(
+                    error.getId(),
+                    endpointResults.get(0).getId()
+            );
+
+            List<Execution> combinedResults = repository.findAll(
+                    integrationId,
+                    20L,
+                    "ERROR",
+                    startedAt.plusMinutes(30),
+                    startedAt.plusHours(1),
+                    0,
+                    10
+            );
+
+            assertEquals(1, combinedResults.size());
+            assertEquals(
+                    error.getId(),
+                    combinedResults.get(0).getId()
+            );
+
+        } finally {
+
+            deleteExecutions(savedIds);
+        }
+    }
+
+    @Test
+    void devePaginarEOrdenarExecucoesNoOracleReal() {
+
+        Long integrationId = createTestIntegrationId();
+
+        LocalDateTime startedAt =
+                LocalDateTime.of(2026, 11, 5, 10, 0, 0);
+
+        List<Long> savedIds = new ArrayList<>();
+
+        try {
+
+            Execution first = createExecution(
+                    UUID.randomUUID().toString()
+            );
+
+            first.setIntegrationId(integrationId);
+            first.setStartedAt(startedAt);
+
+            Execution second = createExecution(
+                    UUID.randomUUID().toString()
+            );
+
+            second.setIntegrationId(integrationId);
+            second.setStartedAt(startedAt.plusMinutes(1));
+
+            Execution third = createExecution(
+                    UUID.randomUUID().toString()
+            );
+
+            third.setIntegrationId(integrationId);
+            third.setStartedAt(startedAt.plusMinutes(2));
+
+            saveExecution(first, savedIds);
+            saveExecution(second, savedIds);
+            saveExecution(third, savedIds);
+
+            List<Execution> page0 = repository.findAll(
+                    integrationId,
+                    null,
+                    null,
+                    null,
+                    null,
+                    0,
+                    2
+            );
+
+            List<Execution> page1 = repository.findAll(
+                    integrationId,
+                    null,
+                    null,
+                    null,
+                    null,
+                    1,
+                    2
+            );
+
+            assertEquals(2, page0.size());
+            assertEquals(1, page1.size());
+
+            assertEquals(
+                    third.getId(),
+                    page0.get(0).getId()
+            );
+
+            assertEquals(
+                    second.getId(),
+                    page0.get(1).getId()
+            );
+
+            assertEquals(
+                    first.getId(),
+                    page1.get(0).getId()
+            );
+
+        } finally {
+
+            deleteExecutions(savedIds);
+        }
+    }
+
+    @Test
+    void deveContarExecucoesComFiltrosNoOracleReal() {
+
+        Long integrationId = createTestIntegrationId();
+
+        List<Long> savedIds = new ArrayList<>();
+
+        try {
+
+            Execution first = createExecution(
+                    UUID.randomUUID().toString()
+            );
+
+            first.setIntegrationId(integrationId);
+            first.setExecutionStatus("SUCCESS");
+
+            Execution second = createExecution(
+                    UUID.randomUUID().toString()
+            );
+
+            second.setIntegrationId(integrationId);
+            second.setExecutionStatus("SUCCESS");
+
+            Execution third = createExecution(
+                    UUID.randomUUID().toString()
+            );
+
+            third.setIntegrationId(integrationId);
+            third.setExecutionStatus("ERROR");
+            third.setHttpStatus(500);
+
+            saveExecution(first, savedIds);
+            saveExecution(second, savedIds);
+            saveExecution(third, savedIds);
+
+            long total = repository.count(
+                    integrationId,
+                    null,
+                    null,
+                    null,
+                    null
+            );
+
+            long successTotal = repository.count(
+                    integrationId,
+                    null,
+                    "SUCCESS",
+                    null,
+                    null
+            );
+
+            long errorTotal = repository.count(
+                    integrationId,
+                    null,
+                    "ERROR",
+                    null,
+                    null
+            );
+
+            assertEquals(3L, total);
+            assertEquals(2L, successTotal);
+            assertEquals(1L, errorTotal);
+
+        } finally {
+
+            deleteExecutions(savedIds);
+        }
+    }
+
+    @Test
+    void deveRetornarVazioQuandoFiltrosNaoEncontraremRegistros() {
+
+        Long integrationId = createTestIntegrationId();
+
+        List<Execution> executions = repository.findAll(
+                integrationId,
+                null,
+                null,
+                null,
+                null,
+                0,
+                10
+        );
+
+        long total = repository.count(
+                integrationId,
+                null,
+                null,
+                null,
+                null
+        );
+
+        assertTrue(executions.isEmpty());
+        assertEquals(0L, total);
+    }
+
+    @Test
+    void deveFiltrarExecucoesPorPeriodoNoOracleReal() {
+
+        Long integrationId = createTestIntegrationId();
+
+        LocalDateTime startedAt =
+                LocalDateTime.of(2026, 11, 5, 10, 0, 0);
+
+        List<Long> savedIds = new ArrayList<>();
+
+        try {
+
+            Execution before = createExecution(
+                    UUID.randomUUID().toString()
+            );
+
+            before.setIntegrationId(integrationId);
+            before.setStartedAt(startedAt.minusDays(1));
+
+            Execution inside = createExecution(
+                    UUID.randomUUID().toString()
+            );
+
+            inside.setIntegrationId(integrationId);
+            inside.setStartedAt(startedAt);
+
+            Execution after = createExecution(
+                    UUID.randomUUID().toString()
+            );
+
+            after.setIntegrationId(integrationId);
+            after.setStartedAt(startedAt.plusDays(1));
+
+            saveExecution(before, savedIds);
+            saveExecution(inside, savedIds);
+            saveExecution(after, savedIds);
+
+            List<Execution> executions = repository.findAll(
+                    integrationId,
+                    null,
+                    null,
+                    startedAt,
+                    startedAt,
+                    0,
+                    10
+            );
+
+            long total = repository.count(
+                    integrationId,
+                    null,
+                    null,
+                    startedAt,
+                    startedAt
+            );
+
+            assertEquals(1, executions.size());
+            assertEquals(1L, total);
+
+            assertEquals(
+                    inside.getId(),
+                    executions.get(0).getId()
+            );
+
+        } finally {
+
+            deleteExecutions(savedIds);
+        }
+    }
+
+    private Execution saveExecution(
+            Execution execution,
+            List<Long> savedIds) {
+
+        Execution saved = repository.save(execution);
+
+        if (saved.getId() != null) {
+            savedIds.add(saved.getId());
+        }
+
+        return saved;
+    }
+
+    private void deleteExecutions(List<Long> savedIds) {
+
+        for (Long id : savedIds) {
+
+            jdbcTemplate.update(
+                    """
+                    delete from ih_execution
+                     where id = :id
+                    """,
+                    Map.of("id", id)
+            );
+        }
+    }
+
+    private Long createTestIntegrationId() {
+
+        return UUID.randomUUID()
+                .getMostSignificantBits() & Long.MAX_VALUE;
     }
 
     private DataSource createDataSource(

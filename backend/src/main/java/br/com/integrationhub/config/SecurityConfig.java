@@ -1,3 +1,4 @@
+
 package br.com.integrationhub.config;
 
 import br.com.integrationhub.security.JwtAuthenticationFilter;
@@ -79,7 +80,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
 
                         /*
-                         * CORS / preflight
+                         * CORS / preflight.
                          */
                         .requestMatchers(
                                 HttpMethod.OPTIONS,
@@ -88,7 +89,7 @@ public class SecurityConfig {
                         .permitAll()
 
                         /*
-                         * Login público
+                         * Login público.
                          */
                         .requestMatchers(
                                 HttpMethod.POST,
@@ -154,6 +155,22 @@ public class SecurityConfig {
                          */
                         .requestMatchers(
                                 "/api/users/**"
+                        )
+                        .hasRole(
+                                "ADMIN"
+                        )
+
+                        /*
+                         * APIs administrativas.
+                         *
+                         * Somente administrador.
+                         *
+                         * Esta regra precisa permanecer
+                         * antes da regra genérica
+                         * /api/**.
+                         */
+                        .requestMatchers(
+                                "/api/admin/**"
                         )
                         .hasRole(
                                 "ADMIN"

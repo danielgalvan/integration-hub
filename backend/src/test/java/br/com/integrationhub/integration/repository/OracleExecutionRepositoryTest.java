@@ -29,6 +29,7 @@ class OracleExecutionRepositoryTest {
 
     @BeforeEach
     void setUp() {
+
         jdbcTemplate = mock(NamedParameterJdbcTemplate.class);
         repository = new OracleExecutionRepository(jdbcTemplate);
     }
@@ -466,6 +467,276 @@ class OracleExecutionRepositoryTest {
         );
 
         assertNull(execution.getId());
+    }
+
+    @Test
+    void deveListarExecucoesComPaginacao() {
+
+        when(jdbcTemplate.query(
+                anyString(),
+                any(MapSqlParameterSource.class),
+                ArgumentMatchers.<RowMapper<Execution>>any()
+        )).thenReturn(List.of());
+
+        List<Execution> result = repository.findAll(
+                null,
+                null,
+                null,
+                null,
+                null,
+                2,
+                20
+        );
+
+        assertTrue(result.isEmpty());
+
+        ArgumentCaptor<String> sqlCaptor =
+                ArgumentCaptor.forClass(String.class);
+
+        ArgumentCaptor<MapSqlParameterSource> paramsCaptor =
+                ArgumentCaptor.forClass(MapSqlParameterSource.class);
+
+        verify(jdbcTemplate).query(
+                sqlCaptor.capture(),
+                paramsCaptor.capture(),
+                ArgumentMatchers.<RowMapper<Execution>>any()
+        );
+
+        String sql = normalizeSql(sqlCaptor.getValue());
+        MapSqlParameterSource params = paramsCaptor.getValue();
+
+        assertTrue(
+                sql.contains("order by started_at desc, id desc")
+        );
+
+        assertTrue(sql.contains("offset :offset rows"));
+        assertTrue(sql.contains("fetch next :size rows only"));
+
+        assertEquals(40L, params.getValue("offset"));
+        assertEquals(20, params.getValue("size"));
+    }
+
+    @Test
+    void deveAplicarFiltrosNaConsulta() {
+
+        LocalDateTime startedFrom =
+                LocalDateTime.of(2026, 11, 1, 0, 0);
+
+        LocalDateTime startedTo =
+                LocalDateTime.of(2026, 11, 10, 23, 59);
+
+        when(jdbcTemplate.query(
+                anyString(),
+                any(MapSqlParameterSource.class),
+                ArgumentMatchers.<RowMapper<Execution>>any()
+        )).thenReturn(List.of());
+
+        repository.findAll(
+                2L,
+                5L,
+                "SUCCESS",
+                startedFrom,
+                startedTo,
+                0,
+                10
+        );
+
+        ArgumentCaptor<String> sqlCaptor =
+                ArgumentCaptor.forClass(String.class);
+
+        ArgumentCaptor<MapSqlParameterSource> paramsCaptor =
+                ArgumentCaptor.forClass(MapSqlParameterSource.class);
+
+        verify(jdbcTemplate).query(
+                sqlCaptor.capture(),
+                paramsCaptor.capture(),
+                ArgumentMatchers.<RowMapper<Execution>>any()
+        );
+
+        String sql = normalizeSql(sqlCaptor.getValue());
+        MapSqlParameterSource params = paramsCaptor.getValue();
+
+        assertTrue(sql.contains("integration_id = :integrationid"));
+        assertTrue(sql.contains("endpoint_id = :endpointid"));
+        assertTrue(sql.contains("execution_status = :executionstatus"));
+        assertTrue(sql.contains("started_at >= :startedfrom"));
+        assertTrue(sql.contains("started_at <= :startedto"));
+
+        assertEquals(2L, params.getValue("integrationId"));
+        assertEquals(5L, params.getValue("endpointId"));
+        assertEquals("SUCCESS", params.getValue("executionStatus"));
+
+        assertEquals(
+                Timestamp.valueOf(startedFrom),
+                params.getValue("startedFrom")
+        );
+
+        assertEquals(
+                Timestamp.valueOf(startedTo),
+                params.getValue("startedTo")
+        );
+
+        assertEquals(0L, params.getValue("offset"));
+        assertEquals(10, params.getValue("size"));
+    }
+
+    @Test
+    void devePermitirFiltrosNulosNaConsulta() {
+
+        when(jdbcTemplate.query(
+                anyString(),
+                any(MapSqlParameterSource.class),
+                ArgumentMatchers.<RowMapper<Execution>>any()
+        )).thenReturn(List.of());
+
+        repository.findAll(
+                null,
+                null,
+                null,
+                null,
+                null,
+                0,
+                10
+        );
+
+        ArgumentCaptor<MapSqlParameterSource> paramsCaptor =
+                ArgumentCaptor.forClass(MapSqlParameterSource.class);
+
+        verify(jdbcTemplate).query(
+                anyString(),
+                paramsCaptor.capture(),
+                ArgumentMatchers.<RowMapper<Execution>>any()
+        );
+
+        MapSqlParameterSource params = paramsCaptor.getValue();
+
+        assertNull(params.getValue("integrationId"));
+        assertNull(params.getValue("endpointId"));
+        assertNull(params.getValue("executionStatus"));
+        assertNull(params.getValue("startedFrom"));
+        assertNull(params.getValue("startedTo"));
+
+        assertEquals(
+                Types.NUMERIC,
+                params.getSqlType("integrationId")
+        );
+
+        assertEquals(
+                Types.NUMERIC,
+                params.getSqlType("endpointId")
+        );
+
+        assertEquals(
+                Types.VARCHAR,
+                params.getSqlType("executionStatus")
+        );
+
+        assertEquals(
+                Types.TIMESTAMP,
+                params.getSqlType("startedFrom")
+        );
+
+        assertEquals(
+                Types.TIMESTAMP,
+                params.getSqlType("startedTo")
+        );
+    }
+
+    @Test
+    void deveContarExecucoesComFiltros() {
+
+        when(jdbcTemplate.queryForObject(
+                anyString(),
+                any(MapSqlParameterSource.class),
+                eq(Long.class)
+        )).thenReturn(25L);
+
+        long total = repository.count(
+                2L,
+                null,
+                "ERROR",
+                null,
+                null
+        );
+
+        assertEquals(25L, total);
+
+        ArgumentCaptor<String> sqlCaptor =
+                ArgumentCaptor.forClass(String.class);
+
+        ArgumentCaptor<MapSqlParameterSource> paramsCaptor =
+                ArgumentCaptor.forClass(MapSqlParameterSource.class);
+
+        verify(jdbcTemplate).queryForObject(
+                sqlCaptor.capture(),
+                paramsCaptor.capture(),
+                eq(Long.class)
+        );
+
+        String sql = normalizeSql(sqlCaptor.getValue());
+        MapSqlParameterSource params = paramsCaptor.getValue();
+
+        assertTrue(sql.contains("select count(*)"));
+        assertTrue(sql.contains("from ih_execution"));
+
+        assertFalse(sql.contains("offset :offset"));
+        assertFalse(sql.contains("fetch next"));
+
+        assertEquals(2L, params.getValue("integrationId"));
+        assertNull(params.getValue("endpointId"));
+        assertEquals("ERROR", params.getValue("executionStatus"));
+    }
+
+    @Test
+    void deveRetornarZeroQuandoContagemForNula() {
+
+        when(jdbcTemplate.queryForObject(
+                anyString(),
+                any(MapSqlParameterSource.class),
+                eq(Long.class)
+        )).thenReturn(null);
+
+        long total = repository.count(
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+
+        assertEquals(0L, total);
+    }
+
+    @Test
+    void deveRejeitarPaginacaoInvalida() {
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> repository.findAll(
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        -1,
+                        10
+                )
+        );
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> repository.findAll(
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        0,
+                        0
+                )
+        );
+
+        verifyNoInteractions(jdbcTemplate);
     }
 
     private void stubSequence(Long id) {
