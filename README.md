@@ -43,19 +43,16 @@ O ambiente publicado utiliza:
 ### Desenvolvimento local
 
 ``` text
-React + Vite :5175
-       │
-       │ proxy /api
-       ▼
-Spring Boot :8081
-       │
-       ▼
-Oracle
+React + Vite :5175 ──┐
+                     ├── proxy /api ──► Spring Boot :8081 ──► Oracle
+Angular :4200 ──────┘
 ```
 
-O frontend utiliza URLs relativas (`/api/...`). Em desenvolvimento, o
-Vite encaminha `/api` para `http://localhost:8081`; em produção, o Nginx
-faz o encaminhamento para o backend.
+Os dois frontends são independentes e podem rodar ao mesmo tempo. Ambos
+usam o mesmo backend, a mesma API e o mesmo banco. O React permanece em
+`frontend/`; a implementação Angular fica em `frontend-angular/`. Cada
+servidor encaminha as URLs relativas (`/api/...`) para
+`http://localhost:8081`.
 
 ------------------------------------------------------------------------
 
@@ -88,6 +85,30 @@ faz o encaminhamento para o backend.
 -   Testing Library
 -   ESLint
 -   npm
+
+### Frontend Angular
+
+O projeto também possui uma segunda interface administrativa independente em
+`frontend-angular/`, construída com Angular 22, Angular Material 22,
+TypeScript 6, componentes standalone, Signals e Reactive Forms. Ela mantém o
+React intacto e pode rodar em paralelo com o mesmo backend.
+
+O Angular usa navegação lateral responsiva, tema claro/escuro, rotas carregadas
+sob demanda e componentes próprios para formulários, listagens e diálogos. A
+implementação cobre autenticação, perfis A/C/U, integrações, credenciais,
+endpoints, teste de chamadas, usuários e histórico paginado de execuções.
+
+Requer Node.js 22.22.3 ou superior na linha 22, ou 24.15.0 ou superior na
+linha 24. Para iniciar:
+
+```bash
+cd frontend-angular
+npm install
+npm start
+```
+
+O endereço local é `http://localhost:4200`. O proxy em
+`frontend-angular/proxy.conf.json` encaminha `/api` para o backend local.
 
 ------------------------------------------------------------------------
 
@@ -679,6 +700,17 @@ http://localhost:5175
 
 O Vite encaminha `/api` para o backend local em `localhost:8081`.
 
+### Frontend Angular
+
+``` bash
+cd frontend-angular
+npm ci
+npm start
+```
+
+A interface Angular fica em `http://localhost:4200` e usa o mesmo backend,
+via proxy `/api`.
+
 ------------------------------------------------------------------------
 
 ## Validação
@@ -708,6 +740,12 @@ npm run test
 npm run build
 ```
 
+``` bash
+cd frontend-angular
+npm run lint
+npm run build
+```
+
 ------------------------------------------------------------------------
 
 ## CI
@@ -733,6 +771,12 @@ Frontend
   npm ci
   lint
   testes
+  build
+
+Frontend Angular
+  Node 24
+  npm ci
+  lint
   build
 ```
 
@@ -788,6 +832,12 @@ integration-hub/
 │       ├── pages/
 │       ├── services/
 │       └── utils/
+│
+├── frontend-angular/
+│   ├── src/app/core/
+│   ├── src/app/features/
+│   ├── src/app/layout/
+│   └── src/app/shared/
 │
 └── README.md
 ```

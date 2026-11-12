@@ -1,0 +1,31 @@
+<main class="login-shell">
+  <section class="login-intro">
+    <a class="brand" routerLink="/login" aria-label="Integration Hub">
+      <span class="brand-mark">IH</span><span>Integration Hub</span>
+    </a>
+    <div class="hero-copy">
+      <span class="eyebrow">PLATAFORMA DE INTEGRAÇÃO</span>
+      <h1>Conecte sistemas.<br><em>Governe APIs.</em></h1>
+      <p>Gerencie integrações e publique consultas com segurança, governança e rastreabilidade.</p>
+      <ul><li><mat-icon>hub</mat-icon>Endpoints dinâmicos com controle de acesso</li><li><mat-icon>manage_search</mat-icon>Auditoria completa das execuções</li><li><mat-icon>key</mat-icon>Credenciais independentes por consumidor</li></ul>
+    </div>
+    <span class="environment-note">Conecte-se ao ambiente autorizado da sua equipe</span>
+  </section>
+
+  <section class="login-panel">
+    <mat-card class="login-card">
+      <div class="card-mark"><mat-icon>lock</mat-icon></div>
+      <mat-card-header><mat-card-title>Acessar plataforma</mat-card-title><mat-card-subtitle>Informe suas credenciais e escolha um ambiente.</mat-card-subtitle></mat-card-header>
+      <mat-card-content>
+        <form [formGroup]="form" (ngSubmit)="submit()">
+          <mat-form-field appearance="outline"><mat-label>Ambiente</mat-label><mat-select formControlName="environment" [disabled]="loadingEnvironments() || !environments().length"><mat-select-trigger>{{ environments().find(item => item.id === form.controls.environment.value)?.name || 'Selecione um ambiente' }}</mat-select-trigger>@for (environment of environments(); track environment.id) { <mat-option [value]="environment.id">{{ environment.name }}</mat-option> }</mat-select>@if (loadingEnvironments()) { <mat-hint>Carregando ambientes…</mat-hint> }</mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Usuário</mat-label><input matInput formControlName="username" autocomplete="username" autofocus>@if (form.controls.username.hasError('required') && form.controls.username.touched) { <mat-error>Informe seu usuário.</mat-error> }</mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Senha</mat-label><input matInput type="password" formControlName="password" autocomplete="current-password">@if (form.controls.password.hasError('required') && form.controls.password.touched) { <mat-error>Informe sua senha.</mat-error> }</mat-form-field>
+          @if (error()) { <div class="error-banner" role="alert"><mat-icon>error_outline</mat-icon>{{ error() }}</div> }
+          <button mat-flat-button color="primary" class="submit-button" type="submit" [disabled]="form.invalid || loading() || loadingEnvironments() || !environments().length">@if (loading()) { <mat-spinner diameter="20" /> } @else { <ng-container><span>Entrar na plataforma</span><mat-icon>arrow_forward</mat-icon></ng-container> }</button>
+        </form>
+      </mat-card-content>
+      <mat-card-footer>Integration Hub · Acesso protegido</mat-card-footer>
+    </mat-card>
+  </section>
+</main>

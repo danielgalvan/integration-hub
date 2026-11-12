@@ -1,0 +1,87 @@
+@use '@angular/material' as mat;
+
+@include mat.core();
+$ihub-theme: mat.m2-define-light-theme((
+  color: (
+    primary: mat.m2-define-palette(mat.$m2-indigo-palette),
+    accent: mat.m2-define-palette(mat.$m2-teal-palette, A200),
+    warn: mat.m2-define-palette(mat.$m2-red-palette),
+  ),
+));
+$ihub-dark-theme: mat.m2-define-dark-theme((
+  color: (
+    primary: mat.m2-define-palette(mat.$m2-indigo-palette),
+    accent: mat.m2-define-palette(mat.$m2-teal-palette, A200),
+    warn: mat.m2-define-palette(mat.$m2-red-palette),
+  ),
+));
+@mixin ihub-material-theme($theme) {
+  @include mat.button-theme($theme);
+  @include mat.icon-button-theme($theme);
+  @include mat.card-theme($theme);
+  @include mat.dialog-theme($theme);
+  @include mat.form-field-theme($theme);
+  @include mat.icon-theme($theme);
+  @include mat.input-theme($theme);
+  @include mat.list-theme($theme);
+  @include mat.option-theme($theme);
+  @include mat.paginator-theme($theme);
+  @include mat.progress-bar-theme($theme);
+  @include mat.progress-spinner-theme($theme);
+  @include mat.select-theme($theme);
+  @include mat.sidenav-theme($theme);
+  @include mat.slide-toggle-theme($theme);
+  @include mat.snack-bar-theme($theme);
+  @include mat.table-theme($theme);
+  @include mat.toolbar-theme($theme);
+  @include mat.tooltip-theme($theme);
+}
+
+@mixin ihub-material-colors($theme) {
+  @include mat.button-color($theme);
+  @include mat.icon-button-color($theme);
+  @include mat.card-color($theme);
+  @include mat.dialog-color($theme);
+  @include mat.form-field-color($theme);
+  @include mat.icon-color($theme);
+  @include mat.input-color($theme);
+  @include mat.list-color($theme);
+  @include mat.option-color($theme);
+  @include mat.paginator-color($theme);
+  @include mat.progress-bar-color($theme);
+  @include mat.progress-spinner-color($theme);
+  @include mat.select-color($theme);
+  @include mat.sidenav-color($theme);
+  @include mat.slide-toggle-color($theme);
+  @include mat.snack-bar-color($theme);
+  @include mat.table-color($theme);
+  @include mat.toolbar-color($theme);
+  @include mat.tooltip-color($theme);
+}
+
+:root { @include ihub-material-theme($ihub-theme); }
+.ihub-dark-theme { @include ihub-material-colors($ihub-dark-theme); color-scheme: dark; }
+:root { color-scheme: light; font-family: Inter, Arial, sans-serif; --ihub-page:#f5f7fb; --ihub-surface:#fff; --ihub-text:#172033; --ihub-muted:#667085; --ihub-border:#eaecf0; }
+.ihub-dark-theme { --ihub-page:#0b1220; --ihub-surface:#111b2b; --ihub-text:#e4e7ec; --ihub-muted:#98a2b3; --ihub-border:#253247; }
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; background: var(--ihub-page); color: var(--ihub-text); }
+.page { padding: 28px; max-width: 1440px; margin: auto; }
+.page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+.page-header h1 { margin: 0; font-size: 1.65rem; letter-spacing: -.03em; }
+.page-header p { color: #667085; margin: 6px 0 0; }
+.full-width { width: 100%; }
+.empty-state { padding: 48px 24px; text-align: center; color: #667085; }
+.loading { display: grid; place-items: center; min-height: 180px; }
+.status-active { color: #067647; background: #ecfdf3; }
+.status-inactive { color: #b42318; background: #fef3f2; }
+.status-chip { padding: 4px 9px; border-radius: 99px; font-size: .75rem; font-weight: 700; }
+.ihub-dark-theme body { background:var(--ihub-page);color:var(--ihub-text); }
+.ihub-dark-theme .mat-mdc-card,.ihub-dark-theme .table-card,.ihub-dark-theme .empty-card,.ihub-dark-theme .empty-state,.ihub-dark-theme .filter-card,.ihub-dark-theme .form-card,.ihub-dark-theme .editor-card,.ihub-dark-theme .table-card,.ihub-dark-theme .credential-row { background:var(--ihub-surface);color:var(--ihub-text);border-color:var(--ihub-border); }
+.ihub-dark-theme .mat-mdc-cell,.ihub-dark-theme .mat-mdc-header-cell,.ihub-dark-theme .mat-mdc-paginator,.ihub-dark-theme .mat-mdc-card-subtitle,.ihub-dark-theme .description,.ihub-dark-theme .eyebrow,.ihub-dark-theme .page-header p { color:var(--ihub-muted); }
+.ihub-dark-theme .mat-mdc-header-row,.ihub-dark-theme .mat-mdc-row,.ihub-dark-theme .mat-mdc-paginator { background:var(--ihub-surface); }
+.ihub-dark-theme .mat-mdc-dialog-surface,.ihub-dark-theme .mat-mdc-menu-panel { background:var(--ihub-surface);color:var(--ihub-text); }
+.ihub-dark-theme .workspace,.ihub-dark-theme .page-content { background:var(--ihub-page); }
+.ihub-dark-theme .topbar { border-color:var(--ihub-border);background:rgb(17 27 43 / 94%);color:var(--ihub-text); }
+.ihub-dark-theme .mat-mdc-form-field .mdc-text-field--outlined,.ihub-dark-theme .mat-mdc-form-field .mdc-text-field--filled { background:transparent; }
+.ihub-dark-theme .mat-mdc-table { background:var(--ihub-surface); }
+@media (max-width: 700px) { .page { padding: 18px; } .page-header { flex-direction: column; } }

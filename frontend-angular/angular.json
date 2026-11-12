@@ -1,0 +1,32 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "newProjectRoot": "projects",
+  "projects": {
+    "integration-hub-angular": {
+      "projectType": "application",
+      "root": "",
+      "sourceRoot": "src",
+      "prefix": "ihub",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "browser": "src/main.ts",
+            "tsConfig": "tsconfig.app.json",
+            "assets": [{ "glob": "**/*", "input": "public" }],
+            "styles": ["src/styles.scss"]
+          },
+          "configurations": {
+            "production": { "budgets": [{ "type": "initial", "maximumWarning": "750kB", "maximumError": "1.5MB" }], "outputHashing": "all" },
+            "development": { "optimization": false, "sourceMap": true }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": { "builder": "@angular/build:dev-server", "options": { "proxyConfig": "proxy.conf.json" }, "configurations": { "development": { "buildTarget": "integration-hub-angular:build:development" }, "production": { "buildTarget": "integration-hub-angular:build:production" } }, "defaultConfiguration": "development" },
+        "test": { "builder": "@angular/build:karma", "options": { "polyfills": ["zone.js", "zone.js/testing"], "tsConfig": "tsconfig.spec.json", "assets": [{ "glob": "**/*", "input": "public" }], "styles": ["src/styles.scss"] } },
+        "lint": { "builder": "@angular-eslint/builder:lint", "options": { "lintFilePatterns": ["src/**/*.ts", "src/**/*.html"] } }
+      }
+    }
+  }
+}
