@@ -3,11 +3,11 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { ApiService } from '../../core/api.service';
 import { User } from '../../core/models';
 import { ConfirmationService } from '../../shared/dialogs/confirmation.service';
 import { SecretDialogComponent } from '../../shared/dialogs/secret-dialog.component';
 import { UsersComponent } from './users.component';
+import { UsersApiService } from './users-api.service';
 
 const user: User = {
   id: 3,
@@ -34,7 +34,7 @@ describe('UsersComponent', () => {
     TestBed.configureTestingModule({
       imports: [UsersComponent],
       providers: [
-        { provide: ApiService, useValue: api },
+        { provide: UsersApiService, useValue: api },
         { provide: MatDialog, useValue: { open: vi.fn() } },
         { provide: MatSnackBar, useValue: { open: vi.fn() } },
         { provide: ConfirmationService, useValue: { confirm: vi.fn(() => of(false)) } },
@@ -74,7 +74,7 @@ describe('UsersComponent', () => {
     TestBed.configureTestingModule({
       imports: [UsersComponent],
       providers: [
-        { provide: ApiService, useValue: api },
+        { provide: UsersApiService, useValue: api },
         { provide: MatDialog, useValue: dialog },
         { provide: MatSnackBar, useValue: { open: vi.fn() } },
         { provide: ConfirmationService, useValue: { confirm: vi.fn(() => of(false)) } },

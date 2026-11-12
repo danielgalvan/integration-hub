@@ -5,8 +5,10 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { catchError, map, of, Subject, switchMap } from 'rxjs';
-import { ApiService } from '../../core/api.service';
 import { Endpoint, Execution, Integration, Page } from '../../core/models';
+import { EndpointsApiService } from '../endpoints/endpoints-api.service';
+import { IntegrationsApiService } from '../integrations/integrations-api.service';
+import { ExecutionsApiService } from './executions-api.service';
 import { ExecutionFilters, ExecutionFiltersComponent } from './components/execution-filters.component';
 import { ExecutionListComponent } from './components/execution-list.component';
 import { ExecutionDetailDialogComponent } from './execution-detail-dialog.component';
@@ -56,7 +58,9 @@ const EMPTY_PAGE: Page<Execution> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ExecutionsComponent {
-  private readonly api = inject(ApiService);
+  private readonly executionsApi = inject(ExecutionsApiService);
+  private readonly endpointsApi = inject(EndpointsApiService);
+  private readonly integrationsApi = inject(IntegrationsApiService);
   private readonly dialog = inject(MatDialog);
   private readonly pageRequests = new Subject<{ page: number; size: number; filters: ExecutionFilters }>();
   private readonly endpointRequests = new Subject<string>();
@@ -72,7 +76,7 @@ export class ExecutionsComponent {
 
   constructor() {
     this.pageRequests.pipe(
-      switchMap(request => this.api.executions({ ...request.filters, page: request.page, size: request.size }).pipe(
+      switchMap(request => this.executionsApi.executions({ ...request.filters, page: request.page, size: request.size }).pipe(
         map(result => ({ result, request })),
         catchError(error => of({ error, request })),
       )),
@@ -90,7 +94,7 @@ export class ExecutionsComponent {
 
     this.endpointRequests.pipe(
       switchMap(integrationId => integrationId
-        ? this.api.endpoints(Number(integrationId)).pipe(
+        ? this.endpointsApi.endpoints(Number(integrationId)).pipe(
           map(endpoints => ({ endpoints })),
           catchError(error => of({ error })),
         )
@@ -148,7 +152,7 @@ export class ExecutionsComponent {
 
   private loadIntegrations(): void {
     this.integrationsLoading.set(true);
-    this.api.integrations().pipe(takeUntilDestroyed()).subscribe({
+    this.integrationsApi.integrations().pipe(takeUntilDestroyed()).subscribe({
       next: integrations => { this.integrations.set(integrations); this.integrationsLoading.set(false); },
       error: error => { this.error.set(error.error?.message || 'Não foi possível carregar as integrações dos filtros.'); this.integrationsLoading.set(false); },
     });

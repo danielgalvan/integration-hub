@@ -5,10 +5,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Observable } from 'rxjs';
-import { ApiService } from '../../core/api.service';
 import { ApiKeyResponse, Credential, Integration } from '../../core/models';
 import { ConfirmationService } from '../../shared/dialogs/confirmation.service';
 import { SecretDialogComponent } from '../../shared/dialogs/secret-dialog.component';
+import { IntegrationsApiService } from './integrations-api.service';
 import { CredentialFormComponent } from './components/credential-form.component';
 import { CredentialListComponent } from './components/credential-list.component';
 
@@ -54,7 +54,7 @@ import { CredentialListComponent } from './components/credential-list.component'
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CredentialsDialogComponent {
-  private readonly api = inject(ApiService);
+  private readonly api = inject(IntegrationsApiService);
   private readonly dialog = inject(MatDialog);
   private readonly confirmation = inject(ConfirmationService);
   private readonly snack = inject(MatSnackBar);

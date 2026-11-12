@@ -4,11 +4,11 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { ApiService } from '../../core/api.service';
 import { Integration } from '../../core/models';
 import { SessionService } from '../../core/session.service';
 import { ConfirmationService } from '../../shared/dialogs/confirmation.service';
 import { IntegrationsComponent } from './integrations.component';
+import { IntegrationsApiService } from './integrations-api.service';
 
 const existingIntegration: Integration = {
   id: 5,
@@ -34,7 +34,7 @@ describe('IntegrationsComponent', () => {
       imports: [IntegrationsComponent],
       providers: [
         provideRouter([]),
-        { provide: ApiService, useValue: api },
+        { provide: IntegrationsApiService, useValue: api },
         { provide: SessionService, useValue: { canEdit: () => true } },
         { provide: MatDialog, useValue: { open: vi.fn() } },
         { provide: MatSnackBar, useValue: { open: vi.fn() } },
@@ -75,7 +75,7 @@ describe('IntegrationsComponent', () => {
       imports: [IntegrationsComponent],
       providers: [
         provideRouter([]),
-        { provide: ApiService, useValue: api },
+        { provide: IntegrationsApiService, useValue: api },
         { provide: SessionService, useValue: { canEdit: () => true } },
         { provide: MatDialog, useValue: { open: vi.fn() } },
         { provide: MatSnackBar, useValue: snack },

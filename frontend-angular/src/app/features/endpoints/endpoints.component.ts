@@ -5,13 +5,14 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { ApiService } from '../../core/api.service';
 import { Endpoint, Integration } from '../../core/models';
 import { SessionService } from '../../core/session.service';
 import { ConfirmationService } from '../../shared/dialogs/confirmation.service';
 import { EndpointFormComponent } from './components/endpoint-form.component';
 import { EndpointListComponent } from './components/endpoint-list.component';
 import { EndpointTestDialogComponent } from './endpoint-test-dialog.component';
+import { EndpointsApiService } from './endpoints-api.service';
+import { IntegrationsApiService } from '../integrations/integrations-api.service';
 
 @Component({
   standalone: true,
@@ -59,7 +60,8 @@ import { EndpointTestDialogComponent } from './endpoint-test-dialog.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EndpointsComponent {
-  readonly api = inject(ApiService);
+  readonly endpointsApi = inject(EndpointsApiService);
+  readonly integrationsApi = inject(IntegrationsApiService);
   readonly session = inject(SessionService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -117,7 +119,9 @@ export class EndpointsComponent {
     this.saving.set(true);
     this.formError.set('');
     const current = this.editing();
-    const request = current?.id ? this.api.updateEndpoint(current.id, endpoint) : this.api.createEndpoint(endpoint);
+    const request = current?.id
+      ? this.endpointsApi.updateEndpoint(current.id, endpoint)
+      : this.endpointsApi.createEndpoint(endpoint);
     request.subscribe({
       next: () => {
         this.saving.set(false);
@@ -151,7 +155,7 @@ export class EndpointsComponent {
       destructive: true,
     }).subscribe(confirmed => {
       if (!confirmed) return;
-      this.api.deleteEndpoint(endpoint.id!).subscribe({
+      this.endpointsApi.deleteEndpoint(endpoint.id!).subscribe({
         next: () => { this.snack.open('Endpoint excluído.', 'Fechar', { duration: 1800 }); this.loadEndpoints(); },
         error: error => this.error.set(error.error?.message || 'Não foi possível excluir o endpoint.'),
       });
@@ -162,7 +166,7 @@ export class EndpointsComponent {
 
   private loadIntegration(id: number): void {
     this.loading.set(true);
-    this.api.integrations().subscribe({
+    this.integrationsApi.integrations().subscribe({
       next: integrations => {
         this.integration.set(integrations.find(integration => integration.id === id) || null);
         if (this.integration()) this.loadEndpoints();
@@ -176,7 +180,7 @@ export class EndpointsComponent {
     const id = this.integration()?.id;
     if (!id) { this.loading.set(false); return; }
     this.loading.set(true);
-    this.api.endpoints(id).subscribe({
+    this.endpointsApi.endpoints(id).subscribe({
       next: endpoints => { this.items.set(endpoints); this.loading.set(false); },
       error: error => { this.error.set(error.error?.message || 'Não foi possível carregar os endpoints.'); this.loading.set(false); },
     });

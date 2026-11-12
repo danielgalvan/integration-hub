@@ -5,11 +5,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { ApiService } from '../../core/api.service';
 import { Integration } from '../../core/models';
 import { SessionService } from '../../core/session.service';
 import { ConfirmationService } from '../../shared/dialogs/confirmation.service';
 import { SecretDialogComponent } from '../../shared/dialogs/secret-dialog.component';
+import { IntegrationsApiService } from './integrations-api.service';
 import { CredentialsDialogComponent } from './credentials-dialog.component';
 import { IntegrationFormComponent } from './components/integration-form.component';
 import { IntegrationListComponent } from './components/integration-list.component';
@@ -72,7 +72,7 @@ import { IntegrationListComponent } from './components/integration-list.componen
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class IntegrationsComponent {
-  readonly api = inject(ApiService);
+  readonly api = inject(IntegrationsApiService);
   readonly session = inject(SessionService);
   private readonly dialog = inject(MatDialog);
   private readonly confirm = inject(ConfirmationService);

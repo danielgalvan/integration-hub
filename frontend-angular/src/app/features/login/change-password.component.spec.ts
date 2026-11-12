@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { ApiService } from '../../core/api.service';
+import { AuthApiService } from '../../core/auth-api.service';
 import { SessionService } from '../../core/session.service';
 import { ChangePasswordComponent } from './change-password.component';
 
@@ -14,7 +14,7 @@ describe('ChangePasswordComponent', () => {
       imports: [ChangePasswordComponent],
       providers: [
         provideRouter([]),
-        { provide: ApiService, useValue: api },
+        { provide: AuthApiService, useValue: api },
         { provide: SessionService, useValue: session },
       ],
     });
@@ -39,7 +39,7 @@ describe('ChangePasswordComponent', () => {
       imports: [ChangePasswordComponent],
       providers: [
         provideRouter([]),
-        { provide: ApiService, useValue: api },
+        { provide: AuthApiService, useValue: api },
         { provide: SessionService, useValue: { setPasswordChanged: vi.fn() } },
       ],
     });

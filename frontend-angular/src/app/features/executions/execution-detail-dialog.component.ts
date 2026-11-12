@@ -3,8 +3,8 @@ import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { ApiService } from '../../core/api.service';
 import { Execution } from '../../core/models';
+import { ExecutionsApiService } from './executions-api.service';
 
 @Component({
   standalone: true,
@@ -29,7 +29,7 @@ import { Execution } from '../../core/models';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ExecutionDetailDialogComponent {
-  private readonly api = inject(ApiService);
+  private readonly api = inject(ExecutionsApiService);
   readonly loading = signal(true);
   readonly execution = signal<Execution | null>(null);
   readonly error = signal('');

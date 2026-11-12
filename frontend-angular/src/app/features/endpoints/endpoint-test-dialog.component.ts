@@ -8,8 +8,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { ApiService } from '../../core/api.service';
 import { Endpoint, EndpointExecutionResult, Integration } from '../../core/models';
+import { EndpointsApiService } from './endpoints-api.service';
 import { parameterValueValidator } from './parameter-value.validators';
 
 interface EndpointTestDialogData {
@@ -59,7 +59,7 @@ interface EndpointTestDialogData {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EndpointTestDialogComponent {
-  private readonly api = inject(ApiService);
+  private readonly api = inject(EndpointsApiService);
   private readonly snack = inject(MatSnackBar);
   readonly loading = signal(false);
   readonly result = signal<EndpointExecutionResult | null>(null);

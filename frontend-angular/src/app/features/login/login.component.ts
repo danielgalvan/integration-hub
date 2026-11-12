@@ -9,7 +9,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
-import { ApiService } from '../../core/api.service';
+import { AuthApiService } from '../../core/auth-api.service';
 import { Environment } from '../../core/models';
 import { SessionService } from '../../core/session.service';
 
@@ -22,7 +22,7 @@ import { SessionService } from '../../core/session.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LoginComponent {
-  private readonly api = inject(ApiService);
+  private readonly api = inject(AuthApiService);
   private readonly session = inject(SessionService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);

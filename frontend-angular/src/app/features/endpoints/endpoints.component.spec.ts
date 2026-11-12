@@ -4,11 +4,12 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { ApiService } from '../../core/api.service';
 import { Endpoint, Integration } from '../../core/models';
 import { SessionService } from '../../core/session.service';
 import { ConfirmationService } from '../../shared/dialogs/confirmation.service';
 import { EndpointsComponent } from './endpoints.component';
+import { EndpointsApiService } from './endpoints-api.service';
+import { IntegrationsApiService } from '../integrations/integrations-api.service';
 
 const integration: Integration = {
   id: 42,
@@ -49,7 +50,8 @@ describe('EndpointsComponent', () => {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: { get: () => '42' } } },
         },
-        { provide: ApiService, useValue: api },
+        { provide: EndpointsApiService, useValue: api },
+        { provide: IntegrationsApiService, useValue: api },
         { provide: SessionService, useValue: { canEdit: () => true } },
         { provide: MatDialog, useValue: { open: vi.fn() } },
         { provide: MatSnackBar, useValue: { open: vi.fn() } },
@@ -96,7 +98,8 @@ describe('EndpointsComponent', () => {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: { get: () => '42' } } },
         },
-        { provide: ApiService, useValue: api },
+        { provide: EndpointsApiService, useValue: api },
+        { provide: IntegrationsApiService, useValue: api },
         { provide: SessionService, useValue: { canEdit: () => true } },
         { provide: MatDialog, useValue: { open: vi.fn() } },
         { provide: MatSnackBar, useValue: snack },

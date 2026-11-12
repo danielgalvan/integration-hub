@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiService } from '../../core/api.service';
+import { AuthApiService } from '../../core/auth-api.service';
 import { SessionService } from '../../core/session.service';
 import { LoginComponent } from './login.component';
 
@@ -21,7 +21,7 @@ describe('LoginComponent', () => {
     TestBed.configureTestingModule({
       imports: [LoginComponent],
       providers: [
-        { provide: ApiService, useValue: api },
+        { provide: AuthApiService, useValue: api },
         provideRouter([]),
       ],
     });

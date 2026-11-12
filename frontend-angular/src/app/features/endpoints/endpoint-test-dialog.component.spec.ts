@@ -3,9 +3,9 @@ import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiService } from '../../core/api.service';
 import { Endpoint, Integration } from '../../core/models';
 import { EndpointTestDialogComponent } from './endpoint-test-dialog.component';
+import { EndpointsApiService } from './endpoints-api.service';
 
 const integration: Integration = {
   id: 2,
@@ -48,7 +48,7 @@ describe('EndpointTestDialogComponent', () => {
       providers: [
         { provide: MAT_DIALOG_DATA, useValue: { integration, endpoint } },
         { provide: MatDialogRef, useValue: { close: vi.fn() } },
-        { provide: ApiService, useValue: api },
+        { provide: EndpointsApiService, useValue: api },
       ],
     });
   });

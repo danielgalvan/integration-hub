@@ -5,10 +5,10 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Observable } from 'rxjs';
-import { ApiService } from '../../core/api.service';
 import { User, UserCreateResponse } from '../../core/models';
 import { ConfirmationService } from '../../shared/dialogs/confirmation.service';
 import { SecretDialogComponent } from '../../shared/dialogs/secret-dialog.component';
+import { UsersApiService } from './users-api.service';
 import { UserFormComponent } from './components/user-form.component';
 import { UserListComponent } from './components/user-list.component';
 
@@ -39,7 +39,7 @@ import { UserListComponent } from './components/user-list.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class UsersComponent {
-  private readonly api = inject(ApiService);
+  private readonly api = inject(UsersApiService);
   private readonly confirmation = inject(ConfirmationService);
   private readonly dialog = inject(MatDialog);
   private readonly snack = inject(MatSnackBar);

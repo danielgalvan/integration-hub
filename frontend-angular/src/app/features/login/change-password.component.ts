@@ -8,7 +8,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { ApiService } from '../../core/api.service';
+import { AuthApiService } from '../../core/auth-api.service';
 import { SessionService } from '../../core/session.service';
 
 @Component({
@@ -19,7 +19,7 @@ import { SessionService } from '../../core/session.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ChangePasswordComponent {
-  private readonly api = inject(ApiService);
+  private readonly api = inject(AuthApiService);
   private readonly session = inject(SessionService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);

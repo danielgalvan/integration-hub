@@ -3,7 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
-import { ApiService } from './core/api.service';
+import { AuthApiService } from './core/auth-api.service';
 import { SessionService } from './core/session.service';
 import { ThemeService } from './core/theme.service';
 import { ShellComponent } from './layout/shell.component';
@@ -48,7 +48,7 @@ import { ShellComponent } from './layout/shell.component';
 })
 export class AppComponent {
   private readonly router = inject(Router);
-  private readonly api = inject(ApiService);
+  private readonly api = inject(AuthApiService);
   private readonly session = inject(SessionService);
   private readonly currentUrl = signal(this.router.url);
   private readonly validationAttempt = signal(0);

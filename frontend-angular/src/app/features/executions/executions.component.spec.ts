@@ -1,10 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { of, Subject } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { ApiService } from '../../core/api.service';
 import { Page } from '../../core/models';
 import { Execution } from '../../core/models';
 import { ExecutionsComponent } from './executions.component';
+import { EndpointsApiService } from '../endpoints/endpoints-api.service';
+import { IntegrationsApiService } from '../integrations/integrations-api.service';
+import { ExecutionsApiService } from './executions-api.service';
 
 describe('ExecutionsComponent', () => {
   it('ignores an older history response after a newer filter search', () => {
@@ -20,7 +22,9 @@ describe('ExecutionsComponent', () => {
     TestBed.configureTestingModule({
       imports: [ExecutionsComponent],
       providers: [
-        { provide: ApiService, useValue: api },
+        { provide: EndpointsApiService, useValue: api },
+        { provide: IntegrationsApiService, useValue: api },
+        { provide: ExecutionsApiService, useValue: api },
       ],
     });
     const fixture = TestBed.createComponent(ExecutionsComponent);

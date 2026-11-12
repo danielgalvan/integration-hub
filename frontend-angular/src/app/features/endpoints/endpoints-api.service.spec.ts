@@ -1,12 +1,12 @@
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { beforeEach, afterEach, describe, expect, it } from 'vitest';
-import { ApiService } from './api.service';
-import { authInterceptor, SKIP_AUTH_REDIRECT } from './auth.interceptor';
-import { Endpoint, Integration } from './models';
-import { SessionService } from './session.service';
 import { provideRouter } from '@angular/router';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { authInterceptor, SKIP_AUTH_REDIRECT } from '../../core/auth.interceptor';
+import { Endpoint, Integration } from '../../core/models';
+import { SessionService } from '../../core/session.service';
+import { EndpointsApiService } from './endpoints-api.service';
 
 const integration: Integration = {
   id: 4,
@@ -27,8 +27,8 @@ const endpoint: Endpoint = {
   active: 'S',
 };
 
-describe('ApiService', () => {
-  let api: ApiService;
+describe('EndpointsApiService', () => {
+  let api: EndpointsApiService;
   let http: HttpTestingController;
 
   beforeEach(() => {
@@ -39,30 +39,11 @@ describe('ApiService', () => {
         provideRouter([]),
       ],
     });
-    api = TestBed.inject(ApiService);
+    api = TestBed.inject(EndpointsApiService);
     http = TestBed.inject(HttpTestingController);
   });
 
   afterEach(() => http.verify());
-
-  it('loads the integrations from the admin API', () => {
-    let received: Integration[] | undefined;
-    api.integrations().subscribe(value => received = value);
-
-    const request = http.expectOne('/api/integrations');
-    expect(request.request.method).toBe('GET');
-    request.flush([integration]);
-    expect(received).toEqual([integration]);
-  });
-
-  it('posts a new integration to the admin API', () => {
-    api.createIntegration(integration).subscribe();
-
-    const request = http.expectOne('/api/integrations');
-    expect(request.request.method).toBe('POST');
-    expect(request.request.body).toEqual(integration);
-    request.flush(integration);
-  });
 
   it('builds a dynamic endpoint URL with escaped non-empty query values', () => {
     expect(api.endpointUrl(integration, endpoint, { id: 'A & B', empty: '', missing: null }))
