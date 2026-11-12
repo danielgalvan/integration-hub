@@ -44,7 +44,6 @@ import { ThemeService } from '../core/theme.service';
           </span>
         </a>
 
-        <div class="navigation-label">WORKSPACE</div>
         <mat-nav-list aria-label="Navegação principal">
           <a mat-list-item routerLink="/integrations" routerLinkActive="active-link" (click)="closeMobileMenu()">
             <mat-icon matListItemIcon>hub</mat-icon>
@@ -68,7 +67,6 @@ import { ThemeService } from '../core/theme.service';
             <small>AMBIENTE</small>
             <strong>{{ session.environmentName() || 'Não selecionado' }}</strong>
           </span>
-          <span class="role-chip">{{ roleLabel() }}</span>
         </div>
       </mat-sidenav>
 
@@ -80,7 +78,7 @@ import { ThemeService } from '../core/theme.service';
             </button>
           }
           <div class="page-heading">
-            <small>INTEGRATION HUB</small>
+            <small>Integration Hub</small>
             <h1>{{ pageTitle() }}</h1>
           </div>
           <span class="toolbar-spacer"></span>
@@ -94,8 +92,8 @@ import { ThemeService } from '../core/theme.service';
               <small>{{ roleLabel() }}</small>
             </span>
           </div>
-          <button mat-icon-button matTooltip="Sair" aria-label="Sair" (click)="logout()">
-            <mat-icon>logout</mat-icon>
+          <button mat-stroked-button class="logout-button" type="button" (click)="logout()">
+            Sair
           </button>
         </mat-toolbar>
 

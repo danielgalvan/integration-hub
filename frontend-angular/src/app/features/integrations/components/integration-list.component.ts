@@ -17,14 +17,16 @@ import { Integration } from '../../../core/models';
             <th mat-header-cell *matHeaderCellDef>Integração</th>
             <td mat-cell *matCellDef="let item">
               <strong>{{ item.name }}</strong>
-              @if (item.description) { <small>{{ item.description }}</small> }
               <code>{{ item.basePath }}</code>
             </td>
           </ng-container>
           <ng-container matColumnDef="authentication">
             <th mat-header-cell *matHeaderCellDef>Acesso</th>
             <td mat-cell *matCellDef="let item">
-              <span class="auth-type"><mat-icon>{{ item.authType === 'API_KEY' ? 'key' : 'public' }}</mat-icon>{{ item.authType === 'API_KEY' ? 'API Key' : 'Pública' }}</span>
+              <span class="auth-type" [class.api-key]="item.authType === 'API_KEY'">
+                <mat-icon>{{ item.authType === 'API_KEY' ? 'vpn_key' : 'lock_open' }}</mat-icon>
+                <span>{{ item.authType === 'API_KEY' ? 'API Key' : 'Sem autenticação' }}</span>
+              </span>
             </td>
           </ng-container>
           <ng-container matColumnDef="status">
@@ -56,7 +58,80 @@ import { Integration } from '../../../core/models';
     }
   `,
   styles: [`
-    .table-card{overflow:auto;border:1px solid var(--ihub-border);border-radius:14px;background:var(--ihub-surface);box-shadow:0 2px 6px color-mix(in srgb,var(--ihub-text) 4%,transparent)}.integration-table{width:100%;min-width:760px}.mat-mdc-cell small,.mat-mdc-cell code{display:block;margin-top:4px}.mat-mdc-cell small{max-width:420px;color:var(--ihub-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mat-mdc-cell code{width:max-content;max-width:100%;padding:3px 6px;border-radius:5px;background:var(--ihub-surface-subtle);color:var(--ihub-text-secondary);font-size:.72rem}.auth-type{display:inline-flex;align-items:center;gap:6px;color:var(--ihub-text-secondary)}.auth-type mat-icon{width:18px;height:18px;font-size:18px}.status{display:inline-block;padding:4px 9px;border-radius:99px;background:var(--ihub-success-container);color:var(--ihub-success);font-size:.74rem;font-weight:700}.status.inactive{background:var(--ihub-danger-container);color:var(--ihub-danger)}.actions{white-space:nowrap;text-align:right}.actions button[mat-stroked-button]{font-size:.75rem}.empty-card{display:grid;justify-items:center;padding:54px 20px;border:1px dashed var(--ihub-outline);border-radius:14px;background:var(--ihub-surface);text-align:center}.empty-card>mat-icon{width:48px;height:48px;color:var(--ihub-muted);font-size:42px}.empty-card h2{margin:12px 0 4px;font-size:1.05rem}.empty-card p{margin:0;color:var(--ihub-muted)}
+    .table-card {
+      overflow: auto;
+      border: 1px solid var(--ihub-border);
+      border-radius: 14px;
+      background: var(--ihub-surface);
+      box-shadow: 0 2px 6px color-mix(in srgb, var(--ihub-text) 4%, transparent);
+    }
+    .integration-table { width: 100%; min-width: 760px; }
+    .integration-table .mat-mdc-header-cell {
+      padding: 14px 16px;
+      color: var(--ihub-text-secondary);
+      font-weight: 600;
+    }
+    .integration-table .mat-mdc-cell {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--ihub-border);
+      vertical-align: middle;
+    }
+    .integration-table .mat-mdc-row:last-child .mat-mdc-cell { border-bottom: 0; }
+    .mat-mdc-cell code {
+      display: block;
+      width: max-content;
+      max-width: 100%;
+      margin-top: 8px;
+      padding: 4px 7px;
+      border-radius: 5px;
+      background: var(--ihub-surface-subtle);
+      color: var(--ihub-text-secondary);
+      font-size: .72rem;
+    }
+    .auth-type {
+      display: inline-flex;
+      min-height: 34px;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 10px;
+      border: 1px solid var(--ihub-border);
+      border-radius: 999px;
+      background: var(--ihub-surface-container);
+      color: var(--ihub-text-secondary);
+      font-size: .8rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .auth-type.api-key {
+      border-color: color-mix(in srgb, var(--ihub-info) 24%, var(--ihub-border));
+      background: var(--ihub-info-container);
+      color: var(--ihub-info);
+    }
+    .auth-type mat-icon { width: 18px; height: 18px; color: var(--ihub-primary); font-size: 18px; }
+    .status {
+      display: inline-block;
+      padding: 4px 9px;
+      border-radius: 99px;
+      background: var(--ihub-success-container);
+      color: var(--ihub-success);
+      font-size: .74rem;
+      font-weight: 700;
+    }
+    .status.inactive { background: var(--ihub-danger-container); color: var(--ihub-danger); }
+    .actions { text-align: right; white-space: nowrap; }
+    .actions button[mat-stroked-button] { font-size: .75rem; }
+    .empty-card {
+      display: grid;
+      justify-items: center;
+      padding: 54px 20px;
+      border: 1px dashed var(--ihub-outline);
+      border-radius: 14px;
+      background: var(--ihub-surface);
+      text-align: center;
+    }
+    .empty-card > mat-icon { width: 48px; height: 48px; color: var(--ihub-muted); font-size: 42px; }
+    .empty-card h2 { margin: 12px 0 4px; font-size: 1.05rem; }
+    .empty-card p { margin: 0; color: var(--ihub-muted); }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

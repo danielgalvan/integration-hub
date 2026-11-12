@@ -31,5 +31,8 @@
         "lint": { "builder": "@angular-eslint/builder:lint", "options": { "lintFilePatterns": ["src/**/*.ts", "src/**/*.html"] } }
       }
     }
+  },
+  "cli": {
+    "analytics": "9e75f734-b255-4547-9e32-f9dbb9e4e263"
   }
 }

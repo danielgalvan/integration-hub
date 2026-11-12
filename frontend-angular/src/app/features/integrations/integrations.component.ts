@@ -46,7 +46,6 @@ import { IntegrationListComponent } from './components/integration-list.componen
       } @else {
         <header class="page-header">
           <div>
-            <p class="eyebrow">API MANAGEMENT</p>
             <h2>Integrações</h2>
             <p class="description">Organize APIs de negócio, seus endpoints e as credenciais de acesso.</p>
           </div>

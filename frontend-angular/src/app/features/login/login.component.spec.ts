@@ -44,6 +44,23 @@ describe('LoginComponent', () => {
     fixture.destroy();
   });
 
+  it('shows a compact login form with environment after username and password', () => {
+    const fixture = TestBed.createComponent(LoginComponent);
+    fixture.detectChanges();
+
+    const labels = Array.from(
+      fixture.nativeElement.querySelectorAll('mat-label'),
+      (label: Element) => label.textContent?.trim(),
+    );
+    const submitButton = fixture.nativeElement.querySelector('button[type="submit"]');
+
+    expect(labels).toEqual(['Usuário', 'Senha', 'Ambiente']);
+    expect(fixture.nativeElement.querySelector('.login-intro')).toBeNull();
+    expect(submitButton?.textContent?.trim()).toBe('Entrar');
+
+    fixture.destroy();
+  });
+
   it('does not send incomplete credentials and displays login errors', () => {
     const fixture = TestBed.createComponent(LoginComponent);
     fixture.detectChanges();

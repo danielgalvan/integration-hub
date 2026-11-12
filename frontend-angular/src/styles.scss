@@ -10,8 +10,8 @@ $ihub-light-theme: mat.define-theme((
     use-system-variables: true,
   ),
   typography: (
-    plain-family: 'Inter, Arial, sans-serif',
-    brand-family: 'Inter, Arial, sans-serif',
+    plain-family: 'Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',
+    brand-family: 'Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',
     use-system-variables: true,
   ),
 ));
@@ -24,8 +24,8 @@ $ihub-dark-theme: mat.define-theme((
     use-system-variables: true,
   ),
   typography: (
-    plain-family: 'Inter, Arial, sans-serif',
-    brand-family: 'Inter, Arial, sans-serif',
+    plain-family: 'Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',
+    brand-family: 'Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',
     use-system-variables: true,
   ),
 ));
@@ -76,10 +76,29 @@ $ihub-dark-theme: mat.define-theme((
 
 :root {
   color-scheme: light;
-  font-family: Inter, Arial, sans-serif;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   @include mat.system-level-colors($ihub-light-theme);
   @include mat.system-level-typography($ihub-light-theme);
   @include ihub-material-base($ihub-light-theme);
+
+  // Neutral blue-gray surfaces matching the React light theme.
+  --mat-sys-primary: #2563eb;
+  --mat-sys-on-primary: #ffffff;
+  --mat-sys-primary-container: #dbeafe;
+  --mat-sys-on-primary-container: #1e40af;
+  --mat-sys-tertiary-container: #dcfce7;
+  --mat-sys-on-tertiary-container: #166534;
+  --mat-sys-surface: #ffffff;
+  --mat-sys-on-surface: #0f172a;
+  --mat-sys-surface-container-lowest: #ffffff;
+  --mat-sys-surface-container-low: #f8fafc;
+  --mat-sys-surface-container: #f1f5f9;
+  --mat-sys-surface-container-high: #e2e8f0;
+  --mat-sys-surface-container-highest: #e2e8f0;
+  --mat-sys-on-surface-variant: #475569;
+  --mat-sys-outline: #94a3b8;
+  --mat-sys-outline-variant: #e2e8f0;
+
   --ihub-page: var(--mat-sys-surface-container-low);
   --ihub-surface: var(--mat-sys-surface-container-lowest);
   --ihub-surface-container: var(--mat-sys-surface-container);
@@ -113,6 +132,7 @@ $ihub-dark-theme: mat.define-theme((
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; background: var(--ihub-page); color: var(--ihub-text); }
 .page { padding: 28px; max-width: 1440px; margin: auto; }
+.page-content .page { padding: 0; max-width: none; margin: 0; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
 .page-header h1 { margin: 0; font-size: 1.65rem; letter-spacing: -.03em; }
 .page-header p { color: var(--ihub-muted); margin: 6px 0 0; }
@@ -122,10 +142,27 @@ body { margin: 0; min-width: 320px; background: var(--ihub-page); color: var(--i
 .status-active { color: var(--ihub-success); background: var(--ihub-success-container); }
 .status-inactive { color: var(--mat-sys-on-error-container); background: var(--mat-sys-error-container); }
 .status-chip { padding: 4px 9px; border-radius: 99px; font-size: .75rem; font-weight: 700; }
+.page-header button[mat-flat-button] { border-radius: 8px; font-weight: 600; }
+.actions button[mat-stroked-button] { border-radius: 6px; }
 .workspace, .page-content { background: var(--ihub-page); }
 .topbar { border-color: var(--ihub-border); background: color-mix(in srgb, var(--ihub-surface) 94%, transparent); color: var(--ihub-text); }
 
+.shell-container .sidebar .brand-mark { background: #2563eb !important; color: #fff !important; }
+.sidebar .brand-copy strong { color: #f8fafc !important; }
+.sidebar .brand-copy small { color: #94a3b8 !important; }
+.sidebar .mat-mdc-list-item .mdc-list-item__primary-text { color: #cbd5e1 !important; }
+.sidebar .mat-mdc-list-item .mat-icon { color: #94a3b8 !important; }
+.sidebar .mat-mdc-list-item:hover { background: #1e293b !important; }
+.sidebar .mat-mdc-list-item:hover .mdc-list-item__primary-text { color: #f8fafc !important; }
+.sidebar .mat-mdc-list-item:hover .mat-icon { color: #cbd5e1 !important; }
+.sidebar .mat-mdc-list-item.active-link { background: #1e293b !important; }
+.sidebar .mat-mdc-list-item.active-link .mdc-list-item__primary-text { color: #fff !important; }
+.sidebar .mat-mdc-list-item.active-link .mat-icon { color: #78e0bb !important; }
+.sidebar-footer .environment-copy small { color: #94a3b8 !important; }
+.sidebar-footer .environment-copy strong { color: #f8fafc !important; }
+
 @media (max-width: 700px) {
   .page { padding: 18px; }
+  .page-content .page { padding: 0; }
   .page-header { flex-direction: column; }
 }

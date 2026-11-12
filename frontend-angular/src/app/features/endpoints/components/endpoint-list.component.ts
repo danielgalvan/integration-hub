@@ -42,7 +42,67 @@ import { Endpoint } from '../../../core/models';
     }
   `,
   styles: [`
-    .table-card{overflow:auto;border:1px solid var(--ihub-border);border-radius:14px;background:var(--ihub-surface);box-shadow:0 2px 6px color-mix(in srgb,var(--ihub-text) 4%,transparent)}.endpoint-table{width:100%;min-width:740px}.mat-mdc-cell small,.mat-mdc-cell code{display:block;margin-top:4px}.mat-mdc-cell small{max-width:420px;color:var(--ihub-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mat-mdc-cell code{width:max-content;max-width:100%;padding:3px 6px;border-radius:5px;background:var(--ihub-surface-subtle);color:var(--ihub-text-secondary);font-size:.72rem}.status{display:inline-block;padding:4px 9px;border-radius:99px;background:var(--ihub-success-container);color:var(--ihub-success);font-size:.74rem;font-weight:700}.status.inactive{background:var(--ihub-danger-container);color:var(--ihub-danger)}.actions{text-align:right;white-space:nowrap}.actions button[mat-stroked-button]{font-size:.75rem}.empty-card{display:grid;justify-items:center;padding:54px 20px;border:1px dashed var(--ihub-outline);border-radius:14px;background:var(--ihub-surface);text-align:center}.empty-card>mat-icon{color:var(--ihub-muted);font-size:38px}.empty-card h3{margin:12px 0 4px;font-size:1rem}.empty-card p{margin:0;color:var(--ihub-muted)}
+    .table-card {
+      overflow: auto;
+      border: 1px solid var(--ihub-border);
+      border-radius: 14px;
+      background: var(--ihub-surface);
+      box-shadow: 0 2px 6px color-mix(in srgb, var(--ihub-text) 4%, transparent);
+    }
+    .endpoint-table { width: 100%; min-width: 740px; }
+    .endpoint-table .mat-mdc-header-cell {
+      padding: 14px 16px;
+      color: var(--ihub-text-secondary);
+      font-weight: 600;
+    }
+    .endpoint-table .mat-mdc-cell {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--ihub-border);
+      vertical-align: middle;
+    }
+    .endpoint-table .mat-mdc-row:last-child .mat-mdc-cell { border-bottom: 0; }
+    .mat-mdc-cell small,
+    .mat-mdc-cell code { display: block; margin-top: 8px; }
+    .mat-mdc-cell small {
+      max-width: 420px;
+      color: var(--ihub-muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .mat-mdc-cell code {
+      width: max-content;
+      max-width: 100%;
+      padding: 4px 7px;
+      border-radius: 5px;
+      background: var(--ihub-surface-subtle);
+      color: var(--ihub-text-secondary);
+      font-size: .72rem;
+    }
+    .status {
+      display: inline-block;
+      padding: 4px 9px;
+      border-radius: 99px;
+      background: var(--ihub-success-container);
+      color: var(--ihub-success);
+      font-size: .74rem;
+      font-weight: 700;
+    }
+    .status.inactive { background: var(--ihub-danger-container); color: var(--ihub-danger); }
+    .actions { text-align: right; white-space: nowrap; }
+    .actions button[mat-stroked-button] { font-size: .75rem; }
+    .empty-card {
+      display: grid;
+      justify-items: center;
+      padding: 54px 20px;
+      border: 1px dashed var(--ihub-outline);
+      border-radius: 14px;
+      background: var(--ihub-surface);
+      text-align: center;
+    }
+    .empty-card > mat-icon { color: var(--ihub-muted); font-size: 38px; }
+    .empty-card h3 { margin: 12px 0 4px; font-size: 1rem; }
+    .empty-card p { margin: 0; color: var(--ihub-muted); }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
