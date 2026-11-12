@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import './EndpointTestModal.css'
 import { executeEndpoint } from '../../services/endpointService'
+import { validateParameterValue } from '../../utils/parameterValidation'
 
 function getInputProperties(parameterType) {
   switch (parameterType?.toUpperCase()) {
@@ -39,6 +40,9 @@ function getParameterHint(parameterType) {
     case 'TIMESTAMP':
       return 'TIMESTAMP — formato: aaaa-mm-ddThh:mm:ss'
 
+    case 'NUMBER':
+      return 'NUMBER — número decimal, sem separador de milhar'
+
     default:
       return parameterType
   }
@@ -61,6 +65,7 @@ function EndpointTestModal({
   onClose,
 }) {
   const [parameters, setParameters] = useState({})
+  const [validationErrors, setValidationErrors] = useState({})
   const [apiKey, setApiKey] = useState('')
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
@@ -73,6 +78,7 @@ function EndpointTestModal({
 
   function handleClose() {
     setParameters(createInitialParameters(endpoint))
+    setValidationErrors({})
     setApiKey('')
     setResult(null)
     setError(null)
@@ -88,16 +94,38 @@ function EndpointTestModal({
       ...currentParameters,
       [name]: value,
     }))
+
+    setValidationErrors((currentErrors) => ({
+      ...currentErrors,
+      [name]: '',
+    }))
   }
 
   async function handleSubmit(event) {
     event.preventDefault()
 
+    setError(null)
+    setResult(null)
+    setCopied(false)
+
+    const errors = Object.fromEntries(
+      (endpoint.parameters || []).map((parameter) => [
+        parameter.name,
+        validateParameterValue(
+          parameter,
+          parameters[parameter.name] || '',
+        ),
+      ]).filter(([, message]) => message),
+    )
+
+    setValidationErrors(errors)
+
+    if (Object.keys(errors).length > 0) {
+      return
+    }
+
     try {
       setExecuting(true)
-      setError(null)
-      setResult(null)
-      setCopied(false)
 
       const response = await executeEndpoint(
         integration,
@@ -198,10 +226,12 @@ function EndpointTestModal({
             </h3>
 
             {endpoint.parameters?.length > 0 ? (
-              endpoint.parameters.map((parameter) => {
+              endpoint.parameters.map((parameter, index) => {
                 const inputProperties = getInputProperties(
                   parameter.type,
                 )
+                const validationError = validationErrors[parameter.name]
+                const validationErrorId = `endpoint-parameter-error-${index}`
 
                 return (
                   <label
@@ -223,12 +253,26 @@ function EndpointTestModal({
                       placeholder={inputProperties.placeholder}
                       inputMode={inputProperties.inputMode}
                       required={parameter.required}
+                      aria-invalid={Boolean(validationError)}
+                      aria-describedby={
+                        validationError ? validationErrorId : undefined
+                      }
                       onChange={handleParameterChange}
                     />
 
                     <small>
                       {getParameterHint(parameter.type)}
                     </small>
+
+                    {validationError && (
+                      <small
+                        id={validationErrorId}
+                        className="endpoint-test-modal__validation-error"
+                        role="alert"
+                      >
+                        {validationError}
+                      </small>
+                    )}
                   </label>
                 )
               })

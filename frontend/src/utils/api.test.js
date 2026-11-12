@@ -50,5 +50,32 @@ describe('apiFetch', () => {
     expect(unauthorized).toHaveBeenCalledOnce()
     window.removeEventListener('ihub:unauthorized', unauthorized)
   })
+
+  it('preserva a sessão para um 401 de uma chamada que não autentica a sessão', async () => {
+    saveAuth({
+      token: 'jwt-token',
+      role: 'A',
+      environment: 'DEVELOPMENT',
+      passwordChangeRequired: false,
+    })
+    const unauthorized = vi.fn()
+    window.addEventListener('ihub:unauthorized', unauthorized)
+    const fetch = vi.fn().mockResolvedValue({ status: 401 })
+    vi.stubGlobal('fetch', fetch)
+
+    await apiFetch('/api/clientes/buscar', {
+      method: 'GET',
+      skipUnauthorizedRedirect: true,
+    })
+
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/clientes/buscar',
+      expect.objectContaining({ method: 'GET' }),
+    )
+    expect(fetch.mock.calls[0][1]).not.toHaveProperty('skipUnauthorizedRedirect')
+    expect(sessionStorage.getItem('ihub_token')).toBe('jwt-token')
+    expect(unauthorized).not.toHaveBeenCalled()
+    window.removeEventListener('ihub:unauthorized', unauthorized)
+  })
 })
 

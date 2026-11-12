@@ -67,7 +67,7 @@ export class EndpointsComponent {
   private readonly confirmation = inject(ConfirmationService);
   private readonly snack = inject(MatSnackBar);
 
-  readonly integration = signal<Integration | null>(history.state.integration || null);
+  readonly integration = signal<Integration | null>(history.state?.integration || null);
   readonly items = signal<Endpoint[]>([]);
   readonly loading = signal(false);
   readonly saving = signal(false);

@@ -1,5 +1,6 @@
 
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -177,12 +178,23 @@ describe('App', () => {
     authStorage.getEnvironment.mockReturnValue(null)
     authStorage.getEnvironmentName.mockReturnValue(null)
     authStorage.isPasswordChangeRequired.mockReturnValue(false)
+    authStorage.saveAuth.mockImplementation(({ token }) => {
+      authStorage.getToken.mockReturnValue(token)
+    })
+    authStorage.clearAuth.mockImplementation(() => {
+      authStorage.getToken.mockReturnValue(null)
+    })
 
     authService.getAuthenticatedUser.mockResolvedValue({
       name: 'Administrador',
       role: 'A',
     })
   })
+
+  async function renderAuthenticatedApp(expectedText = 'Integrações protegidas') {
+    render(<App />)
+    await screen.findByText(expectedText)
+  }
 
   it('armazena sessão e libera a área administrativa após login', async () => {
     authService.login.mockResolvedValue({
@@ -217,12 +229,12 @@ describe('App', () => {
     ).toBeInTheDocument()
   })
 
-  it('restaura o nome do ambiente salvo na sessão', () => {
+  it('restaura o nome do ambiente salvo na sessão', async () => {
     authStorage.getToken.mockReturnValue('jwt-token')
     authStorage.getEnvironment.mockReturnValue('cloud')
     authStorage.getEnvironmentName.mockReturnValue('Oracle Cloud')
 
-    render(<App />)
+    await renderAuthenticatedApp()
 
     expect(
       screen.getByText('Oracle Cloud'),
@@ -255,7 +267,7 @@ describe('App', () => {
     authStorage.isPasswordChangeRequired.mockReturnValue(true)
     authService.changePassword.mockResolvedValue()
 
-    render(<App />)
+    await renderAuthenticatedApp('Alterar senha obrigatória')
 
     fireEvent.click(
       screen.getByRole('button', {
@@ -279,11 +291,11 @@ describe('App', () => {
     ).toBeInTheDocument()
   })
 
-  it('abre usuários somente para administrador', () => {
+  it('abre usuários somente para administrador', async () => {
     authStorage.getToken.mockReturnValue('jwt-token')
     authStorage.getRole.mockReturnValue('A')
 
-    render(<App />)
+    await renderAuthenticatedApp()
 
     fireEvent.click(
       screen.getByRole('button', {
@@ -299,7 +311,7 @@ describe('App', () => {
   it('remove a sessão ao receber evento de não autorizado', async () => {
     authStorage.getToken.mockReturnValue('jwt-token')
 
-    render(<App />)
+    await renderAuthenticatedApp()
 
     window.dispatchEvent(
       new Event('ihub:unauthorized'),
@@ -333,12 +345,52 @@ describe('App', () => {
     )
   })
 
+  it('mantém as telas protegidas bloqueadas até validar o token', async () => {
+    authStorage.getToken.mockReturnValue('jwt-token')
+    let resolveValidation
+    authService.getAuthenticatedUser.mockReturnValue(
+      new Promise((resolve) => {
+        resolveValidation = resolve
+      }),
+    )
+
+    render(<App />)
+
+    expect(screen.getByRole('status')).toHaveTextContent('Verificando sessão')
+    expect(screen.queryByText('Integrações protegidas')).not.toBeInTheDocument()
+
+    await act(async () => {
+      resolveValidation({ name: 'Daniel Galvan', role: 'A' })
+    })
+
+    expect(await screen.findByText('Integrações protegidas')).toBeInTheDocument()
+  })
+
+  it('mantém a sessão bloqueada quando o servidor falha e permite tentar novamente', async () => {
+    authStorage.getToken.mockReturnValue('jwt-token')
+    authService.getAuthenticatedUser
+      .mockRejectedValueOnce(new Error('Servidor indisponível'))
+      .mockResolvedValueOnce({ name: 'Daniel Galvan', role: 'A' })
+
+    render(<App />)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Não foi possível validar sua sessão',
+    )
+    expect(screen.queryByText('Integrações protegidas')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }))
+
+    expect(await screen.findByText('Integrações protegidas')).toBeInTheDocument()
+    expect(authService.getAuthenticatedUser).toHaveBeenCalledTimes(2)
+  })
+
   describe('Histórico de execuções', () => {
-    it('exibe o menu de histórico para administrador', () => {
+    it('exibe o menu de histórico para administrador', async () => {
       authStorage.getToken.mockReturnValue('jwt-token')
       authStorage.getRole.mockReturnValue('A')
 
-      render(<App />)
+      await renderAuthenticatedApp()
 
       expect(
         screen.getByRole('button', {
@@ -347,11 +399,11 @@ describe('App', () => {
       ).toBeInTheDocument()
     })
 
-    it('abre a página de histórico ao clicar no menu', () => {
+    it('abre a página de histórico ao clicar no menu', async () => {
       authStorage.getToken.mockReturnValue('jwt-token')
       authStorage.getRole.mockReturnValue('A')
 
-      render(<App />)
+      await renderAuthenticatedApp()
 
       fireEvent.click(
         screen.getByRole('button', {
@@ -372,11 +424,11 @@ describe('App', () => {
       ).not.toBeInTheDocument()
     })
 
-    it('retorna do histórico para integrações', () => {
+    it('retorna do histórico para integrações', async () => {
       authStorage.getToken.mockReturnValue('jwt-token')
       authStorage.getRole.mockReturnValue('A')
 
-      render(<App />)
+      await renderAuthenticatedApp()
 
       fireEvent.click(
         screen.getByRole('button', {
@@ -403,11 +455,11 @@ describe('App', () => {
       ).not.toBeInTheDocument()
     })
 
-    it('permite navegar do histórico para usuários', () => {
+    it('permite navegar do histórico para usuários', async () => {
       authStorage.getToken.mockReturnValue('jwt-token')
       authStorage.getRole.mockReturnValue('A')
 
-      render(<App />)
+      await renderAuthenticatedApp()
 
       fireEvent.click(
         screen.getByRole('button', {
@@ -430,11 +482,11 @@ describe('App', () => {
       ).not.toBeInTheDocument()
     })
 
-    it('preserva a navegação de integrações para endpoints', () => {
+    it('preserva a navegação de integrações para endpoints', async () => {
       authStorage.getToken.mockReturnValue('jwt-token')
       authStorage.getRole.mockReturnValue('A')
 
-      render(<App />)
+      await renderAuthenticatedApp()
 
       fireEvent.click(
         screen.getByRole('button', {
@@ -467,11 +519,11 @@ describe('App', () => {
 
     it.each(['C', 'U', null])(
       'não permite acessar o histórico para o perfil %s',
-      (role) => {
+      async (role) => {
         authStorage.getToken.mockReturnValue('jwt-token')
         authStorage.getRole.mockReturnValue(role)
 
-        render(<App />)
+        await renderAuthenticatedApp()
 
         expect(
           screen.queryByRole('button', {
@@ -493,7 +545,7 @@ describe('App', () => {
       authStorage.getToken.mockReturnValue('jwt-token')
       authStorage.getRole.mockReturnValue('A')
 
-      render(<App />)
+      await renderAuthenticatedApp()
 
       fireEvent.click(
         screen.getByRole('button', {
@@ -528,11 +580,11 @@ describe('App', () => {
   })
 
   describe('Cabeçalho dinâmico', () => {
-    it('exibe Integrações como título inicial', () => {
+    it('exibe Integrações como título inicial', async () => {
       authStorage.getToken.mockReturnValue('jwt-token')
       authStorage.getRole.mockReturnValue('A')
 
-      render(<App />)
+      await renderAuthenticatedApp()
 
       expect(
         screen.getByRole('heading', {
@@ -542,11 +594,11 @@ describe('App', () => {
       ).toBeInTheDocument()
     })
 
-    it('altera o título ao abrir os endpoints', () => {
+    it('altera o título ao abrir os endpoints', async () => {
       authStorage.getToken.mockReturnValue('jwt-token')
       authStorage.getRole.mockReturnValue('A')
 
-      render(<App />)
+      await renderAuthenticatedApp()
 
       fireEvent.click(
         screen.getByRole('button', {
@@ -575,11 +627,11 @@ describe('App', () => {
       ).toBeInTheDocument()
     })
 
-    it('altera o título ao abrir o histórico de execuções', () => {
+    it('altera o título ao abrir o histórico de execuções', async () => {
       authStorage.getToken.mockReturnValue('jwt-token')
       authStorage.getRole.mockReturnValue('A')
 
-      render(<App />)
+      await renderAuthenticatedApp()
 
       fireEvent.click(
         screen.getByRole('button', {
@@ -602,11 +654,11 @@ describe('App', () => {
       ).not.toBeInTheDocument()
     })
 
-    it('altera o título ao abrir usuários', () => {
+    it('altera o título ao abrir usuários', async () => {
       authStorage.getToken.mockReturnValue('jwt-token')
       authStorage.getRole.mockReturnValue('A')
 
-      render(<App />)
+      await renderAuthenticatedApp()
 
       fireEvent.click(
         screen.getByRole('button', {
@@ -622,11 +674,11 @@ describe('App', () => {
       ).toBeInTheDocument()
     })
 
-    it('atualiza o título ao navegar entre páginas', () => {
+    it('atualiza o título ao navegar entre páginas', async () => {
       authStorage.getToken.mockReturnValue('jwt-token')
       authStorage.getRole.mockReturnValue('A')
 
-      render(<App />)
+      await renderAuthenticatedApp()
 
       const expectTitle = (title) => {
         expect(

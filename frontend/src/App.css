@@ -19,3 +19,67 @@
   flex: 1;
   padding: 32px;
 }
+
+.session-state {
+  display: grid;
+  min-height: 100vh;
+  align-content: center;
+  justify-items: center;
+  gap: 12px;
+  padding: 24px;
+  color: #0f172a;
+  text-align: center;
+}
+
+.session-state h1,
+.session-state p {
+  margin: 0;
+}
+
+.session-state p {
+  max-width: 540px;
+  color: #64748b;
+}
+
+.session-state__spinner {
+  width: 36px;
+  height: 36px;
+  border: 4px solid #e2e8f0;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: session-spinner 0.8s linear infinite;
+}
+
+.session-state__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.session-state__actions button {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.session-state__actions button.secondary {
+  border: 1px solid #cbd5e1;
+  background: transparent;
+  color: inherit;
+}
+
+@keyframes session-spinner {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .session-state__spinner { animation-duration: 2s; }
+}

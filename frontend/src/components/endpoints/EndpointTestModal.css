@@ -113,6 +113,15 @@
   font-weight: 400;
 }
 
+.endpoint-test-modal__field input[aria-invalid='true'] {
+  border-color: #dc2626;
+}
+
+.endpoint-test-modal__validation-error {
+  color: #b91c1c;
+  font-weight: 500;
+}
+
 .endpoint-test-modal__field input:focus {
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgb(37 99 235 / 12%);

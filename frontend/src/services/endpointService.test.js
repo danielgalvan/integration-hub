@@ -19,7 +19,10 @@ function jsonResponse(body, options = {}) {
 }
 
 describe('endpointService', () => {
-  afterEach(() => vi.unstubAllGlobals())
+  afterEach(() => {
+    sessionStorage.clear()
+    vi.unstubAllGlobals()
+  })
 
   it('envia o payload ao criar um endpoint', async () => {
     const fetch = vi.fn().mockResolvedValue(jsonResponse({ id: 1 }))
@@ -106,6 +109,41 @@ describe('endpointService', () => {
       status: 400,
       data: { message: 'Parâmetro obrigatório não informado: codigo' },
     }))
+  })
+
+  it('mantém a sessão ativa quando a API Key do endpoint é recusada', async () => {
+    sessionStorage.setItem('ihub_token', 'admin-jwt')
+    const unauthorized = vi.fn()
+    window.addEventListener('ihub:unauthorized', unauthorized)
+    const fetch = vi.fn().mockResolvedValue(jsonResponse(
+      { message: 'API Key inválida' },
+      { ok: false, status: 401, statusText: 'Unauthorized' },
+    ))
+    vi.stubGlobal('fetch', fetch)
+
+    const result = await executeEndpoint(
+      { basePath: '/api/clientes', authType: 'API_KEY' },
+      { path: '/buscar' },
+      {},
+      'ihub-chave-invalida',
+    )
+
+    expect(result).toEqual(expect.objectContaining({
+      success: false,
+      status: 401,
+      data: { message: 'API Key inválida' },
+    }))
+    expect(sessionStorage.getItem('ihub_token')).toBe('admin-jwt')
+    expect(unauthorized).not.toHaveBeenCalled()
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/clientes/buscar',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-API-Key': 'ihub-chave-invalida',
+        }),
+      }),
+    )
+    window.removeEventListener('ihub:unauthorized', unauthorized)
   })
 })
 

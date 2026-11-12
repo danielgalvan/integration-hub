@@ -143,6 +143,7 @@ export async function executeEndpoint(
     const response = await apiFetch(path, {
       method: 'GET',
       headers,
+      skipUnauthorizedRedirect: true,
     })
 
     const duration = Math.round(

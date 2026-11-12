@@ -52,6 +52,14 @@ function App() {
 
   const [user, setUser] = useState(null)
 
+  const [validationStatus, setValidationStatus] = useState(
+    () => getToken() ? 'validating' : 'unauthenticated',
+  )
+
+  const [validationError, setValidationError] = useState('')
+
+  const [validationAttempt, setValidationAttempt] = useState(0)
+
   const [
     passwordChangeRequired,
     setPasswordChangeRequiredState,
@@ -76,6 +84,8 @@ function App() {
     setRole(null)
     setEnvironmentName(null)
     setUser(null)
+    setValidationStatus('unauthenticated')
+    setValidationError('')
 
     setPasswordChangeRequiredState(false)
 
@@ -102,25 +112,44 @@ function App() {
   }, [clearSession])
 
   useEffect(() => {
-    if (!token || passwordChangeRequired) {
+    if (!token) {
       return
     }
+
+    let active = true
 
     async function loadAuthenticatedUser() {
       try {
         const authenticatedUser =
           await getAuthenticatedUser()
 
+        if (!active || getToken() !== token) {
+          return
+        }
+
         setUser(authenticatedUser)
+        setValidationStatus('authenticated')
       } catch {
+        if (!active || getToken() !== token) {
+          return
+        }
+
         setUser(null)
+        setValidationError(
+          'O servidor não confirmou sua sessão. Verifique a conexão e tente novamente.',
+        )
+        setValidationStatus('unavailable')
       }
     }
 
     loadAuthenticatedUser()
+
+    return () => {
+      active = false
+    }
   }, [
     token,
-    passwordChangeRequired,
+    validationAttempt,
   ])
 
   async function handleLogin(credentials) {
@@ -153,6 +182,8 @@ function App() {
       response.passwordChangeRequired,
     )
 
+    setValidationError('')
+    setValidationStatus('validating')
     setUser(null)
     setSelectedIntegration(null)
     setCurrentPage('integrations')
@@ -203,11 +234,53 @@ function App() {
     clearSession()
   }
 
+  function retrySessionValidation() {
+    setValidationStatus('validating')
+    setValidationError('')
+    setValidationAttempt((attempt) => attempt + 1)
+  }
+
   if (!token) {
     return (
       <LoginPage
         onLogin={handleLogin}
       />
+    )
+  }
+
+  if (validationStatus === 'validating') {
+    return (
+      <main className="session-state" role="status" aria-live="polite">
+        <span className="session-state__spinner" aria-hidden="true" />
+        <h1>Verificando sessão</h1>
+        <p>Aguarde enquanto confirmamos sua identidade.</p>
+      </main>
+    )
+  }
+
+  if (validationStatus === 'unavailable') {
+    return (
+      <main className="session-state" role="alert">
+        <h1>Não foi possível validar sua sessão</h1>
+        <p>{validationError}</p>
+        <div className="session-state__actions">
+          <button type="button" onClick={retrySessionValidation}>
+            Tentar novamente
+          </button>
+          <button type="button" className="secondary" onClick={handleLogout}>
+            Encerrar sessão
+          </button>
+        </div>
+      </main>
+    )
+  }
+
+  if (validationStatus !== 'authenticated') {
+    return (
+      <main className="session-state" role="status" aria-live="polite">
+        <span className="session-state__spinner" aria-hidden="true" />
+        <h1>Verificando sessão</h1>
+      </main>
     )
   }
 

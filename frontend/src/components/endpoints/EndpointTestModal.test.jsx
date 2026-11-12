@@ -190,7 +190,7 @@ describe('EndpointTestModal', () => {
       }),
       {
         target: {
-          value: 'abc',
+          value: '10',
         },
       },
     )
@@ -204,6 +204,51 @@ describe('EndpointTestModal', () => {
     expect(
       await screen.findByText('Parâmetro inválido'),
     ).toBeInTheDocument()
+  })
+
+  it.each([
+    {
+      name: 'quantidade',
+      type: 'NUMBER',
+      value: '1,25',
+      message: 'Informe um número válido',
+    },
+    {
+      name: 'data',
+      type: 'DATE',
+      value: '2026-02-30',
+      message: 'Use uma data válida',
+    },
+    {
+      name: 'momento',
+      type: 'TIMESTAMP',
+      value: '2026-08-20T25:00:00',
+      message: 'Use uma data e hora válidas',
+    },
+  ])('bloqueia o envio de $type inválido', ({ name, type, value, message }) => {
+    const typedEndpoint = {
+      ...endpoint,
+      parameters: [{ name, type, required: true }],
+    }
+
+    render(
+      <EndpointTestModal
+        open
+        integration={integration}
+        endpoint={typedEndpoint}
+        onClose={vi.fn()}
+      />,
+    )
+
+    fireEvent.change(screen.getByRole('textbox', { name: new RegExp(name, 'i') }), {
+      target: { value },
+    })
+    fireEvent.submit(screen.getByRole('dialog').querySelector('form'))
+
+    expect(screen.getByRole('alert')).toHaveTextContent(message)
+    expect(screen.getByRole('textbox', { name: new RegExp(name, 'i') }))
+      .toHaveAttribute('aria-invalid', 'true')
+    expect(endpointService.executeEndpoint).not.toHaveBeenCalled()
   })
 
   it('inicia limpo ao fechar e abrir novamente', () => {
