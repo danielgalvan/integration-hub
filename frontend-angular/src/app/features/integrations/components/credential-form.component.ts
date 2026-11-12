@@ -30,7 +30,7 @@ import { Credential } from '../../../core/models';
     </section>
   `,
   styles: [`
-    .form-card{padding:18px;border:1px solid #eaecf0;border-radius:12px;background:#f9fafb}.heading h3{margin:0;font-size:1rem}.heading p{margin:5px 0 14px;color:#667085;font-size:.82rem}.full-width{width:100%}.actions{display:flex;justify-content:flex-end;gap:8px}.error{color:#b42318}
+    .form-card{padding:18px;border:1px solid var(--ihub-border);border-radius:12px;background:var(--ihub-surface-container)}.heading h3{margin:0;font-size:1rem}.heading p{margin:5px 0 14px;color:var(--ihub-muted);font-size:.82rem}.full-width{width:100%}.actions{display:flex;justify-content:flex-end;gap:8px}.error{color:var(--ihub-danger)}
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

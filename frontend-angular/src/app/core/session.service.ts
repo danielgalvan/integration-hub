@@ -9,6 +9,8 @@ const KEYS = {
   passwordChangeRequired: 'ihub_password_change_required',
 } as const;
 
+export type SessionValidationStatus = 'validating' | 'authenticated' | 'unauthenticated' | 'unavailable';
+
 @Injectable({ providedIn: 'root' })
 export class SessionService {
   readonly token = signal<string | null>(sessionStorage.getItem(KEYS.token));
@@ -17,7 +19,11 @@ export class SessionService {
   readonly environmentName = signal<string | null>(sessionStorage.getItem(KEYS.environmentName));
   readonly user = signal<AuthUser | null>(null);
   readonly passwordChangeRequired = signal(sessionStorage.getItem(KEYS.passwordChangeRequired) === 'true');
-  readonly authenticated = computed(() => Boolean(this.token()));
+  readonly validationStatus = signal<SessionValidationStatus>(
+    sessionStorage.getItem(KEYS.token) ? 'validating' : 'unauthenticated',
+  );
+  readonly validationError = signal('');
+  readonly authenticated = computed(() => this.validationStatus() === 'authenticated');
   readonly canEdit = computed(() => this.role() === 'A' || this.role() === 'C');
   readonly isAdmin = computed(() => this.role() === 'A');
 
@@ -35,10 +41,17 @@ export class SessionService {
     this.environmentName.set(environmentName);
     this.passwordChangeRequired.set(response.passwordChangeRequired);
     this.user.set(null);
+    this.validationError.set('');
+    this.validationStatus.set('validating');
   }
 
   setUser(user: AuthUser | null): void {
     this.user.set(user);
+  }
+
+  setValidationStatus(status: SessionValidationStatus, message = ''): void {
+    this.validationStatus.set(status);
+    this.validationError.set(message);
   }
 
   setPasswordChanged(): void {
@@ -54,6 +67,8 @@ export class SessionService {
     this.environmentName.set(null);
     this.user.set(null);
     this.passwordChangeRequired.set(false);
+    this.validationError.set('');
+    this.validationStatus.set('unauthenticated');
   }
 
   private persist(key: string, value: string): void {

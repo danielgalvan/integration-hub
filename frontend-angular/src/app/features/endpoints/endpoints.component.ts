@@ -54,7 +54,7 @@ import { EndpointTestDialogComponent } from './endpoint-test-dialog.component';
     </section>
   `,
   styles: [`
-    .endpoints-page{display:grid;gap:18px}.eyebrow{margin:4px 0;color:#667085;font-size:.68rem;font-weight:800;letter-spacing:.13em;text-transform:uppercase}.description{margin:6px 0 0;color:#667085}.error-banner{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:9px;background:#fef3f2;color:#b42318;font-size:.85rem}.error-banner button{margin-left:auto}.empty-card{display:grid;justify-items:center;gap:8px;padding:48px 20px;border:1px dashed #d0d5dd;border-radius:14px;background:#fff;text-align:center}.empty-card mat-icon{color:#98a2b3;font-size:40px}.empty-card h3,.empty-card p{margin:0}.empty-card p{color:#667085}
+    .endpoints-page{display:grid;gap:18px}.eyebrow{margin:4px 0;color:var(--ihub-muted);font-size:.68rem;font-weight:800;letter-spacing:.13em;text-transform:uppercase}.description{margin:6px 0 0;color:var(--ihub-muted)}.error-banner{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:9px;background:var(--ihub-danger-container);color:var(--ihub-danger);font-size:.85rem}.error-banner button{margin-left:auto}.empty-card{display:grid;justify-items:center;gap:8px;padding:48px 20px;border:1px dashed var(--ihub-outline);border-radius:14px;background:var(--ihub-surface);text-align:center}.empty-card mat-icon{color:var(--ihub-muted);font-size:40px}.empty-card h3,.empty-card p{margin:0}.empty-card p{color:var(--ihub-muted)}
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

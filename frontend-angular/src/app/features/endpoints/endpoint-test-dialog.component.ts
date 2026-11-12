@@ -10,6 +10,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ApiService } from '../../core/api.service';
 import { Endpoint, EndpointExecutionResult, Integration } from '../../core/models';
+import { parameterValueValidator } from './parameter-value.validators';
 
 interface EndpointTestDialogData {
   integration: Integration;
@@ -34,7 +35,7 @@ interface EndpointTestDialogData {
           @if (data.endpoint.parameters.length) {
             <div class="parameter-grid">
               @for (parameter of data.endpoint.parameters; track parameter.name) {
-                <mat-form-field appearance="outline"><mat-label>{{ parameter.name }}{{ parameter.required ? ' *' : '' }}</mat-label><input matInput type="text" [formControlName]="parameter.name" [placeholder]="hint(parameter.type)" [attr.inputmode]="inputMode(parameter.type)"><mat-hint>{{ parameterHint(parameter.type) }}</mat-hint>@if (parametersForm.controls[parameter.name].hasError('required') && parametersForm.controls[parameter.name].touched) { <mat-error>Este parâmetro é obrigatório.</mat-error> }</mat-form-field>
+                <mat-form-field appearance="outline"><mat-label>{{ parameter.name }}{{ parameter.required ? ' *' : '' }}</mat-label><input matInput type="text" [formControlName]="parameter.name" [placeholder]="hint(parameter.type)" [attr.inputmode]="inputMode(parameter.type)"><mat-hint>{{ parameterHint(parameter.type) }}</mat-hint>@if (parametersForm.controls[parameter.name].hasError('required') && parametersForm.controls[parameter.name].touched) { <mat-error>Este parâmetro é obrigatório.</mat-error> } @else if (parametersForm.controls[parameter.name].invalid && parametersForm.controls[parameter.name].touched) { <mat-error>{{ parameterError(parameter.type) }}</mat-error> }</mat-form-field>
               }
             </div>
           } @else { <p class="no-parameters">Este endpoint não possui parâmetros.</p> }
@@ -53,7 +54,7 @@ interface EndpointTestDialogData {
     <mat-dialog-actions align="end"><button mat-button type="button" mat-dialog-close>Fechar</button></mat-dialog-actions>
   `,
   styles: [`
-    .dialog-title{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-right:8px}.dialog-title span{display:grid;gap:4px}.dialog-title small{color:#667085;font-size:.6rem;letter-spacing:.13em}.dialog-content{min-height:160px}.route-line{display:flex;align-items:center;gap:9px;margin:0 0 16px;color:#475467}.route-line code{overflow-wrap:anywhere}.method{padding:4px 7px;border-radius:5px;background:#eff8ff;color:#175cd3;font-size:.68rem;font-weight:800}.field-section{display:grid;gap:12px;margin:8px 0 20px}.field-section h3,.result-heading h3{margin:0;font-size:.95rem}.full{width:100%}.parameter-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 14px}.parameter-grid mat-form-field{width:100%}.no-parameters{margin:0 0 8px;color:#667085;font-size:.84rem}.error-banner{display:flex;gap:9px;align-items:center;margin:14px 0;padding:11px;border-radius:9px;background:#fef3f2;color:#b42318;font-size:.84rem}.result-card{display:grid;gap:14px;margin:18px 0 6px;padding:16px;border:1px solid #d0d5dd;border-radius:12px;background:#f9fafb}.result-heading,.result-meta,.url-block>div{display:flex;align-items:center;justify-content:space-between;gap:10px}.result-meta{color:#475467;font-size:.8rem}.status{padding:4px 8px;border-radius:99px;background:#ecfdf3;color:#067647;font-weight:700}.status.failed{background:#fef3f2;color:#b42318}.url-block{display:grid;gap:8px}.url-block>div strong{font-size:.8rem}.url-block button{font-size:.74rem}.url-block code{padding:10px;border-radius:7px;background:#f2f4f7;overflow-wrap:anywhere;font-size:.76rem}.response-body{max-height:330px;overflow:auto;margin:0;padding:13px;border-radius:8px;background:#101828;color:#e4e7ec;white-space:pre-wrap;overflow-wrap:anywhere;font: .78rem/1.55 Consolas,'Courier New',monospace}@media(max-width:620px){.parameter-grid{grid-template-columns:1fr}.result-heading,.result-meta{align-items:flex-start;flex-direction:column}}
+    .dialog-title{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-right:8px}.dialog-title span{display:grid;gap:4px}.dialog-title small{color:var(--ihub-muted);font-size:.6rem;letter-spacing:.13em}.dialog-content{min-height:160px}.route-line{display:flex;align-items:center;gap:9px;margin:0 0 16px;color:var(--ihub-text-secondary)}.route-line code{overflow-wrap:anywhere}.method{padding:4px 7px;border-radius:5px;background:var(--ihub-info-container);color:var(--ihub-info);font-size:.68rem;font-weight:800}.field-section{display:grid;gap:12px;margin:8px 0 20px}.field-section h3,.result-heading h3{margin:0;font-size:.95rem}.full{width:100%}.parameter-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 14px}.parameter-grid mat-form-field{width:100%}.no-parameters{margin:0 0 8px;color:var(--ihub-muted);font-size:.84rem}.error-banner{display:flex;gap:9px;align-items:center;margin:14px 0;padding:11px;border-radius:9px;background:var(--ihub-danger-container);color:var(--ihub-danger);font-size:.84rem}.result-card{display:grid;gap:14px;margin:18px 0 6px;padding:16px;border:1px solid var(--ihub-outline);border-radius:12px;background:var(--ihub-surface-container)}.result-heading,.result-meta,.url-block>div{display:flex;align-items:center;justify-content:space-between;gap:10px}.result-meta{color:var(--ihub-text-secondary);font-size:.8rem}.status{padding:4px 8px;border-radius:99px;background:var(--ihub-success-container);color:var(--ihub-success);font-weight:700}.status.failed{background:var(--ihub-danger-container);color:var(--ihub-danger)}.url-block{display:grid;gap:8px}.url-block>div strong{font-size:.8rem}.url-block button{font-size:.74rem}.url-block code{padding:10px;border-radius:7px;background:var(--ihub-surface-subtle);overflow-wrap:anywhere;font-size:.76rem}.response-body{max-height:330px;overflow:auto;margin:0;padding:13px;border-radius:8px;background:#101828;color:#e4e7ec;white-space:pre-wrap;overflow-wrap:anywhere;font: .78rem/1.55 Consolas,'Courier New',monospace}@media(max-width:620px){.parameter-grid{grid-template-columns:1fr}.result-heading,.result-meta{align-items:flex-start;flex-direction:column}}
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -72,7 +73,10 @@ export class EndpointTestDialogComponent {
     data.endpoint.parameters.forEach(parameter => {
       controls[parameter.name] = new FormControl('', {
         nonNullable: true,
-        validators: parameter.required ? [Validators.required] : [],
+        validators: [
+          ...(parameter.required ? [Validators.required] : []),
+          ...(parameterValueValidator(parameter.type) ? [parameterValueValidator(parameter.type)!] : []),
+        ],
       });
     });
     this.parametersForm = new FormGroup(controls);
@@ -90,9 +94,21 @@ export class EndpointTestDialogComponent {
   }
 
   parameterHint(type: string): string {
-    if (type === 'DATE') return 'DATE — formato yyyy-MM-dd';
-    if (type === 'TIMESTAMP') return "TIMESTAMP — formato yyyy-MM-dd'T'HH:mm:ss";
-    return type;
+    switch (type.toUpperCase()) {
+      case 'DATE': return 'DATE — formato yyyy-MM-dd';
+      case 'TIMESTAMP': return "TIMESTAMP — formato yyyy-MM-dd'T'HH:mm:ss";
+      case 'NUMBER': return 'NUMBER — número decimal, sem separador de milhar';
+      default: return type;
+    }
+  }
+
+  parameterError(type: string): string {
+    switch (type.toUpperCase()) {
+      case 'DATE': return 'Use uma data válida no formato yyyy-MM-dd.';
+      case 'TIMESTAMP': return "Use uma data e hora válidas no formato yyyy-MM-dd'T'HH:mm:ss.";
+      case 'NUMBER': return 'Informe um número válido, usando ponto como separador decimal.';
+      default: return 'Informe um valor válido.';
+    }
   }
 
   inputMode(type: string): string | null { return type === 'NUMBER' || type === 'DATE' || type === 'TIMESTAMP' ? 'decimal' : null; }

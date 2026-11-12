@@ -29,7 +29,7 @@ export interface ConfirmationDialogData {
       >{{ data.confirmLabel || 'Confirmar' }}</button>
     </mat-dialog-actions>
   `,
-  styles: [`.title-row{display:flex;align-items:center;gap:10px}.title-row mat-icon{color:#b42318}`],
+  styles: [`.title-row{display:flex;align-items:center;gap:10px}.title-row mat-icon{color:var(--ihub-danger)}`],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ConfirmationDialogComponent {

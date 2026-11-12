@@ -5,14 +5,14 @@
 
 .shell-container {
   min-height: 100vh;
-  background: #f4f6fb;
+  background: var(--ihub-page);
 }
 
 .sidebar {
   width: 270px;
   border: 0;
   background: #101828;
-  color: #f2f4f7;
+  color: var(--ihub-surface-subtle);
 }
 
 .brand {
@@ -46,8 +46,8 @@
 }
 
 .brand-copy strong { font-size: .92rem; }
-.brand-copy small { color: #98a2b3; font-size: .74rem; }
-.navigation-label { margin: 18px 22px 8px; color: #667085; font-size: .64rem; font-weight: 700; letter-spacing: .14em; }
+.brand-copy small { color: var(--ihub-muted); font-size: .74rem; }
+.navigation-label { margin: 18px 22px 8px; color: var(--ihub-muted); font-size: .64rem; font-weight: 700; letter-spacing: .14em; }
 .sidebar mat-nav-list { padding: 0 12px; }
 .sidebar a[mat-list-item] { margin: 4px 0; border-radius: 9px; color: #cbd5e1; }
 .sidebar a.active-link { color: #fff; background: #26354d; }
@@ -68,20 +68,20 @@
 
 .environment-indicator { width: 8px; height: 8px; border-radius: 50%; background: #32d583; box-shadow: 0 0 0 3px #075e45; }
 .environment-copy { flex: 1; min-width: 0; }
-.environment-copy small { color: #667085; font-size: .58rem; letter-spacing: .12em; }
-.environment-copy strong { overflow: hidden; color: #d0d5dd; font-size: .75rem; text-overflow: ellipsis; white-space: nowrap; }
-.role-chip { padding: 4px 7px; border: 1px solid #344054; border-radius: 999px; color: #d0d5dd; font-size: .62rem; white-space: nowrap; }
+.environment-copy small { color: var(--ihub-muted); font-size: .58rem; letter-spacing: .12em; }
+.environment-copy strong { overflow: hidden; color: var(--ihub-outline); font-size: .75rem; text-overflow: ellipsis; white-space: nowrap; }
+.role-chip { padding: 4px 7px; border: 1px solid var(--ihub-text-secondary); border-radius: 999px; color: var(--ihub-outline); font-size: .62rem; white-space: nowrap; }
 
 .workspace { min-width: 0; }
-.topbar { position: sticky; z-index: 3; top: 0; height: 78px; gap: 12px; border-bottom: 1px solid #eaecf0; background: rgb(255 255 255 / 94%); color: #101828; backdrop-filter: blur(10px); }
+.topbar { position: sticky; z-index: 3; top: 0; height: 78px; gap: 12px; border-bottom: 1px solid var(--ihub-border); background: color-mix(in srgb, var(--ihub-surface) 94%, transparent); color: var(--ihub-text); backdrop-filter: blur(10px); }
 .page-heading { display: grid; gap: 2px; }
-.page-heading small { color: #667085; font-size: .61rem; letter-spacing: .14em; }
+.page-heading small { color: var(--ihub-muted); font-size: .61rem; letter-spacing: .14em; }
 .page-heading h1 { margin: 0; font-size: 1.05rem; font-weight: 650; }
 .toolbar-spacer { flex: 1; }
 .user-summary { display: flex; align-items: center; gap: 9px; margin-right: 6px; }
-.avatar { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: #eaf2ff; color: #175cd3; font-size: .75rem; font-weight: 700; }
+.avatar { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--ihub-info-container); color: var(--ihub-info); font-size: .75rem; font-weight: 700; }
 .user-copy strong { max-width: 180px; overflow: hidden; font-size: .78rem; text-overflow: ellipsis; white-space: nowrap; }
-.user-copy small { color: #667085; font-size: .68rem; }
+.user-copy small { color: var(--ihub-muted); font-size: .68rem; }
 .page-content { width: min(1500px, 100%); margin: 0 auto; padding: 28px clamp(18px, 3vw, 42px) 48px; }
 
 @media (max-width: 800px) {

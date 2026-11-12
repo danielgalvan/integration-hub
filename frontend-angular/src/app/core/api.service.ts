@@ -76,7 +76,7 @@ export class ApiService {
   execute(
     integration: Integration,
     endpoint: Endpoint,
-    values: Record<string, string>,
+    values: Record<string, string | null | undefined>,
     apiKey = '',
   ): Observable<HttpResponse<string>> {
     const url = this.endpointUrl(integration, endpoint, values);
@@ -89,7 +89,7 @@ export class ApiService {
     });
   }
 
-  endpointUrl(integration: Integration, endpoint: Endpoint, values: Record<string, string>): string {
+  endpointUrl(integration: Integration, endpoint: Endpoint, values: Record<string, string | null | undefined>): string {
     const basePath = integration.basePath.replace(/\/$/, '');
     const endpointPath = endpoint.path.replace(/^\//, '');
     const query = new URLSearchParams();

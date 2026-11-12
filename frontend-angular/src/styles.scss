@@ -1,21 +1,36 @@
 @use '@angular/material' as mat;
 
 @include mat.core();
-$ihub-theme: mat.m2-define-light-theme((
+
+$ihub-light-theme: mat.define-theme((
   color: (
-    primary: mat.m2-define-palette(mat.$m2-indigo-palette),
-    accent: mat.m2-define-palette(mat.$m2-teal-palette, A200),
-    warn: mat.m2-define-palette(mat.$m2-red-palette),
+    theme-type: light,
+    primary: mat.$azure-palette,
+    tertiary: mat.$spring-green-palette,
+    use-system-variables: true,
+  ),
+  typography: (
+    plain-family: 'Inter, Arial, sans-serif',
+    brand-family: 'Inter, Arial, sans-serif',
+    use-system-variables: true,
   ),
 ));
-$ihub-dark-theme: mat.m2-define-dark-theme((
+
+$ihub-dark-theme: mat.define-theme((
   color: (
-    primary: mat.m2-define-palette(mat.$m2-indigo-palette),
-    accent: mat.m2-define-palette(mat.$m2-teal-palette, A200),
-    warn: mat.m2-define-palette(mat.$m2-red-palette),
+    theme-type: dark,
+    primary: mat.$azure-palette,
+    tertiary: mat.$spring-green-palette,
+    use-system-variables: true,
+  ),
+  typography: (
+    plain-family: 'Inter, Arial, sans-serif',
+    brand-family: 'Inter, Arial, sans-serif',
+    use-system-variables: true,
   ),
 ));
-@mixin ihub-material-theme($theme) {
+
+@mixin ihub-material-base($theme) {
   @include mat.button-theme($theme);
   @include mat.icon-button-theme($theme);
   @include mat.card-theme($theme);
@@ -59,29 +74,58 @@ $ihub-dark-theme: mat.m2-define-dark-theme((
   @include mat.tooltip-color($theme);
 }
 
-:root { @include ihub-material-theme($ihub-theme); }
-.ihub-dark-theme { @include ihub-material-colors($ihub-dark-theme); color-scheme: dark; }
-:root { color-scheme: light; font-family: Inter, Arial, sans-serif; --ihub-page:#f5f7fb; --ihub-surface:#fff; --ihub-text:#172033; --ihub-muted:#667085; --ihub-border:#eaecf0; }
-.ihub-dark-theme { --ihub-page:#0b1220; --ihub-surface:#111b2b; --ihub-text:#e4e7ec; --ihub-muted:#98a2b3; --ihub-border:#253247; }
+:root {
+  color-scheme: light;
+  font-family: Inter, Arial, sans-serif;
+  @include mat.system-level-colors($ihub-light-theme);
+  @include mat.system-level-typography($ihub-light-theme);
+  @include ihub-material-base($ihub-light-theme);
+  --ihub-page: var(--mat-sys-surface-container-low);
+  --ihub-surface: var(--mat-sys-surface-container-lowest);
+  --ihub-surface-container: var(--mat-sys-surface-container);
+  --ihub-surface-subtle: var(--mat-sys-surface-container-high);
+  --ihub-text: var(--mat-sys-on-surface);
+  --ihub-text-secondary: var(--mat-sys-on-surface-variant);
+  --ihub-muted: var(--mat-sys-on-surface-variant);
+  --ihub-border: var(--mat-sys-outline-variant);
+  --ihub-outline: var(--mat-sys-outline);
+  --ihub-primary: var(--mat-sys-primary);
+  --ihub-on-primary: var(--mat-sys-on-primary);
+  --ihub-danger: var(--mat-sys-error);
+  --ihub-danger-container: var(--mat-sys-error-container);
+  --ihub-danger-outline: color-mix(in srgb, var(--mat-sys-error) 24%, var(--mat-sys-surface));
+  --ihub-info: var(--mat-sys-on-primary-container);
+  --ihub-info-container: var(--mat-sys-primary-container);
+  --ihub-success: var(--mat-sys-on-tertiary-container);
+  --ihub-success-container: var(--mat-sys-tertiary-container);
+  --ihub-warning: #b54708;
+  --ihub-warning-container: #fffaeb;
+}
+
+.ihub-dark-theme {
+  color-scheme: dark;
+  --ihub-warning: #fdb967;
+  --ihub-warning-container: #3b2a14;
+  @include mat.system-level-colors($ihub-dark-theme);
+  @include ihub-material-colors($ihub-dark-theme);
+}
+
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; background: var(--ihub-page); color: var(--ihub-text); }
 .page { padding: 28px; max-width: 1440px; margin: auto; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
 .page-header h1 { margin: 0; font-size: 1.65rem; letter-spacing: -.03em; }
-.page-header p { color: #667085; margin: 6px 0 0; }
+.page-header p { color: var(--ihub-muted); margin: 6px 0 0; }
 .full-width { width: 100%; }
-.empty-state { padding: 48px 24px; text-align: center; color: #667085; }
+.empty-state { padding: 48px 24px; text-align: center; color: var(--ihub-muted); }
 .loading { display: grid; place-items: center; min-height: 180px; }
-.status-active { color: #067647; background: #ecfdf3; }
-.status-inactive { color: #b42318; background: #fef3f2; }
+.status-active { color: var(--ihub-success); background: var(--ihub-success-container); }
+.status-inactive { color: var(--mat-sys-on-error-container); background: var(--mat-sys-error-container); }
 .status-chip { padding: 4px 9px; border-radius: 99px; font-size: .75rem; font-weight: 700; }
-.ihub-dark-theme body { background:var(--ihub-page);color:var(--ihub-text); }
-.ihub-dark-theme .mat-mdc-card,.ihub-dark-theme .table-card,.ihub-dark-theme .empty-card,.ihub-dark-theme .empty-state,.ihub-dark-theme .filter-card,.ihub-dark-theme .form-card,.ihub-dark-theme .editor-card,.ihub-dark-theme .table-card,.ihub-dark-theme .credential-row { background:var(--ihub-surface);color:var(--ihub-text);border-color:var(--ihub-border); }
-.ihub-dark-theme .mat-mdc-cell,.ihub-dark-theme .mat-mdc-header-cell,.ihub-dark-theme .mat-mdc-paginator,.ihub-dark-theme .mat-mdc-card-subtitle,.ihub-dark-theme .description,.ihub-dark-theme .eyebrow,.ihub-dark-theme .page-header p { color:var(--ihub-muted); }
-.ihub-dark-theme .mat-mdc-header-row,.ihub-dark-theme .mat-mdc-row,.ihub-dark-theme .mat-mdc-paginator { background:var(--ihub-surface); }
-.ihub-dark-theme .mat-mdc-dialog-surface,.ihub-dark-theme .mat-mdc-menu-panel { background:var(--ihub-surface);color:var(--ihub-text); }
-.ihub-dark-theme .workspace,.ihub-dark-theme .page-content { background:var(--ihub-page); }
-.ihub-dark-theme .topbar { border-color:var(--ihub-border);background:rgb(17 27 43 / 94%);color:var(--ihub-text); }
-.ihub-dark-theme .mat-mdc-form-field .mdc-text-field--outlined,.ihub-dark-theme .mat-mdc-form-field .mdc-text-field--filled { background:transparent; }
-.ihub-dark-theme .mat-mdc-table { background:var(--ihub-surface); }
-@media (max-width: 700px) { .page { padding: 18px; } .page-header { flex-direction: column; } }
+.workspace, .page-content { background: var(--ihub-page); }
+.topbar { border-color: var(--ihub-border); background: color-mix(in srgb, var(--ihub-surface) 94%, transparent); color: var(--ihub-text); }
+
+@media (max-width: 700px) {
+  .page { padding: 18px; }
+  .page-header { flex-direction: column; }
+}

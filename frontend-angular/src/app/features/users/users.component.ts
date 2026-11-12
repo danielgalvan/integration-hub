@@ -34,7 +34,7 @@ import { UserListComponent } from './components/user-list.component';
     </section>
   `,
   styles: [`
-    .users-page{display:grid;gap:18px}.eyebrow{margin:4px 0;color:#667085;font-size:.68rem;font-weight:800;letter-spacing:.13em}.description{margin:6px 0 0;color:#667085}.error-banner{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:9px;background:#fef3f2;color:#b42318;font-size:.85rem}.error-banner button{margin-left:auto}
+    .users-page{display:grid;gap:18px}.eyebrow{margin:4px 0;color:var(--ihub-muted);font-size:.68rem;font-weight:800;letter-spacing:.13em}.description{margin:6px 0 0;color:var(--ihub-muted)}.error-banner{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:9px;background:var(--ihub-danger-container);color:var(--ihub-danger);font-size:.85rem}.error-banner button{margin-left:auto}
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

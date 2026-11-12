@@ -56,7 +56,7 @@ import { AuthType, Integration } from '../../../core/models';
     </mat-card>
   `,
   styles: [`
-    .editor-card{max-width:980px;margin:0 auto}.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 18px;padding-top:20px}.form-grid mat-form-field{width:100%}.wide{grid-column:1/-1}.toggle-cell{display:flex;align-items:center;min-height:56px}.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}.form-error{color:#b42318;margin:0 0 12px}@media(max-width:680px){.form-grid{grid-template-columns:1fr}.wide{grid-column:auto}}
+    .editor-card{max-width:980px;margin:0 auto}.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 18px;padding-top:20px}.form-grid mat-form-field{width:100%}.wide{grid-column:1/-1}.toggle-cell{display:flex;align-items:center;min-height:56px}.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}.form-error{color:var(--ihub-danger);margin:0 0 12px}@media(max-width:680px){.form-grid{grid-template-columns:1fr}.wide{grid-column:auto}}
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

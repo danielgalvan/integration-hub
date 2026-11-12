@@ -94,9 +94,15 @@ TypeScript 6, componentes standalone, Signals e Reactive Forms. Ela mantém o
 React intacto e pode rodar em paralelo com o mesmo backend.
 
 O Angular usa navegação lateral responsiva, tema claro/escuro, rotas carregadas
-sob demanda e componentes próprios para formulários, listagens e diálogos. A
-implementação cobre autenticação, perfis A/C/U, integrações, credenciais,
-endpoints, teste de chamadas, usuários e histórico paginado de execuções.
+sob demanda e componentes próprios para formulários, listagens e diálogos. O
+tema usa tokens de cor Material 3. A implementação cobre autenticação, perfis
+A/C/U, integrações, credenciais, endpoints, teste de chamadas, usuários e
+histórico paginado de execuções.
+
+Ao restaurar uma sessão salva, o Angular valida o token em `/api/auth/me`
+antes de criar as páginas protegidas. Se o backend estiver temporariamente
+indisponível, a sessão fica bloqueada na tela de validação e pode ser
+revalidada sem perder o token.
 
 Requer Node.js 22.22.3 ou superior na linha 22, ou 24.15.0 ou superior na
 linha 24. Para iniciar:
@@ -743,8 +749,16 @@ npm run build
 ``` bash
 cd frontend-angular
 npm run lint
+npm test
 npm run build
 ```
+
+Os testes Angular usam Vitest e o executor de testes do Angular CLI; cobrem
+sessão e guards, interceptor HTTP, login, serviços de API, formulários,
+validação dos parâmetros NUMBER/DATE/TIMESTAMP, chamada de endpoint e
+respostas concorrentes do histórico. Na revisão atual, `npm run lint` e
+`npm run build` passaram; `npm test` passou com 48 testes em 11 arquivos. O
+bundle inicial de produção ficou em 686,63 kB, abaixo do aviso de 750 kB.
 
 ------------------------------------------------------------------------
 
@@ -777,6 +791,7 @@ Frontend Angular
   Node 24
   npm ci
   lint
+  testes Vitest
   build
 ```
 

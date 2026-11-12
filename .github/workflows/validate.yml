@@ -93,6 +93,10 @@ jobs:
         run: npm run lint
         working-directory: frontend-angular
 
+      - name: Executar testes Angular
+        run: npm test
+        working-directory: frontend-angular
+
       - name: Gerar build Angular
         run: npm run build
         working-directory: frontend-angular

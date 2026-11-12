@@ -18,13 +18,16 @@
             "styles": ["src/styles.scss"]
           },
           "configurations": {
-            "production": { "budgets": [{ "type": "initial", "maximumWarning": "750kB", "maximumError": "1.5MB" }], "outputHashing": "all" },
+            "production": {
+              "budgets": [{ "type": "initial", "maximumWarning": "750kB", "maximumError": "1.5MB" }],
+              "outputHashing": "all"
+            },
             "development": { "optimization": false, "sourceMap": true }
           },
           "defaultConfiguration": "production"
         },
         "serve": { "builder": "@angular/build:dev-server", "options": { "proxyConfig": "proxy.conf.json" }, "configurations": { "development": { "buildTarget": "integration-hub-angular:build:development" }, "production": { "buildTarget": "integration-hub-angular:build:production" } }, "defaultConfiguration": "development" },
-        "test": { "builder": "@angular/build:karma", "options": { "polyfills": ["zone.js", "zone.js/testing"], "tsConfig": "tsconfig.spec.json", "assets": [{ "glob": "**/*", "input": "public" }], "styles": ["src/styles.scss"] } },
+        "test": { "builder": "@angular/build:unit-test", "options": { "runner": "vitest", "tsConfig": "tsconfig.spec.json" } },
         "lint": { "builder": "@angular-eslint/builder:lint", "options": { "lintFilePatterns": ["src/**/*.ts", "src/**/*.html"] } }
       }
     }

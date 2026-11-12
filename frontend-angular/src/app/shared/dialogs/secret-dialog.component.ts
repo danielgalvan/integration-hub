@@ -36,7 +36,7 @@ export interface SecretDialogData {
     <mat-dialog-actions align="end"><button mat-flat-button color="primary" mat-dialog-close>Entendi</button></mat-dialog-actions>
   `,
   styles: [`
-    mat-dialog-content{display:grid;gap:14px}.warning{display:flex;gap:10px;padding:12px;border-radius:9px;background:#fffaeb;color:#93370d;font-size:.88rem}.secret-label,.header-label{margin:0;color:#475467;font-size:.78rem;font-weight:700}.secret-value{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid #d0d5dd;border-radius:10px;background:#f9fafb}.secret-value code{flex:1;min-width:0;overflow-wrap:anywhere;font-size:.9rem}.secret-value button{flex:none}.header-value{display:block;padding:10px;background:#f2f4f7;border-radius:8px;overflow-wrap:anywhere;font-size:.76rem}
+    mat-dialog-content{display:grid;gap:14px}.warning{display:flex;gap:10px;padding:12px;border-radius:9px;background:var(--ihub-warning-container);color:var(--ihub-warning);font-size:.88rem}.secret-label,.header-label{margin:0;color:var(--ihub-text-secondary);font-size:.78rem;font-weight:700}.secret-value{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--ihub-outline);border-radius:10px;background:var(--ihub-surface-container)}.secret-value code{flex:1;min-width:0;overflow-wrap:anywhere;font-size:.9rem}.secret-value button{flex:none}.header-value{display:block;padding:10px;background:var(--ihub-surface-subtle);border-radius:8px;overflow-wrap:anywhere;font-size:.76rem}
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { catchError, map, of, Subject, switchMap } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { Endpoint, Execution, Integration, Page } from '../../core/models';
 import { ExecutionFilters, ExecutionFiltersComponent } from './components/execution-filters.component';
@@ -49,13 +51,15 @@ const EMPTY_PAGE: Page<Execution> = {
     </section>
   `,
   styles: [`
-    .executions-page{display:grid;gap:18px}.eyebrow{margin:4px 0;color:#667085;font-size:.68rem;font-weight:800;letter-spacing:.13em}.description{margin:6px 0 0;color:#667085}.error-banner{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:9px;background:#fef3f2;color:#b42318;font-size:.85rem}.error-banner button{margin-left:auto}
+    .executions-page{display:grid;gap:18px}.eyebrow{margin:4px 0;color:var(--ihub-muted);font-size:.68rem;font-weight:800;letter-spacing:.13em}.description{margin:6px 0 0;color:var(--ihub-muted)}.error-banner{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:9px;background:var(--ihub-danger-container);color:var(--ihub-danger);font-size:.85rem}.error-banner button{margin-left:auto}
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ExecutionsComponent {
   private readonly api = inject(ApiService);
   private readonly dialog = inject(MatDialog);
+  private readonly pageRequests = new Subject<{ page: number; size: number; filters: ExecutionFilters }>();
+  private readonly endpointRequests = new Subject<string>();
   readonly integrations = signal<Integration[]>([]);
   readonly endpoints = signal<Endpoint[]>([]);
   readonly filters = signal<ExecutionFilters>({ ...INITIAL_FILTERS });
@@ -67,6 +71,41 @@ export class ExecutionsComponent {
   readonly error = signal('');
 
   constructor() {
+    this.pageRequests.pipe(
+      switchMap(request => this.api.executions({ ...request.filters, page: request.page, size: request.size }).pipe(
+        map(result => ({ result, request })),
+        catchError(error => of({ error, request })),
+      )),
+      takeUntilDestroyed(),
+    ).subscribe(response => {
+      if ('result' in response) {
+        this.page.set(response.result);
+        this.loading.set(false);
+      } else {
+        this.error.set(response.error.error?.message || 'Não foi possível carregar o histórico de execuções.');
+        this.page.set({ ...EMPTY_PAGE, page: response.request.page, size: response.request.size });
+        this.loading.set(false);
+      }
+    });
+
+    this.endpointRequests.pipe(
+      switchMap(integrationId => integrationId
+        ? this.api.endpoints(Number(integrationId)).pipe(
+          map(endpoints => ({ endpoints })),
+          catchError(error => of({ error })),
+        )
+        : of({ endpoints: [] as Endpoint[] }),
+      ),
+      takeUntilDestroyed(),
+    ).subscribe(response => {
+      if ('endpoints' in response) {
+        this.endpoints.set(response.endpoints);
+      } else {
+        this.error.set(response.error.error?.message || 'Não foi possível carregar os endpoints deste filtro.');
+      }
+      this.loadingEndpoints.set(false);
+    });
+
     this.loadIntegrations();
     this.loadPage(0, EMPTY_PAGE.size);
   }
@@ -85,8 +124,7 @@ export class ExecutionsComponent {
   clearFilters(): void {
     this.filters.set({ ...INITIAL_FILTERS });
     this.appliedFilters.set({ ...INITIAL_FILTERS });
-    this.endpoints.set([]);
-    this.loadingEndpoints.set(false);
+    this.loadEndpoints('');
     this.loadPage(0, this.page().size);
   }
 
@@ -110,7 +148,7 @@ export class ExecutionsComponent {
 
   private loadIntegrations(): void {
     this.integrationsLoading.set(true);
-    this.api.integrations().subscribe({
+    this.api.integrations().pipe(takeUntilDestroyed()).subscribe({
       next: integrations => { this.integrations.set(integrations); this.integrationsLoading.set(false); },
       error: error => { this.error.set(error.error?.message || 'Não foi possível carregar as integrações dos filtros.'); this.integrationsLoading.set(false); },
     });
@@ -118,20 +156,13 @@ export class ExecutionsComponent {
 
   private loadEndpoints(integrationId: string): void {
     this.endpoints.set([]);
-    if (!integrationId) { this.loadingEndpoints.set(false); return; }
-    this.loadingEndpoints.set(true);
-    this.api.endpoints(Number(integrationId)).subscribe({
-      next: endpoints => { this.endpoints.set(endpoints); this.loadingEndpoints.set(false); },
-      error: error => { this.error.set(error.error?.message || 'Não foi possível carregar os endpoints deste filtro.'); this.loadingEndpoints.set(false); },
-    });
+    this.loadingEndpoints.set(Boolean(integrationId));
+    this.endpointRequests.next(integrationId);
   }
 
   private loadPage(page: number, size: number): void {
     this.loading.set(true);
     this.error.set('');
-    this.api.executions({ ...this.appliedFilters(), page, size }).subscribe({
-      next: result => { this.page.set(result); this.loading.set(false); },
-      error: error => { this.error.set(error.error?.message || 'Não foi possível carregar o histórico de execuções.'); this.page.set({ ...EMPTY_PAGE, page, size }); this.loading.set(false); },
-    });
+    this.pageRequests.next({ page, size, filters: { ...this.appliedFilters() } });
   }
 }

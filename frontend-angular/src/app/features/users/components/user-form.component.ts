@@ -29,7 +29,7 @@ import { User, UserRole } from '../../../core/models';
     </mat-card>
   `,
   styles: [`
-    .form-card{max-width:980px;margin:0 auto}.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 18px;padding-top:20px}.form-grid mat-form-field{width:100%}.info{display:flex;align-items:flex-start;gap:12px;margin:4px 0 16px;padding:13px;border-radius:9px;background:#eff8ff;color:#175cd3}.info p{margin:4px 0 0;color:#344054;font-size:.82rem}.form-error{color:#b42318}.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}@media(max-width:680px){.form-grid{grid-template-columns:1fr}}
+    .form-card{max-width:980px;margin:0 auto}.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 18px;padding-top:20px}.form-grid mat-form-field{width:100%}.info{display:flex;align-items:flex-start;gap:12px;margin:4px 0 16px;padding:13px;border-radius:9px;background:var(--ihub-info-container);color:var(--ihub-info)}.info p{margin:4px 0 0;color:var(--ihub-text-secondary);font-size:.82rem}.form-error{color:var(--ihub-danger)}.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}@media(max-width:680px){.form-grid{grid-template-columns:1fr}}
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
