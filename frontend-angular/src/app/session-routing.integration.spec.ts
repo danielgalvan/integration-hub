@@ -9,13 +9,13 @@ import { authGuard } from './core/auth/auth.guard';
 import { authInterceptor } from './core/auth/auth.interceptor';
 import { ShellComponent } from './layout/shell.component';
 
-@Component({ standalone: true, template: '<p>Integrações protegidas pela rota</p>' })
+@Component({ selector: 'ihub-test-integrations-route', standalone: true, template: '<p>Integrações protegidas pela rota</p>' })
 class IntegrationsRouteStub {}
 
-@Component({ standalone: true, template: '<p>Troca obrigatória de senha</p>' })
+@Component({ selector: 'ihub-test-change-password-route', standalone: true, template: '<p>Troca obrigatória de senha</p>' })
 class ChangePasswordRouteStub {}
 
-@Component({ standalone: true, template: '<p>Tela de login</p>' })
+@Component({ selector: 'ihub-test-login-route', standalone: true, template: '<p>Tela de login</p>' })
 class LoginRouteStub {}
 
 describe('fluxo integrado de sessão e rotas', () => {

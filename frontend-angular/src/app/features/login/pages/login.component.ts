@@ -37,10 +37,14 @@ export class LoginComponent {
   });
 
   constructor() {
+    this.form.controls.environment.disable({ emitEvent: false });
     this.api.environments().subscribe({
       next: environments => {
         this.environments.set(environments);
-        if (environments[0]) this.form.controls.environment.setValue(environments[0].id);
+        if (environments[0]) {
+          this.form.controls.environment.setValue(environments[0].id);
+          this.form.controls.environment.enable({ emitEvent: false });
+        }
         if (!environments.length) this.error.set('Nenhum ambiente está disponível para acesso.');
         this.loadingEnvironments.set(false);
       },

@@ -35,7 +35,7 @@
 
         <mat-form-field appearance="outline">
           <mat-label>Ambiente</mat-label>
-          <mat-select formControlName="environment" [disabled]="loadingEnvironments() || !environments().length">
+          <mat-select formControlName="environment">
             <mat-select-trigger>
               {{ environments().find(item => item.id === form.controls.environment.value)?.name || 'Selecione um ambiente' }}
             </mat-select-trigger>

@@ -39,16 +39,30 @@ export class ExecutionFiltersComponent implements OnChanges {
   private readonly fb = inject(FormBuilder);
   readonly form = this.fb.nonNullable.group({ integrationId: [''], endpointId: [''], executionStatus: [''], startedFrom: [''], startedTo: [''] });
 
+  constructor() {
+    this.syncEndpointControlState();
+  }
+
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['filters']) this.form.reset(this.filters, { emitEvent: false });
+    this.syncEndpointControlState();
   }
 
   String(value: number | undefined): string { return value === undefined ? '' : String(value); }
 
   integrationChanged(): void {
     this.form.controls.endpointId.setValue('', { emitEvent: false });
+    this.syncEndpointControlState();
     this.emitFilters();
   }
 
   emitFilters(): void { this.filtersChange.emit(this.form.getRawValue()); }
+
+  private syncEndpointControlState(): void {
+    const endpointControl = this.form.controls.endpointId;
+    const shouldDisable = !this.form.controls.integrationId.value || this.loadingEndpoints;
+
+    if (shouldDisable && endpointControl.enabled) endpointControl.disable({ emitEvent: false });
+    else if (!shouldDisable && endpointControl.disabled) endpointControl.enable({ emitEvent: false });
+  }
 }

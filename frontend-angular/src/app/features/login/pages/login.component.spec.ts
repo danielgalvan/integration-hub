@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthApiService } from '../../../core/auth/auth-api.service';
 import { SessionService } from '../../../core/auth/session.service';
@@ -42,6 +42,34 @@ describe('LoginComponent', () => {
     expect(TestBed.inject(SessionService).token()).toBe('signed-token');
     expect(navigate).toHaveBeenCalledWith('/integrations');
     fixture.destroy();
+  });
+
+  it('enables environment selection after loading and keeps it disabled when no environments are available', () => {
+    const environments = new Subject<{ id: string; name: string }[]>();
+    api.environments.mockReturnValue(environments);
+    const fixture = TestBed.createComponent(LoginComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance;
+
+    expect(component.form.controls.environment.disabled).toBe(true);
+
+    environments.next([{ id: 'cloud', name: 'Cloud' }]);
+
+    expect(component.form.controls.environment.enabled).toBe(true);
+    expect(component.form.controls.environment.value).toBe('cloud');
+
+    fixture.destroy();
+
+    const emptyEnvironments = new Subject<{ id: string; name: string }[]>();
+    api.environments.mockReturnValue(emptyEnvironments);
+    const emptyFixture = TestBed.createComponent(LoginComponent);
+    emptyFixture.detectChanges();
+    emptyEnvironments.next([]);
+
+    expect(emptyFixture.componentInstance.form.controls.environment.disabled).toBe(true);
+    expect(emptyFixture.componentInstance.error()).toBe('Nenhum ambiente está disponível para acesso.');
+
+    emptyFixture.destroy();
   });
 
   it('shows a compact login form with environment after username and password', () => {
