@@ -8,8 +8,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { AuthApiService } from '../../../core/auth-api.service';
-import { SessionService } from '../../../core/session.service';
+import { AuthApiService } from '../../../core/auth/auth-api.service';
+import { SessionService } from '../../../core/auth/session.service';
 
 @Component({
   standalone: true,

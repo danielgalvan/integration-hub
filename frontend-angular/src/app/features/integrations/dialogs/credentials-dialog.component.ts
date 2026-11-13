@@ -5,7 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Observable } from 'rxjs';
-import { ApiKeyResponse, Credential, Integration } from '../models/integration.models';
+import { ApiKeyResponse, Credential, CredentialDraft, PersistedIntegration } from '../models/integration.models';
 import { ConfirmationService } from '../../../shared/dialogs/confirmation.service';
 import { SecretDialogComponent } from '../../../shared/dialogs/secret-dialog.component';
 import { IntegrationsApiService } from '../services/integrations-api.service';
@@ -25,13 +25,13 @@ export class CredentialsDialogComponent {
   private readonly confirmation = inject(ConfirmationService);
   private readonly snack = inject(MatSnackBar);
   readonly items = signal<Credential[]>([]);
-  readonly editing = signal<Credential | null>(null);
+  readonly editing = signal<CredentialDraft | null>(null);
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly error = signal('');
   readonly formError = signal('');
 
-  readonly integration = inject<Integration>(MAT_DIALOG_DATA);
+  readonly integration = inject<PersistedIntegration>(MAT_DIALOG_DATA);
 
   constructor() {
     this.load();
@@ -39,7 +39,7 @@ export class CredentialsDialogComponent {
 
   load(): void {
     this.loading.set(true);
-    this.api.credentials(this.integration.id!).subscribe({
+    this.api.credentials(this.integration.id).subscribe({
       next: items => {
         this.items.set(items);
         this.loading.set(false);
@@ -54,7 +54,7 @@ export class CredentialsDialogComponent {
   newCredential(): void {
     this.error.set('');
     this.formError.set('');
-    this.editing.set({} as Credential);
+    this.editing.set({ name: '' });
   }
 
   editCredential(credential: Credential): void {
@@ -73,9 +73,9 @@ export class CredentialsDialogComponent {
     if (!current || this.saving()) return;
     this.saving.set(true);
     this.formError.set('');
-    const request: Observable<Credential | ApiKeyResponse> = current.id
-      ? this.api.updateCredential(this.integration.id!, current.id, name)
-      : this.api.createCredential(this.integration.id!, name);
+    const request: Observable<Credential | ApiKeyResponse> = current.id !== undefined
+      ? this.api.updateCredential(this.integration.id, current.id, name)
+      : this.api.createCredential(this.integration.id, name);
 
     request.subscribe({
       next: result => {
@@ -93,7 +93,7 @@ export class CredentialsDialogComponent {
   }
 
   viewKey(credential: Credential): void {
-    this.api.credentialKey(this.integration.id!, credential.id).subscribe({
+    this.api.credentialKey(this.integration.id, credential.id).subscribe({
       next: result => this.showKey(result.apiKey, `API Key · ${credential.name}`),
       error: error => this.error.set(error.error?.message || 'Não foi possível consultar a API Key.'),
     });
@@ -107,7 +107,7 @@ export class CredentialsDialogComponent {
       destructive: true,
     }).subscribe(confirmed => {
       if (!confirmed) return;
-      this.api.credentialKey(this.integration.id!, credential.id, true).subscribe({
+      this.api.credentialKey(this.integration.id, credential.id, true).subscribe({
         next: result => this.showKey(result.apiKey, `API Key regenerada · ${credential.name}`),
         error: error => this.error.set(error.error?.message || 'Não foi possível regenerar a API Key.'),
       });
@@ -125,7 +125,7 @@ export class CredentialsDialogComponent {
       destructive: !active,
     }).subscribe(confirmed => {
       if (!confirmed) return;
-      this.api.setCredentialActive(this.integration.id!, credential.id, active).subscribe({
+      this.api.setCredentialActive(this.integration.id, credential.id, active).subscribe({
         next: () => {
           this.snack.open(active ? 'Credencial ativada.' : 'Credencial desativada.', 'Fechar', { duration: 1800 });
           this.load();

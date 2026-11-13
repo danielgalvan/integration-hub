@@ -2,8 +2,8 @@ import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { AuthApiService } from '../../../core/auth-api.service';
-import { SessionService } from '../../../core/session.service';
+import { AuthApiService } from '../../../core/auth/auth-api.service';
+import { SessionService } from '../../../core/auth/session.service';
 import { ChangePasswordComponent } from './change-password.component';
 
 describe('ChangePasswordComponent', () => {

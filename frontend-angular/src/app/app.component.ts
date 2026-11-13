@@ -3,9 +3,9 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
-import { AuthApiService } from './core/auth-api.service';
-import { SessionService } from './core/session.service';
-import { ThemeService } from './core/theme.service';
+import { AuthApiService } from './core/auth/auth-api.service';
+import { SessionService } from './core/auth/session.service';
+import { ThemeService } from './core/services/theme.service';
 import { ShellComponent } from './layout/shell.component';
 
 @Component({

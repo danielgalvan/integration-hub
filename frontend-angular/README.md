@@ -33,7 +33,10 @@ O código fica em `src/app` e é organizado por funcionalidade:
 
 ```text
 src/app/
-├── core/                 # autenticação, sessão, guards, interceptor e modelos comuns
+├── core/
+│   ├── auth/              # API de autenticação, sessão, guards e interceptor JWT
+│   ├── models/            # tipos transversais e autenticação
+│   └── services/          # serviços de infraestrutura, como o tema
 ├── layout/               # shell da aplicação e navegação
 ├── shared/dialogs/       # confirmação e exibição segura de segredos
 └── features/

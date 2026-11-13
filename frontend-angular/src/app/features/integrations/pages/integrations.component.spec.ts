@@ -5,7 +5,7 @@ import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { Integration } from '../models/integration.models';
-import { SessionService } from '../../../core/session.service';
+import { SessionService } from '../../../core/auth/session.service';
 import { ConfirmationService } from '../../../shared/dialogs/confirmation.service';
 import { IntegrationsComponent } from './integrations.component';
 import { IntegrationsApiService } from '../services/integrations-api.service';

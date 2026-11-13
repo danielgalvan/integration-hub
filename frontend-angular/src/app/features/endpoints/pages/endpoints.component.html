@@ -12,16 +12,20 @@
       @if (!integration() && !loading()) {
         <section class="empty-card"><mat-icon>hub</mat-icon><h3>Integração não encontrada</h3><p>Volte ao catálogo e selecione uma integração.</p><button mat-button type="button" (click)="back()">Voltar para integrações</button></section>
       } @else if (integration() && formOpen()) {
-        <ihub-endpoint-form
-          [integrationId]="integration()!.id!"
-          [endpoint]="editing()"
-          [readOnly]="!session.canEdit()"
-          [saving]="saving()"
-          [error]="formError()"
-          (saved)="save($event)"
-          (validationError)="formError.set($event)"
-          (cancel)="closeForm()"
-        />
+        @if (integration()?.id; as integrationId) {
+          <ihub-endpoint-form
+            [integrationId]="integrationId"
+            [endpoint]="editing()"
+            [readOnly]="!session.canEdit()"
+            [saving]="saving()"
+            [error]="formError()"
+            (saved)="save($event)"
+            (validationError)="formError.set($event)"
+            (cancel)="closeForm()"
+          />
+        } @else {
+          <div class="error-banner" role="alert">Não foi possível identificar a integração selecionada.</div>
+        }
       } @else if (integration() && !loading()) {
         <ihub-endpoint-list
           [endpoints]="items()"

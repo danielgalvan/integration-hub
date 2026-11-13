@@ -9,9 +9,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
-import { AuthApiService } from '../../../core/auth-api.service';
+import { AuthApiService } from '../../../core/auth/auth-api.service';
 import { Environment } from '../../../core/models/auth.models';
-import { SessionService } from '../../../core/session.service';
+import { SessionService } from '../../../core/auth/session.service';
 
 @Component({
   selector: 'ihub-login',

@@ -5,8 +5,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { Integration } from '../models/integration.models';
-import { SessionService } from '../../../core/session.service';
+import { Integration, PersistedIntegration } from '../models/integration.models';
+import { SessionService } from '../../../core/auth/session.service';
 import { ConfirmationService } from '../../../shared/dialogs/confirmation.service';
 import { SecretDialogComponent } from '../../../shared/dialogs/secret-dialog.component';
 import { IntegrationsApiService } from '../services/integrations-api.service';
@@ -104,11 +104,12 @@ export class IntegrationsComponent {
   }
 
   manageCredentials(integration: Integration): void {
-    if (!this.session.canEdit() || integration.authType !== 'API_KEY') return;
+    if (!this.session.canEdit() || integration.authType !== 'API_KEY' || integration.id === undefined) return;
+    const persistedIntegration: PersistedIntegration = { ...integration, id: integration.id };
     this.dialog.open(CredentialsDialogComponent, {
       width: 'min(900px, 96vw)',
       maxWidth: '96vw',
-      data: integration,
+      data: persistedIntegration,
       autoFocus: 'dialog',
       restoreFocus: true,
     });
@@ -146,7 +147,8 @@ export class IntegrationsComponent {
   }
 
   removeIntegration(integration: Integration): void {
-    if (!this.session.canEdit() || !integration.id) return;
+    const integrationId = integration.id;
+    if (!this.session.canEdit() || integrationId === undefined) return;
     this.confirm.confirm({
       title: 'Excluir integração?',
       message: `A integração “${integration.name}” será removida. Essa ação não pode ser desfeita.`,
@@ -154,7 +156,7 @@ export class IntegrationsComponent {
       destructive: true,
     }).subscribe(confirmed => {
       if (!confirmed) return;
-      this.api.deleteIntegration(integration.id!).subscribe({
+      this.api.deleteIntegration(integrationId).subscribe({
         next: () => {
           this.snack.open('Integração excluída.', 'Fechar', { duration: 2200 });
           this.load();

@@ -5,8 +5,8 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { afterEach, describe, expect, it } from 'vitest';
 import { AppComponent } from './app.component';
-import { authGuard } from './core/auth.guard';
-import { authInterceptor } from './core/auth.interceptor';
+import { authGuard } from './core/auth/auth.guard';
+import { authInterceptor } from './core/auth/auth.interceptor';
 import { ShellComponent } from './layout/shell.component';
 
 @Component({ standalone: true, template: '<p>Integrações protegidas pela rota</p>' })

@@ -2,8 +2,8 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { AuthApiService } from '../../../core/auth-api.service';
-import { SessionService } from '../../../core/session.service';
+import { AuthApiService } from '../../../core/auth/auth-api.service';
+import { SessionService } from '../../../core/auth/session.service';
 import { LoginComponent } from './login.component';
 
 describe('LoginComponent', () => {

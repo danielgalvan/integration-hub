@@ -6,7 +6,7 @@ import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { Endpoint } from '../models/endpoint.models';
 import { Integration } from '../../integrations/models/integration.models';
-import { SessionService } from '../../../core/session.service';
+import { SessionService } from '../../../core/auth/session.service';
 import { ConfirmationService } from '../../../shared/dialogs/confirmation.service';
 import { EndpointsComponent } from './endpoints.component';
 import { EndpointsApiService } from '../services/endpoints-api.service';

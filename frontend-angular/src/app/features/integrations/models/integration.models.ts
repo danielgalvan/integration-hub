@@ -10,6 +10,8 @@ export interface Integration {
   apiKeyCreatedAt?: string;
 }
 
+export type PersistedIntegration = Integration & { id: number };
+
 export interface Credential {
   id: number;
   integrationId: number;
@@ -19,6 +21,11 @@ export interface Credential {
   createdBy?: string;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface CredentialDraft {
+  id?: number;
+  name: string;
 }
 
 export interface ApiKeyResponse {

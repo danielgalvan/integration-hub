@@ -1,6 +1,6 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { AuthUser, LoginResponse } from './models/auth.models';
-import { UserRole } from './models/common.models';
+import { AuthUser, LoginResponse } from '../models/auth.models';
+import { UserRole } from '../models/common.models';
 
 const KEYS = {
   token: 'ihub_token',

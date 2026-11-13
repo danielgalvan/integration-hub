@@ -38,11 +38,12 @@ export class EndpointTestDialogComponent {
   constructor(@Inject(MAT_DIALOG_DATA) readonly data: EndpointTestDialogData) {
     const controls: Record<string, FormControl<string>> = {};
     data.endpoint.parameters.forEach(parameter => {
+      const validator = parameterValueValidator(parameter.type);
       controls[parameter.name] = new FormControl('', {
         nonNullable: true,
         validators: [
           ...(parameter.required ? [Validators.required] : []),
-          ...(parameterValueValidator(parameter.type) ? [parameterValueValidator(parameter.type)!] : []),
+          ...(validator ? [validator] : []),
         ],
       });
     });
@@ -78,7 +79,7 @@ export class EndpointTestDialogComponent {
     }
   }
 
-  inputMode(type: string): string | null { return type === 'NUMBER' || type === 'DATE' || type === 'TIMESTAMP' ? 'decimal' : null; }
+  inputMode(type: string): string | null { return type === 'NUMBER' ? 'decimal' : null; }
 
   execute(): void {
     if (this.parametersForm.invalid || (this.data.integration.authType === 'API_KEY' && this.apiKey.invalid)) {

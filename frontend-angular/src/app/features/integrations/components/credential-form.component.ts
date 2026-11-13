@@ -3,7 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { Credential } from '../models/integration.models';
+import { CredentialDraft } from '../models/integration.models';
 
 @Component({
   selector: 'ihub-credential-form',
@@ -16,7 +16,7 @@ import { Credential } from '../models/integration.models';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CredentialFormComponent implements OnChanges {
-  @Input() credential: Credential | null = null;
+  @Input() credential: CredentialDraft | null = null;
   @Input() saving = false;
   @Input() error = '';
   @Output() saved = new EventEmitter<string>();

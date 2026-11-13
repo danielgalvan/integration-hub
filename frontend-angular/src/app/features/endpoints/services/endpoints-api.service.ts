@@ -1,7 +1,7 @@
 import { HttpClient, HttpContext, HttpHeaders, HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { SKIP_AUTH_REDIRECT } from '../../../core/auth.interceptor';
+import { SKIP_AUTH_REDIRECT } from '../../../core/auth/auth.interceptor';
 import { Endpoint } from '../models/endpoint.models';
 import { Integration } from '../../integrations/models/integration.models';
 import { buildEndpointUrl } from '../utils/endpoint-url';

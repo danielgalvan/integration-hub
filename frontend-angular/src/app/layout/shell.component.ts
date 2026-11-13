@@ -10,8 +10,8 @@ import { MatListModule } from '@angular/material/list';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { SessionService } from '../core/session.service';
-import { ThemeService } from '../core/theme.service';
+import { SessionService } from '../core/auth/session.service';
+import { ThemeService } from '../core/services/theme.service';
 
 @Component({
   selector: 'ihub-shell',

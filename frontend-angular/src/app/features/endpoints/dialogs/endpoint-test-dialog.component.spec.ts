@@ -90,4 +90,15 @@ describe('EndpointTestDialogComponent', () => {
     expect(api.execute).toHaveBeenCalledWith(keyIntegration, endpoint, { id: '42', data: '' }, 'ihub_test_key');
     fixture.destroy();
   });
+
+  it('uses a numeric keyboard only for NUMBER parameters', () => {
+    const fixture = TestBed.createComponent(EndpointTestDialogComponent);
+    const component = fixture.componentInstance;
+
+    expect(component.inputMode('NUMBER')).toBe('decimal');
+    expect(component.inputMode('DATE')).toBeNull();
+    expect(component.inputMode('TIMESTAMP')).toBeNull();
+
+    fixture.destroy();
+  });
 });

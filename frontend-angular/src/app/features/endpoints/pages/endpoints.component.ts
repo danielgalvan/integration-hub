@@ -7,7 +7,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Endpoint } from '../models/endpoint.models';
 import { Integration } from '../../integrations/models/integration.models';
-import { SessionService } from '../../../core/session.service';
+import { SessionService } from '../../../core/auth/session.service';
 import { ConfirmationService } from '../../../shared/dialogs/confirmation.service';
 import { EndpointFormComponent } from '../components/endpoint-form.component';
 import { EndpointListComponent } from '../components/endpoint-list.component';
@@ -110,7 +110,8 @@ export class EndpointsComponent {
   }
 
   remove(endpoint: Endpoint): void {
-    if (!this.session.canEdit() || !endpoint.id) return;
+    const endpointId = endpoint.id;
+    if (!this.session.canEdit() || endpointId === undefined) return;
     this.confirmation.confirm({
       title: 'Excluir endpoint?',
       message: `O endpoint “${endpoint.name}” será removido permanentemente. Essa ação não pode ser desfeita.`,
@@ -118,7 +119,7 @@ export class EndpointsComponent {
       destructive: true,
     }).subscribe(confirmed => {
       if (!confirmed) return;
-      this.endpointsApi.deleteEndpoint(endpoint.id!).subscribe({
+      this.endpointsApi.deleteEndpoint(endpointId).subscribe({
         next: () => { this.snack.open('Endpoint excluído.', 'Fechar', { duration: 1800 }); this.loadEndpoints(); },
         error: error => this.error.set(error.error?.message || 'Não foi possível excluir o endpoint.'),
       });

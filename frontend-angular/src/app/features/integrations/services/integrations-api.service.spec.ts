@@ -3,7 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { authInterceptor } from '../../../core/auth.interceptor';
+import { authInterceptor } from '../../../core/auth/auth.interceptor';
 import { Integration } from '../models/integration.models';
 import { IntegrationsApiService } from './integrations-api.service';
 

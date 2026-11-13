@@ -4,8 +4,8 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { AppComponent } from './app.component';
-import { authInterceptor } from './core/auth.interceptor';
-import { SessionService } from './core/session.service';
+import { authInterceptor } from './core/auth/auth.interceptor';
+import { SessionService } from './core/auth/session.service';
 import { ShellComponent } from './layout/shell.component';
 
 describe('AppComponent session gate', () => {

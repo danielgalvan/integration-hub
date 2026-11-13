@@ -3,10 +3,10 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { authInterceptor, SKIP_AUTH_REDIRECT } from '../../../core/auth.interceptor';
+import { authInterceptor, SKIP_AUTH_REDIRECT } from '../../../core/auth/auth.interceptor';
 import { Endpoint } from '../models/endpoint.models';
 import { Integration } from '../../integrations/models/integration.models';
-import { SessionService } from '../../../core/session.service';
+import { SessionService } from '../../../core/auth/session.service';
 import { EndpointsApiService } from './endpoints-api.service';
 
 const integration: Integration = {
