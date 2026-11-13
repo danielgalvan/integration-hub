@@ -1,0 +1,18 @@
+    <section class="page executions-page">
+      <header class="page-header"><div><p class="eyebrow">AUDITORIA</p><h2>Histórico de execuções</h2><p class="description">Consulte chamadas, resultados, credenciais e tempos registrados pelas integrações.</p></div>
+        <button mat-stroked-button type="button" [disabled]="loading()" (click)="refresh()"><mat-icon>refresh</mat-icon>Atualizar</button>
+      </header>
+      @if (error()) { <div class="error-banner" role="alert"><mat-icon>error_outline</mat-icon>{{ error() }}<button mat-button type="button" (click)="error.set('')">Fechar</button></div> }
+      @if (integrationsLoading()) { <mat-progress-bar mode="indeterminate" /> }
+      <ihub-execution-filters
+        [filters]="filters()"
+        [integrations]="integrations()"
+        [endpoints]="endpoints()"
+        [loadingEndpoints]="loadingEndpoints()"
+        [loading]="loading()"
+        (filtersChange)="updateFilters($event)"
+        (search)="search()"
+        (clear)="clearFilters()"
+      />
+      <ihub-execution-list [page]="page()" [loading]="loading()" (details)="showDetails($event)" (pageChange)="changePage($event.pageIndex, $event.pageSize)" />
+    </section>

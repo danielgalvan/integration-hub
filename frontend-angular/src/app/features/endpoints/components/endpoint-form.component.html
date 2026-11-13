@@ -1,0 +1,64 @@
+    <mat-card class="editor-card">
+      <mat-card-header>
+        <mat-card-title>{{ readOnly ? 'Visualizar endpoint' : endpoint?.id ? 'Editar endpoint' : 'Novo endpoint' }}</mat-card-title>
+        <mat-card-subtitle>{{ readOnly ? 'SQL, parâmetros e status deste endpoint.' : 'Configure a rota GET e a consulta SQL parametrizada.' }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <form [formGroup]="form" (ngSubmit)="submit()">
+          <div class="form-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>Nome</mat-label>
+              <input matInput formControlName="name" maxlength="100" placeholder="Buscar pedidos">
+              @if (form.controls.name.hasError('required')) { <mat-error>Informe o nome do endpoint.</mat-error> }
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Caminho</mat-label>
+              <input matInput formControlName="path" maxlength="200" placeholder="/buscar">
+              @if (form.controls.path.hasError('required')) { <mat-error>Informe o caminho.</mat-error> }
+              @if (form.controls.path.hasError('pattern')) { <mat-error>O caminho deve começar com /.</mat-error> }
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="wide">
+              <mat-label>Descrição</mat-label>
+              <textarea matInput formControlName="description" rows="2" maxlength="500"></textarea>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="wide sql-field">
+              <mat-label>SQL de leitura</mat-label>
+              <textarea matInput formControlName="sqlText" rows="8" placeholder="select id, nome from cliente where id = :id"></textarea>
+              @if (form.controls.sqlText.hasError('required')) { <mat-error>Informe a consulta SQL.</mat-error> }
+            </mat-form-field>
+            <div class="toggle-cell"><mat-slide-toggle formControlName="active">Endpoint ativo</mat-slide-toggle><span class="method-chip">GET</span></div>
+          </div>
+
+          <section class="parameters-section">
+            <div class="parameters-heading">
+              <div><h3>Parâmetros</h3><p>{{ readOnly ? 'Parâmetros associados às bind variables do SQL.' : 'Gere a lista a partir das bind variables e configure o tipo de cada parâmetro.' }}</p></div>
+              @if (!readOnly) { <button mat-stroked-button type="button" (click)="generateParameters()"><mat-icon>auto_awesome</mat-icon>Gerar pelo SQL</button> }
+            </div>
+            @if (!parameters.length) { <div class="parameter-empty">Este endpoint não possui parâmetros configurados.</div> }
+            <div class="parameter-list" formArrayName="parameters">
+              @for (parameter of parameters.controls; track parameter.controls.name.value; let index = $index) {
+                <div class="parameter-row" [formGroupName]="index">
+                  <mat-form-field appearance="outline" class="parameter-name"><mat-label>Bind variable</mat-label><input matInput formControlName="name" readonly></mat-form-field>
+                  <mat-form-field appearance="outline" class="parameter-type">
+                    <mat-label>Tipo</mat-label>
+                    <mat-select formControlName="type">
+                      <mat-option value="VARCHAR2">Texto (VARCHAR2)</mat-option>
+                      <mat-option value="NUMBER">Número (NUMBER)</mat-option>
+                      <mat-option value="DATE">Data (DATE)</mat-option>
+                      <mat-option value="TIMESTAMP">Data e hora (TIMESTAMP)</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                  <mat-slide-toggle formControlName="required">Obrigatório</mat-slide-toggle>
+                </div>
+              }
+            </div>
+          </section>
+
+          @if (error) { <p class="form-error" role="alert">{{ error }}</p> }
+          <div class="form-actions">
+            <button mat-button type="button" (click)="cancel.emit()">{{ readOnly ? 'Voltar' : 'Cancelar' }}</button>
+            @if (!readOnly) { <button mat-flat-button color="primary" [disabled]="form.invalid || saving">{{ saving ? 'Salvando…' : endpoint?.id ? 'Salvar alterações' : 'Criar endpoint' }}</button> }
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>

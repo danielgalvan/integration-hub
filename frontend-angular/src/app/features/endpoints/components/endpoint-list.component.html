@@ -1,0 +1,30 @@
+    @if (endpoints.length) {
+      <div class="table-card">
+        <table mat-table [dataSource]="endpoints" class="endpoint-table">
+          <ng-container matColumnDef="endpoint">
+            <th mat-header-cell *matHeaderCellDef>Endpoint</th>
+            <td mat-cell *matCellDef="let item"><strong>{{ item.name }}</strong><small>{{ item.description || 'Sem descrição' }}</small><code>{{ item.method }} {{ item.path }}</code></td>
+          </ng-container>
+          <ng-container matColumnDef="parameters">
+            <th mat-header-cell *matHeaderCellDef>Parâmetros</th>
+            <td mat-cell *matCellDef="let item">{{ item.parameters?.length || 0 }}</td>
+          </ng-container>
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let item"><span class="status" [class.inactive]="item.active !== 'S'">{{ item.active === 'S' ? 'Ativo' : 'Inativo' }}</span></td>
+          </ng-container>
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef>Ações</th>
+            <td mat-cell *matCellDef="let item" class="actions">
+              <button mat-stroked-button type="button" [disabled]="item.active !== 'S'" (click)="test.emit(item)"><mat-icon>play_arrow</mat-icon>Testar</button>
+              <button mat-icon-button type="button" [matTooltip]="canEdit ? 'Editar endpoint' : 'Visualizar endpoint'" (click)="edit.emit(item)"><mat-icon>{{ canEdit ? 'edit' : 'visibility' }}</mat-icon></button>
+              @if (canEdit) { <button mat-icon-button color="warn" type="button" matTooltip="Excluir endpoint" (click)="remove.emit(item)"><mat-icon>delete_outline</mat-icon></button> }
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="columns"></tr>
+          <tr mat-row *matRowDef="let row; columns: columns"></tr>
+        </table>
+      </div>
+    } @else if (!loading) {
+      <section class="empty-card"><mat-icon>api</mat-icon><h3>Nenhum endpoint cadastrado</h3><p>Adicione um endpoint GET para publicar uma consulta de leitura.</p></section>
+    }

@@ -1,0 +1,14 @@
+    <mat-card class="form-card"><mat-card-header><mat-card-title>{{ user ? 'Editar usuário' : 'Novo usuário' }}</mat-card-title><mat-card-subtitle>{{ user ? 'Atualize os dados e o perfil de acesso.' : 'A senha temporária será gerada automaticamente após o cadastro.' }}</mat-card-subtitle></mat-card-header>
+      <mat-card-content><form [formGroup]="form" (ngSubmit)="submit()">
+        <div class="form-grid">
+          <mat-form-field appearance="outline"><mat-label>Usuário</mat-label><input matInput formControlName="username" maxlength="100" autocomplete="off">@if (form.controls.username.hasError('required')) { <mat-error>Usuário é obrigatório.</mat-error> }</mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Nome</mat-label><input matInput formControlName="name" maxlength="200" autocomplete="off">@if (form.controls.name.hasError('required')) { <mat-error>Nome é obrigatório.</mat-error> }</mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>E-mail</mat-label><input matInput type="email" formControlName="email" maxlength="200" autocomplete="off">@if (form.controls.email.hasError('email')) { <mat-error>Informe um e-mail válido.</mat-error> }</mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Perfil</mat-label><mat-select formControlName="type"><mat-option value="A">Administrador</mat-option><mat-option value="C">Criador</mat-option><mat-option value="U">Consumidor</mat-option></mat-select></mat-form-field>
+          @if (user) { <mat-form-field appearance="outline"><mat-label>Status</mat-label><mat-select formControlName="status"><mat-option value="A">Ativo</mat-option><mat-option value="I">Inativo</mat-option></mat-select></mat-form-field> }
+        </div>
+        @if (!user) { <section class="info"><mat-icon>info</mat-icon><div><strong>Senha temporária</strong><p>O sistema gera uma senha após o cadastro. No primeiro acesso, o usuário deverá alterá-la.</p></div></section> }
+        @if (error) { <p class="form-error" role="alert">{{ error }}</p> }
+        <div class="actions"><button mat-button type="button" [disabled]="saving" (click)="cancel.emit()">Cancelar</button><button mat-flat-button color="primary" type="submit" [disabled]="form.invalid || saving"><mat-icon>{{ user ? 'save' : 'person_add' }}</mat-icon>{{ saving ? 'Salvando…' : user ? 'Salvar alterações' : 'Criar usuário' }}</button></div>
+      </form></mat-card-content>
+    </mat-card>

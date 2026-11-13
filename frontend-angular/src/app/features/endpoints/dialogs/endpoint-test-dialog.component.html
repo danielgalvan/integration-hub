@@ -1,0 +1,31 @@
+    <h2 mat-dialog-title class="dialog-title"><span><small>TESTE DE EXECUÇÃO</small>{{ data.endpoint.name }}</span><button mat-icon-button type="button" mat-dialog-close aria-label="Fechar"><mat-icon>close</mat-icon></button></h2>
+    <mat-dialog-content class="dialog-content">
+      <p class="route-line"><span class="method">GET</span><code>{{ data.integration.basePath }}{{ data.endpoint.path }}</code></p>
+      @if (loading()) { <mat-progress-bar mode="indeterminate" /> }
+      <form [formGroup]="parametersForm" (ngSubmit)="execute()">
+        @if (data.integration.authType === 'API_KEY') {
+          <section class="field-section"><h3>Autenticação</h3>
+            <mat-form-field appearance="outline" class="full"><mat-label>API Key</mat-label><input matInput type="password" [formControl]="apiKey" placeholder="ihub_..." autocomplete="off" required><mat-hint>Enviada no header X-API-Key</mat-hint>@if (apiKey.hasError('required') && apiKey.touched) { <mat-error>Informe a API Key da integração.</mat-error> }</mat-form-field>
+          </section>
+        }
+        <section class="field-section"><h3>Parâmetros</h3>
+          @if (data.endpoint.parameters.length) {
+            <div class="parameter-grid">
+              @for (parameter of data.endpoint.parameters; track parameter.name) {
+                <mat-form-field appearance="outline"><mat-label>{{ parameter.name }}{{ parameter.required ? ' *' : '' }}</mat-label><input matInput type="text" [formControlName]="parameter.name" [placeholder]="hint(parameter.type)" [attr.inputmode]="inputMode(parameter.type)"><mat-hint>{{ parameterHint(parameter.type) }}</mat-hint>@if (parametersForm.controls[parameter.name].hasError('required') && parametersForm.controls[parameter.name].touched) { <mat-error>Este parâmetro é obrigatório.</mat-error> } @else if (parametersForm.controls[parameter.name].invalid && parametersForm.controls[parameter.name].touched) { <mat-error>{{ parameterError(parameter.type) }}</mat-error> }</mat-form-field>
+              }
+            </div>
+          } @else { <p class="no-parameters">Este endpoint não possui parâmetros.</p> }
+          <button mat-flat-button color="primary" type="submit" [disabled]="loading() || parametersForm.invalid || (data.integration.authType === 'API_KEY' && apiKey.invalid)"><mat-icon>play_arrow</mat-icon>{{ loading() ? 'Executando…' : 'Executar endpoint' }}</button>
+        </section>
+      </form>
+      @if (error()) { <div class="error-banner" role="alert"><mat-icon>error_outline</mat-icon>{{ error() }}</div> }
+      @if (result(); as response) {
+        <section class="result-card">
+          <div class="result-heading"><h3>Resultado</h3><div class="result-meta"><span class="status" [class.failed]="!response.success">HTTP {{ response.status }} {{ response.statusText }}</span><span>{{ response.duration }} ms</span></div></div>
+          <div class="url-block"><div><strong>URL executada</strong><button mat-stroked-button type="button" (click)="copyUrl()"><mat-icon>{{ copied() ? 'check' : 'content_copy' }}</mat-icon>{{ copied() ? 'Copiada' : 'Copiar URL' }}</button></div><code>{{ response.url }}</code></div>
+          <pre class="response-body">{{ formatData(response.data) }}</pre>
+        </section>
+      }
+    </mat-dialog-content>
+    <mat-dialog-actions align="end"><button mat-button type="button" mat-dialog-close>Fechar</button></mat-dialog-actions>

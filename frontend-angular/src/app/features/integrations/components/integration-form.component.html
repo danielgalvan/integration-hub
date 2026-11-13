@@ -1,0 +1,41 @@
+    <mat-card class="editor-card">
+      <mat-card-header>
+        <mat-card-title>{{ readOnly ? 'Visualizar integração' : integration?.id ? 'Editar integração' : 'Nova integração' }}</mat-card-title>
+        <mat-card-subtitle>{{ readOnly ? 'Confira os dados e as regras de autenticação.' : 'Configure o caminho base e o acesso à integração.' }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <form [formGroup]="form" (ngSubmit)="submit()">
+          <div class="form-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>Nome</mat-label>
+              <input matInput formControlName="name" maxlength="100" [readonly]="readOnly">
+              @if (form.controls.name.hasError('required')) { <mat-error>Informe o nome.</mat-error> }
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Base path</mat-label>
+              <input matInput formControlName="basePath" placeholder="/api/pedidos" maxlength="200" [readonly]="readOnly">
+              @if (form.controls.basePath.hasError('required')) { <mat-error>Informe o base path.</mat-error> }
+              @if (form.controls.basePath.hasError('pattern')) { <mat-error>Use /api/nome, sem barra final ou espaços.</mat-error> }
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="wide">
+              <mat-label>Descrição</mat-label>
+              <textarea matInput formControlName="description" rows="3" maxlength="500" [readonly]="readOnly"></textarea>
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Autenticação do consumidor</mat-label>
+              <mat-select formControlName="authType">
+                <mat-option value="NONE">Sem autenticação</mat-option>
+                <mat-option value="API_KEY">API Key</mat-option>
+              </mat-select>
+              <mat-hint>{{ form.controls.authType.value === 'API_KEY' ? 'Os endpoints exigirão X-API-Key.' : 'Os endpoints poderão ser consumidos sem API Key.' }}</mat-hint>
+            </mat-form-field>
+            <div class="toggle-cell"><mat-slide-toggle formControlName="active">Integração ativa</mat-slide-toggle></div>
+          </div>
+          @if (formError) { <p class="form-error" role="alert">{{ formError }}</p> }
+          <div class="actions">
+            <button mat-button type="button" (click)="cancel.emit()">{{ readOnly ? 'Voltar' : 'Cancelar' }}</button>
+            @if (!readOnly) { <button mat-flat-button color="primary" type="submit" [disabled]="form.invalid || saving">{{ saving ? 'Salvando…' : integration?.id ? 'Salvar alterações' : 'Criar integração' }}</button> }
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>

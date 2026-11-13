@@ -1,0 +1,12 @@
+    <h2 mat-dialog-title class="dialog-title"><span><small>HISTÓRICO DE EXECUÇÃO</small>Detalhes da execução #{{ execution()?.id || summary.id }}</span><button mat-icon-button type="button" mat-dialog-close aria-label="Fechar"><mat-icon>close</mat-icon></button></h2>
+    <mat-dialog-content>
+      @if (loading()) { <mat-progress-bar mode="indeterminate" /> }
+      @if (error()) { <div class="error-banner" role="alert"><mat-icon>error_outline</mat-icon>{{ error() }}</div> }
+      @if (execution(); as item) {
+        <div class="details-grid">
+          @for (field of details(item); track field.label) { <div class="detail"><span>{{ field.label }}</span><strong [class.error-text]="field.label === 'Mensagem de erro' && field.value !== '—'">{{ field.value }}</strong></div> }
+        </div>
+        <section class="parameters"><h3>Parâmetros da requisição</h3><pre>{{ formatParameters(item.requestParameters) }}</pre></section>
+      }
+    </mat-dialog-content>
+    <mat-dialog-actions align="end"><button mat-button type="button" mat-dialog-close>Fechar</button></mat-dialog-actions>
